@@ -9,18 +9,25 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppRouteRouteImport } from './routes/_app/route'
+import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as ApiSin_inRouteImport } from './routes/api/sin_in'
 import { Route as ApiRefreshRouteImport } from './routes/api/refresh'
+import { Route as AppLayoutRouteImport } from './routes/_app/layout'
 import { Route as authRegisterRouteImport } from './routes/(auth)/register'
-import { Route as authRefreshRouteImport } from './routes/(auth)/refresh'
 import { Route as authLoginRouteImport } from './routes/(auth)/login'
+import { Route as AppAuthenticatedRouteRouteImport } from './routes/_app/_authenticated/route'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth.$'
+import { Route as AppAuthenticatedLayoutProfileRouteImport } from './routes/_app/_authenticated/layout.profile'
 
-const IndexRoute = IndexRouteImport.update({
+const AppRouteRoute = AppRouteRouteImport.update({
+  id: '/_app',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppIndexRoute = AppIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AppRouteRoute,
 } as any)
 const ApiSin_inRoute = ApiSin_inRouteImport.update({
   id: '/api/sin_in',
@@ -32,14 +39,14 @@ const ApiRefreshRoute = ApiRefreshRouteImport.update({
   path: '/api/refresh',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppLayoutRoute = AppLayoutRouteImport.update({
+  id: '/layout',
+  path: '/layout',
+  getParentRoute: () => AppRouteRoute,
+} as any)
 const authRegisterRoute = authRegisterRouteImport.update({
   id: '/(auth)/register',
   path: '/register',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const authRefreshRoute = authRefreshRouteImport.update({
-  id: '/(auth)/refresh',
-  path: '/refresh',
   getParentRoute: () => rootRouteImport,
 } as any)
 const authLoginRoute = authLoginRouteImport.update({
@@ -47,74 +54,93 @@ const authLoginRoute = authLoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppAuthenticatedRouteRoute = AppAuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
+  getParentRoute: () => AppRouteRoute,
+} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppAuthenticatedLayoutProfileRoute =
+  AppAuthenticatedLayoutProfileRouteImport.update({
+    id: '/layout/profile',
+    path: '/layout/profile',
+    getParentRoute: () => AppAuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
   '/login': typeof authLoginRoute
-  '/refresh': typeof authRefreshRoute
   '/register': typeof authRegisterRoute
+  '/layout': typeof AppLayoutRoute
   '/api/refresh': typeof ApiRefreshRoute
   '/api/sin_in': typeof ApiSin_inRoute
+  '/': typeof AppIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/layout/profile': typeof AppAuthenticatedLayoutProfileRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
   '/login': typeof authLoginRoute
-  '/refresh': typeof authRefreshRoute
   '/register': typeof authRegisterRoute
+  '/layout': typeof AppLayoutRoute
   '/api/refresh': typeof ApiRefreshRoute
   '/api/sin_in': typeof ApiSin_inRoute
+  '/': typeof AppIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/layout/profile': typeof AppAuthenticatedLayoutProfileRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
+  '/_app': typeof AppRouteRouteWithChildren
+  '/_app/_authenticated': typeof AppAuthenticatedRouteRouteWithChildren
   '/(auth)/login': typeof authLoginRoute
-  '/(auth)/refresh': typeof authRefreshRoute
   '/(auth)/register': typeof authRegisterRoute
+  '/_app/layout': typeof AppLayoutRoute
   '/api/refresh': typeof ApiRefreshRoute
   '/api/sin_in': typeof ApiSin_inRoute
+  '/_app/': typeof AppIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/_app/_authenticated/layout/profile': typeof AppAuthenticatedLayoutProfileRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    | '/'
     | '/login'
-    | '/refresh'
     | '/register'
+    | '/layout'
     | '/api/refresh'
     | '/api/sin_in'
+    | '/'
     | '/api/auth/$'
+    | '/layout/profile'
   fileRoutesByTo: FileRoutesByTo
   to:
-    | '/'
     | '/login'
-    | '/refresh'
     | '/register'
+    | '/layout'
     | '/api/refresh'
     | '/api/sin_in'
+    | '/'
     | '/api/auth/$'
+    | '/layout/profile'
   id:
     | '__root__'
-    | '/'
+    | '/_app'
+    | '/_app/_authenticated'
     | '/(auth)/login'
-    | '/(auth)/refresh'
     | '/(auth)/register'
+    | '/_app/layout'
     | '/api/refresh'
     | '/api/sin_in'
+    | '/_app/'
     | '/api/auth/$'
+    | '/_app/_authenticated/layout/profile'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
+  AppRouteRoute: typeof AppRouteRouteWithChildren
   authLoginRoute: typeof authLoginRoute
-  authRefreshRoute: typeof authRefreshRoute
   authRegisterRoute: typeof authRegisterRoute
   ApiRefreshRoute: typeof ApiRefreshRoute
   ApiSin_inRoute: typeof ApiSin_inRoute
@@ -123,12 +149,19 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
+    '/_app': {
+      id: '/_app'
+      path: ''
+      fullPath: ''
+      preLoaderRoute: typeof AppRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_app/': {
+      id: '/_app/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AppIndexRouteImport
+      parentRoute: typeof AppRouteRoute
     }
     '/api/sin_in': {
       id: '/api/sin_in'
@@ -144,18 +177,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiRefreshRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app/layout': {
+      id: '/_app/layout'
+      path: '/layout'
+      fullPath: '/layout'
+      preLoaderRoute: typeof AppLayoutRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
     '/(auth)/register': {
       id: '/(auth)/register'
       path: '/register'
       fullPath: '/register'
       preLoaderRoute: typeof authRegisterRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/(auth)/refresh': {
-      id: '/(auth)/refresh'
-      path: '/refresh'
-      fullPath: '/refresh'
-      preLoaderRoute: typeof authRefreshRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/(auth)/login': {
@@ -165,6 +198,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof authLoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app/_authenticated': {
+      id: '/_app/_authenticated'
+      path: ''
+      fullPath: ''
+      preLoaderRoute: typeof AppAuthenticatedRouteRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
     '/api/auth/$': {
       id: '/api/auth/$'
       path: '/api/auth/$'
@@ -172,13 +212,48 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app/_authenticated/layout/profile': {
+      id: '/_app/_authenticated/layout/profile'
+      path: '/layout/profile'
+      fullPath: '/layout/profile'
+      preLoaderRoute: typeof AppAuthenticatedLayoutProfileRouteImport
+      parentRoute: typeof AppAuthenticatedRouteRoute
+    }
   }
 }
 
+interface AppAuthenticatedRouteRouteChildren {
+  AppAuthenticatedLayoutProfileRoute: typeof AppAuthenticatedLayoutProfileRoute
+}
+
+const AppAuthenticatedRouteRouteChildren: AppAuthenticatedRouteRouteChildren = {
+  AppAuthenticatedLayoutProfileRoute: AppAuthenticatedLayoutProfileRoute,
+}
+
+const AppAuthenticatedRouteRouteWithChildren =
+  AppAuthenticatedRouteRoute._addFileChildren(
+    AppAuthenticatedRouteRouteChildren,
+  )
+
+interface AppRouteRouteChildren {
+  AppAuthenticatedRouteRoute: typeof AppAuthenticatedRouteRouteWithChildren
+  AppLayoutRoute: typeof AppLayoutRoute
+  AppIndexRoute: typeof AppIndexRoute
+}
+
+const AppRouteRouteChildren: AppRouteRouteChildren = {
+  AppAuthenticatedRouteRoute: AppAuthenticatedRouteRouteWithChildren,
+  AppLayoutRoute: AppLayoutRoute,
+  AppIndexRoute: AppIndexRoute,
+}
+
+const AppRouteRouteWithChildren = AppRouteRoute._addFileChildren(
+  AppRouteRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
+  AppRouteRoute: AppRouteRouteWithChildren,
   authLoginRoute: authLoginRoute,
-  authRefreshRoute: authRefreshRoute,
   authRegisterRoute: authRegisterRoute,
   ApiRefreshRoute: ApiRefreshRoute,
   ApiSin_inRoute: ApiSin_inRoute,

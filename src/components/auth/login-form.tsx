@@ -5,7 +5,7 @@ import { useServerFn } from '@tanstack/react-start';
 import { revalidateLogic } from '@tanstack/react-form';
 // hooks
 // components
-import { useAppForm } from '@/components/form';
+import { useAppForm } from '@/components/main-form';
 // lib
 import i18n from '@/lib/i18n';
 

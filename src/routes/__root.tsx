@@ -19,14 +19,20 @@ import type { QueryClient } from '@tanstack/react-query'
 import { Toaster } from '@/components/ui/sonner'
 
 import { setSSRLanguage } from '@/lib/i18n'
+import { authQueries } from '@/services/queries'
 
 interface MyRouterContext {
   queryClient: QueryClient
 }
 
 export const Route = createRootRouteWithContext<MyRouterContext>()({
-  beforeLoad: async () => {
-    await setSSRLanguage()
+  beforeLoad: async ({ context }) => {
+    const authState = await context.queryClient.ensureQueryData(
+      authQueries.user(),
+    )
+    console.log('RENDER')
+    await setSSRLanguage();
+    return { authState }
   },
   head: () => ({
     meta: [
