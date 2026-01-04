@@ -1,0 +1,25 @@
+{
+  "form": {
+    "login": {
+      "title": "Вхід",
+      "email": "Електронна пошта",
+      "password": "Пароль",
+      "submit": "Увійти"
+    },
+    "register": {
+      "title": "Реєстрація",
+      "email": "Електронна пошта",
+      "password": "Пароль",
+      "submit": "Зареєструватися",
+      "name": "Ім'я"
+    },
+    "error": {
+      "emailRequired": "Електронна пошта є обов'язковою",
+      "passwordRequired": "Пароль є обов'язковим",
+      "emailInvalid": "Некоректна електронна пошта",
+      "emailAlreadyExists": "Електронна пошта вже існує",
+      "emailOrPasswordInvalid": "Некоректна електронна пошта або пароль",
+      "passwordMinLength": "Пароль повинен бути не менше 8 символів"
+    }
+  }
+}
