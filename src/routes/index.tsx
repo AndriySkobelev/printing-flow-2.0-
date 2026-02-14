@@ -3,9 +3,9 @@ import { authServeMiddleware } from '@/lib/auth/auth-middleware'
 
 
 export const Route = createFileRoute('/')({
-  server: {
-    middleware: [authServeMiddleware as any]
-  },
+  // server: {
+  //   middleware: [authServeMiddleware as any]
+  // },
   beforeLoad: ({ context }) => {
     console.log('beforeLoad ------- context', context)
   },
@@ -17,7 +17,7 @@ function App() {
   console.log("🚀 ~ data:", data)
   return (
     <div className="min-h-screen">
-      
+        ісфісф
     </div>
   )
 }

@@ -19,7 +19,7 @@ export const FormTextField = ({ type, placeholder, label }: { type: string, plac
         value={value}
         onChange={fieldOnChange}
         placeholder={placeholder}
-        className="placeholder:text-gray-300"
+        className="placeholder:text-gray-300 h-[38px]"
       />
       {!isValid && <div className="text-sm text-red-500 ml-2">{errors?.[0]?.message}</div>}
     </div>

@@ -12,8 +12,11 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiSin_inRouteImport } from './routes/api/sin_in'
 import { Route as ApiRefreshRouteImport } from './routes/api/refresh'
+import { Route as authStoreMovementsRouteImport } from './routes/(auth)/storeMovements'
+import { Route as authStoreRouteImport } from './routes/(auth)/store'
 import { Route as authRegisterRouteImport } from './routes/(auth)/register'
 import { Route as authRefreshRouteImport } from './routes/(auth)/refresh'
+import { Route as authProductsRouteImport } from './routes/(auth)/products'
 import { Route as authLoginRouteImport } from './routes/(auth)/login'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth.$'
 
@@ -32,6 +35,16 @@ const ApiRefreshRoute = ApiRefreshRouteImport.update({
   path: '/api/refresh',
   getParentRoute: () => rootRouteImport,
 } as any)
+const authStoreMovementsRoute = authStoreMovementsRouteImport.update({
+  id: '/(auth)/storeMovements',
+  path: '/storeMovements',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const authStoreRoute = authStoreRouteImport.update({
+  id: '/(auth)/store',
+  path: '/store',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const authRegisterRoute = authRegisterRouteImport.update({
   id: '/(auth)/register',
   path: '/register',
@@ -40,6 +53,11 @@ const authRegisterRoute = authRegisterRouteImport.update({
 const authRefreshRoute = authRefreshRouteImport.update({
   id: '/(auth)/refresh',
   path: '/refresh',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const authProductsRoute = authProductsRouteImport.update({
+  id: '/(auth)/products',
+  path: '/products',
   getParentRoute: () => rootRouteImport,
 } as any)
 const authLoginRoute = authLoginRouteImport.update({
@@ -56,8 +74,11 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof authLoginRoute
+  '/products': typeof authProductsRoute
   '/refresh': typeof authRefreshRoute
   '/register': typeof authRegisterRoute
+  '/store': typeof authStoreRoute
+  '/storeMovements': typeof authStoreMovementsRoute
   '/api/refresh': typeof ApiRefreshRoute
   '/api/sin_in': typeof ApiSin_inRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -65,8 +86,11 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof authLoginRoute
+  '/products': typeof authProductsRoute
   '/refresh': typeof authRefreshRoute
   '/register': typeof authRegisterRoute
+  '/store': typeof authStoreRoute
+  '/storeMovements': typeof authStoreMovementsRoute
   '/api/refresh': typeof ApiRefreshRoute
   '/api/sin_in': typeof ApiSin_inRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -75,8 +99,11 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/(auth)/login': typeof authLoginRoute
+  '/(auth)/products': typeof authProductsRoute
   '/(auth)/refresh': typeof authRefreshRoute
   '/(auth)/register': typeof authRegisterRoute
+  '/(auth)/store': typeof authStoreRoute
+  '/(auth)/storeMovements': typeof authStoreMovementsRoute
   '/api/refresh': typeof ApiRefreshRoute
   '/api/sin_in': typeof ApiSin_inRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -86,8 +113,11 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/login'
+    | '/products'
     | '/refresh'
     | '/register'
+    | '/store'
+    | '/storeMovements'
     | '/api/refresh'
     | '/api/sin_in'
     | '/api/auth/$'
@@ -95,8 +125,11 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/login'
+    | '/products'
     | '/refresh'
     | '/register'
+    | '/store'
+    | '/storeMovements'
     | '/api/refresh'
     | '/api/sin_in'
     | '/api/auth/$'
@@ -104,8 +137,11 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/(auth)/login'
+    | '/(auth)/products'
     | '/(auth)/refresh'
     | '/(auth)/register'
+    | '/(auth)/store'
+    | '/(auth)/storeMovements'
     | '/api/refresh'
     | '/api/sin_in'
     | '/api/auth/$'
@@ -114,8 +150,11 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   authLoginRoute: typeof authLoginRoute
+  authProductsRoute: typeof authProductsRoute
   authRefreshRoute: typeof authRefreshRoute
   authRegisterRoute: typeof authRegisterRoute
+  authStoreRoute: typeof authStoreRoute
+  authStoreMovementsRoute: typeof authStoreMovementsRoute
   ApiRefreshRoute: typeof ApiRefreshRoute
   ApiSin_inRoute: typeof ApiSin_inRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
@@ -144,6 +183,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiRefreshRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/(auth)/storeMovements': {
+      id: '/(auth)/storeMovements'
+      path: '/storeMovements'
+      fullPath: '/storeMovements'
+      preLoaderRoute: typeof authStoreMovementsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/(auth)/store': {
+      id: '/(auth)/store'
+      path: '/store'
+      fullPath: '/store'
+      preLoaderRoute: typeof authStoreRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/(auth)/register': {
       id: '/(auth)/register'
       path: '/register'
@@ -156,6 +209,13 @@ declare module '@tanstack/react-router' {
       path: '/refresh'
       fullPath: '/refresh'
       preLoaderRoute: typeof authRefreshRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/(auth)/products': {
+      id: '/(auth)/products'
+      path: '/products'
+      fullPath: '/products'
+      preLoaderRoute: typeof authProductsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/(auth)/login': {
@@ -178,8 +238,11 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   authLoginRoute: authLoginRoute,
+  authProductsRoute: authProductsRoute,
   authRefreshRoute: authRefreshRoute,
   authRegisterRoute: authRegisterRoute,
+  authStoreRoute: authStoreRoute,
+  authStoreMovementsRoute: authStoreMovementsRoute,
   ApiRefreshRoute: ApiRefreshRoute,
   ApiSin_inRoute: ApiSin_inRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
