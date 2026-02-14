@@ -1,12 +1,17 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
 import { useServerFn } from '@tanstack/react-start'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 // components
-import LogInForm from './-components/login-form'
+import LogInForm from '../../components/auth/login-form'
 // hooks
-import { serverSinIn } from '@/lib/auth/auth-server'
+import { loginSupabaseFn } from '@/lib/auth/auth-server'
+import { useMutation, useQuery, useQueryClient  } from '@tanstack/react-query'
 
+type LoginSupabaseFnResponse = {
+  error?: boolean | undefined;
+  message?: string | undefined;
+}
 // route
 export const Route = createFileRoute('/(auth)/login')({
   component: RouteComponent,
@@ -14,27 +19,27 @@ export const Route = createFileRoute('/(auth)/login')({
 
 function RouteComponent() {
   const { t } = useTranslation();
-
   const navigate = useNavigate();
-  const actionSubmit = async (data: any) => {
-    const response = await fetch('/api/sin_in', {
-      method: 'POST',
-      body: JSON.stringify(data)
-    });
+  const queryClient = useQueryClient();
 
-    if (response.status === 200) {
-      throw navigate({ to: '/'})
-    }
-    console.log('HERE')
-    toast.error(response.statusText, {
-      duration: 3000,
-      position: 'bottom-center',
-    })
-  }
+  const { mutate: logIn } = useMutation({
+    mutationFn: (data: any) =>  loginSupabaseFn({ data }),
+    onSuccess: (data) => {
+      console.log('HERE', data)
+      queryClient.resetQueries()
+      navigate({ to: "/" })
+      if (data?.error) {
+        toast.error(data?.message, {
+          duration: 3000,
+          position: 'top-center',
+        })
+      }
+    },
+  })
 
   return (
     <div>
-      <LogInForm actionSubmit={actionSubmit} />
+      <LogInForm actionSubmit={logIn} />
     </div>
   )
 }

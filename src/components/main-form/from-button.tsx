@@ -1,5 +1,6 @@
+import { Loader2 } from "lucide-react";
 import { Button } from "../ui/button";
-import { useFormContext } from "@/components/form";
+import { useFormContext } from "@/components/main-form";
 
 export const FormButton = ({
   label,
@@ -14,10 +15,11 @@ export const FormButton = ({
 }) => {
   const form = useFormContext();
   return (
-    <form.Subscribe selector={(state: any) => state.isSubmitting}>
-      {({ isSubmitting }) => (
-        <Button type={type} disabled={isSubmitting} variant={variant} className="w-full" formNoValidate onClick={onClick}>
+    <form.Subscribe selector={(state: any) => [state.canSubmit, state.isSubmitting]}>
+      {([canSubmit, isSubmitting]) => (
+        <Button type={type} disabled={!canSubmit} variant={variant} className="w-full" formNoValidate onClick={onClick}>
           {label}
+          {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
         </Button>
       )}
     </form.Subscribe>
