@@ -57,7 +57,7 @@ const convertDataMaterials = () => {
 }
  
 const SpecificationsTable: FunctionComponent<ProductsProps> = () => {
-  const { data } = useQuery(convexQuery(api.materials.getMaterials, {}));
+  const { data } = useQuery(convexQuery(api.queries.materials.getMaterials, {}));
   const createMutation = useCreateAllMaterials();
   const { openDialog, closeDialog } = useContext(DialogContext);
 

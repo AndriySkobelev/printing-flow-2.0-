@@ -1,14 +1,15 @@
 import * as R from 'ramda'
-import { ArrowUpSquare, ArrowDownSquare, LockKeyhole } from 'lucide-react'
-import { type FunctionComponent, useContext, useMemo, useState } from "react";
-import { type CellClickProps, SimpleTable  } from "simple-table-core";
+import { ArrowDownSquare, ArrowUpSquare, LockKeyhole } from 'lucide-react'
+import { useContext } from "react";
+import type {FunctionComponent} from "react";
 import { useQuery } from '@tanstack/react-query'
 import { useCreateIncomingMutation, useMigrateMutation } from './queries';
 import { convexQuery } from '@convex-dev/react-query'
 import { api } from "convex/_generated/api";
-import ComingMaterialForm, { type IncomingFormData } from './forms/coming';
+import ComingMaterialForm from './forms/coming';
+import type {IncomingFormData} from './forms/coming';
 import type { Fabrics, StoreMovements } from "convex/schema";
-import type { HeaderObject, Theme } from "simple-table-core";
+import { type HeaderObject, SimpleTable } from "simple-table-core";
 import { DialogContext } from '@/contexts/dialog'
 import { Button } from '@/components/ui/button';
 import "simple-table-core/styles.css";
@@ -106,7 +107,7 @@ export type MaterialsOption = ReturnType<typeof generateOptions>;
  
 const InventoryMovement: FunctionComponent = () => {
   const { openDialog, closeDialog, setIsLoading } = useContext(DialogContext);
-  const { data } = useQuery(convexQuery(api.materials.getMovements, {}));
+  const { data } = useQuery(convexQuery(api.queries.materials.getMovements, {}));
   const incomingMutation = useCreateIncomingMutation();
   const someMutate = useMigrateMutation();
 

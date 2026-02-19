@@ -12,13 +12,13 @@ const config = defineConfig({
   // },
   plugins: [
     // devtools(),
-    // netlify(),
     // this is the plugin that enables path aliases
     viteTsConfigPaths({
       projects: ['./tsconfig.json'],
     }),
     tailwindcss(),
     tanstackStart(),
+    netlify(),
     viteReact(),
   ],
 })

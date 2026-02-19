@@ -27,12 +27,12 @@ interface MyRouterContext {
 
 export const Route = createRootRouteWithContext<MyRouterContext>()({
   beforeLoad: async ({ context }) => {
-    const authState = await context.queryClient.ensureQueryData(
-      authQueries.user(),
-    )
+    // const authState = await context.queryClient.ensureQueryData(
+    //   authQueries.user(),
+    // )
     console.log('RENDER')
     await setSSRLanguage();
-    return { authState }
+    // return { authState }
   },
   head: () => ({
     meta: [

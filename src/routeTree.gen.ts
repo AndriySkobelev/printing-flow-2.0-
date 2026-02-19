@@ -11,7 +11,6 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteRouteImport } from './routes/_app/route'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
-import { Route as ApiRefreshRouteImport } from './routes/api/refresh'
 import { Route as AppLayoutRouteImport } from './routes/_app/layout'
 import { Route as authStoreRouteImport } from './routes/(auth)/store'
 import { Route as authSpecificationsRouteImport } from './routes/(auth)/specifications'
@@ -20,7 +19,6 @@ import { Route as authProductsRouteImport } from './routes/(auth)/products'
 import { Route as authLoginRouteImport } from './routes/(auth)/login'
 import { Route as authInventoryMovementRouteImport } from './routes/(auth)/inventory-movement'
 import { Route as AppAuthenticatedRouteRouteImport } from './routes/_app/_authenticated/route'
-import { Route as ApiAuthSplatRouteImport } from './routes/api/auth.$'
 import { Route as AppAuthenticatedLayoutProfileRouteImport } from './routes/_app/_authenticated/layout.profile'
 
 const AppRouteRoute = AppRouteRouteImport.update({
@@ -31,11 +29,6 @@ const AppIndexRoute = AppIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AppRouteRoute,
-} as any)
-const ApiRefreshRoute = ApiRefreshRouteImport.update({
-  id: '/api/refresh',
-  path: '/api/refresh',
-  getParentRoute: () => rootRouteImport,
 } as any)
 const AppLayoutRoute = AppLayoutRouteImport.update({
   id: '/layout',
@@ -76,11 +69,6 @@ const AppAuthenticatedRouteRoute = AppAuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
   getParentRoute: () => AppRouteRoute,
 } as any)
-const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
-  id: '/api/auth/$',
-  path: '/api/auth/$',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AppAuthenticatedLayoutProfileRoute =
   AppAuthenticatedLayoutProfileRouteImport.update({
     id: '/layout/profile',
@@ -89,6 +77,7 @@ const AppAuthenticatedLayoutProfileRoute =
   } as any)
 
 export interface FileRoutesByFullPath {
+  '/': typeof AppIndexRoute
   '/inventory-movement': typeof authInventoryMovementRoute
   '/login': typeof authLoginRoute
   '/products': typeof authProductsRoute
@@ -96,12 +85,10 @@ export interface FileRoutesByFullPath {
   '/specifications': typeof authSpecificationsRoute
   '/store': typeof authStoreRoute
   '/layout': typeof AppLayoutRoute
-  '/api/refresh': typeof ApiRefreshRoute
-  '/': typeof AppIndexRoute
-  '/api/auth/$': typeof ApiAuthSplatRoute
   '/layout/profile': typeof AppAuthenticatedLayoutProfileRoute
 }
 export interface FileRoutesByTo {
+  '/': typeof AppIndexRoute
   '/inventory-movement': typeof authInventoryMovementRoute
   '/login': typeof authLoginRoute
   '/products': typeof authProductsRoute
@@ -109,9 +96,6 @@ export interface FileRoutesByTo {
   '/specifications': typeof authSpecificationsRoute
   '/store': typeof authStoreRoute
   '/layout': typeof AppLayoutRoute
-  '/api/refresh': typeof ApiRefreshRoute
-  '/': typeof AppIndexRoute
-  '/api/auth/$': typeof ApiAuthSplatRoute
   '/layout/profile': typeof AppAuthenticatedLayoutProfileRoute
 }
 export interface FileRoutesById {
@@ -125,14 +109,13 @@ export interface FileRoutesById {
   '/(auth)/specifications': typeof authSpecificationsRoute
   '/(auth)/store': typeof authStoreRoute
   '/_app/layout': typeof AppLayoutRoute
-  '/api/refresh': typeof ApiRefreshRoute
   '/_app/': typeof AppIndexRoute
-  '/api/auth/$': typeof ApiAuthSplatRoute
   '/_app/_authenticated/layout/profile': typeof AppAuthenticatedLayoutProfileRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
+    | '/'
     | '/inventory-movement'
     | '/login'
     | '/products'
@@ -140,12 +123,10 @@ export interface FileRouteTypes {
     | '/specifications'
     | '/store'
     | '/layout'
-    | '/api/refresh'
-    | '/'
-    | '/api/auth/$'
     | '/layout/profile'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/'
     | '/inventory-movement'
     | '/login'
     | '/products'
@@ -153,9 +134,6 @@ export interface FileRouteTypes {
     | '/specifications'
     | '/store'
     | '/layout'
-    | '/api/refresh'
-    | '/'
-    | '/api/auth/$'
     | '/layout/profile'
   id:
     | '__root__'
@@ -168,9 +146,7 @@ export interface FileRouteTypes {
     | '/(auth)/specifications'
     | '/(auth)/store'
     | '/_app/layout'
-    | '/api/refresh'
     | '/_app/'
-    | '/api/auth/$'
     | '/_app/_authenticated/layout/profile'
   fileRoutesById: FileRoutesById
 }
@@ -182,8 +158,6 @@ export interface RootRouteChildren {
   authRegisterRoute: typeof authRegisterRoute
   authSpecificationsRoute: typeof authSpecificationsRoute
   authStoreRoute: typeof authStoreRoute
-  ApiRefreshRoute: typeof ApiRefreshRoute
-  ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -191,7 +165,7 @@ declare module '@tanstack/react-router' {
     '/_app': {
       id: '/_app'
       path: ''
-      fullPath: ''
+      fullPath: '/'
       preLoaderRoute: typeof AppRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
@@ -201,13 +175,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRouteRoute
-    }
-    '/api/refresh': {
-      id: '/api/refresh'
-      path: '/api/refresh'
-      fullPath: '/api/refresh'
-      preLoaderRoute: typeof ApiRefreshRouteImport
-      parentRoute: typeof rootRouteImport
     }
     '/_app/layout': {
       id: '/_app/layout'
@@ -261,16 +228,9 @@ declare module '@tanstack/react-router' {
     '/_app/_authenticated': {
       id: '/_app/_authenticated'
       path: ''
-      fullPath: ''
+      fullPath: '/'
       preLoaderRoute: typeof AppAuthenticatedRouteRouteImport
       parentRoute: typeof AppRouteRoute
-    }
-    '/api/auth/$': {
-      id: '/api/auth/$'
-      path: '/api/auth/$'
-      fullPath: '/api/auth/$'
-      preLoaderRoute: typeof ApiAuthSplatRouteImport
-      parentRoute: typeof rootRouteImport
     }
     '/_app/_authenticated/layout/profile': {
       id: '/_app/_authenticated/layout/profile'
@@ -319,8 +279,6 @@ const rootRouteChildren: RootRouteChildren = {
   authRegisterRoute: authRegisterRoute,
   authSpecificationsRoute: authSpecificationsRoute,
   authStoreRoute: authStoreRoute,
-  ApiRefreshRoute: ApiRefreshRoute,
-  ApiAuthSplatRoute: ApiAuthSplatRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

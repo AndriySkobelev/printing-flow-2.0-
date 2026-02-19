@@ -1,6 +1,6 @@
 import { httpAction } from "../_generated/server";
 import { keyRequest } from '../../src/utils/index';
-import { type StoreMovements } from "../schema";
+import type {StoreMovements} from "../schema";
 
 const processingIcoming = async ({ orderId, menegerId }:{ orderId: number, menegerId?: number }) => {
   const getCrmOrder = await keyRequest(`/order/${orderId}`, 'get', {
