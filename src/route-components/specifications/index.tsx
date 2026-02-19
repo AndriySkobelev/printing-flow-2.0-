@@ -1,18 +1,18 @@
 import { type FunctionComponent, useContext } from "react";
-import {  SimpleTable  } from "simple-table-core";
+import * as table from "simple-table-core";
 import { useQuery } from '@tanstack/react-query'
 import { convexQuery } from '@convex-dev/react-query'
 import { api } from "convex/_generated/api";
 import { type IncomingFormData } from '../incoming-materials/forms/coming';
 import type { HeaderObject } from "simple-table-core";
 import { DialogContext } from '@/contexts/dialog'
-import "simple-table-core/styles.css";
 import { useCreateAllMaterials } from "./queries";
 import someJsonDataKashkorse from '@/custom-data/materials_rows (kashkorse).json'
 import someJsonDataRiabana from '@/custom-data/materials_rows (ribana).json'
 import someJsonDataTape from '@/custom-data/materials_rows.json'
 import { Button } from "@/components/ui/button";
-
+import "simple-table-core/styles.css";
+const { SimpleTable } = table;
 interface ProductsProps {
 }
 

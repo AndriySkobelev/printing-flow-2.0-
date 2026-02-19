@@ -23,7 +23,6 @@ const pages = [
 
 export default function Header() {
   const location = useLocation()
-  console.log("🚀 ~ Header ~ location:", location)
   return (
     <div className="flex text-white justify-center px-4">
       <Tabs className="py-4 px-8">

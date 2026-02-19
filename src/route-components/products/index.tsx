@@ -1,5 +1,5 @@
 import { type FunctionComponent, useContext } from "react";
-import {  SimpleTable  } from "simple-table-core";
+import * as table from "simple-table-core";
 import { useQuery } from '@tanstack/react-query'
 import { convexQuery } from '@convex-dev/react-query'
 import { api } from "convex/_generated/api";
@@ -12,7 +12,7 @@ import someJsonDataKashkorse from '@/custom-data/materials_rows (kashkorse).json
 import someJsonDataRiabana from '@/custom-data/materials_rows (ribana).json'
 import someJsonDataTape from '@/custom-data/materials_rows.json'
 import { Button } from "@/components/ui/button";
-
+const { SimpleTable } = table;
 interface ProductsProps {
 }
 
@@ -57,7 +57,7 @@ const convertDataMaterials = () => {
 }
  
 const Products: FunctionComponent<ProductsProps> = () => {
-  const { data } = useQuery(convexQuery(api.materials.getMaterials, {}));
+  const { data } = useQuery(convexQuery(api.queries.materials.getMaterials, {}));
   const createMutation = useCreateAllMaterials();
   const { openDialog, closeDialog } = useContext(DialogContext);
 

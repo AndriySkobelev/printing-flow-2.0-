@@ -30,7 +30,6 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
     // const authState = await context.queryClient.ensureQueryData(
     //   authQueries.user(),
     // )
-    console.log('RENDER')
     await setSSRLanguage();
     // return { authState }
   },

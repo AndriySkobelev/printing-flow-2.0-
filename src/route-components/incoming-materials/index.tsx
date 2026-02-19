@@ -9,12 +9,13 @@ import { api } from "convex/_generated/api";
 import ComingMaterialForm from './forms/coming';
 import type {IncomingFormData} from './forms/coming';
 import type { Fabrics, StoreMovements } from "convex/schema";
-import { type HeaderObject, SimpleTable } from "simple-table-core";
+import * as pkg from "simple-table-core";
+import { type HeaderObject } from "simple-table-core";
 import { DialogContext } from '@/contexts/dialog'
 import { Button } from '@/components/ui/button';
 import "simple-table-core/styles.css";
+const { SimpleTable } = pkg;
 import "simple-table-my-theme.css"
-
 const typeIcons = {
   incoming: {
     bg: '#e0f5dd',

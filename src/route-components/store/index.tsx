@@ -1,17 +1,11 @@
-import * as R from 'ramda'
-import { type FunctionComponent, useContext, useMemo, useState } from "react";
-import { type CellClickProps, SimpleTable  } from "simple-table-core";
+import { type FunctionComponent,  } from "react";
+import * as table from 'simple-table-core'
 import { useQuery } from '@tanstack/react-query'
-import { useCreateIncomingMutation } from '../incoming-materials/queries';
 import { convexQuery } from '@convex-dev/react-query'
 import { api } from "convex/_generated/api";
-import ComingMaterialForm, { type IncomingFormData } from '../incoming-materials/forms/coming';
-import type { Materials } from "convex/schema";
 import type { HeaderObject, Theme } from "simple-table-core";
-import { DialogContext } from '@/contexts/dialog'
-import { Button } from '@/components/ui/button';
 import "simple-table-core/styles.css";
-
+const { SimpleTable } = table;
 interface StoreProps {
   height?: number | string;
   theme?: Theme;
@@ -44,7 +38,7 @@ const Store: FunctionComponent<StoreProps> = ({
   height = 500,
   theme
 }) => {
-  const { data } = useQuery(convexQuery(api.materials.getMaterials, {}));
+  const { data } = useQuery(convexQuery(api.queries.materials.getMaterials, {}));
 
   const handleCellClick = (row: any) => {
     console.log("🚀 ~ handleCellClick ~ data:", row)
