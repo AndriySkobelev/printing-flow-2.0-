@@ -1,9 +1,9 @@
-import { type FunctionComponent, useContext } from "react";
+import { type FunctionComponent, lazy, useContext, Suspense } from "react";
 import { useQuery } from '@tanstack/react-query'
 import { convexQuery } from '@convex-dev/react-query'
 import { api } from "convex/_generated/api";
 import { type IncomingFormData } from '../incoming-materials/forms/coming';
-import { type HeaderObject, SimpleTable } from "simple-table-core";
+import { type HeaderObject } from "simple-table-core";
 import { DialogContext } from '@/contexts/dialog'
 import { useCreateAllMaterials } from "./queries";
 import someJsonDataKashkorse from '@/custom-data/materials_rows (kashkorse).json'
@@ -11,6 +11,9 @@ import someJsonDataRiabana from '@/custom-data/materials_rows (ribana).json'
 import someJsonDataTape from '@/custom-data/materials_rows.json'
 import { Button } from "@/components/ui/button";
 import "simple-table-core/styles.css";
+const SimpleTable = lazy(() => 
+  import('simple-table-core').then(m => ({ default: m.SimpleTable }))
+)
 interface ProductsProps {
 }
 
@@ -91,21 +94,23 @@ const SpecificationsTable: FunctionComponent<ProductsProps> = () => {
       <div className="w-fit">
         <Button className="w-full" onClick={handleCrateMaterial}>Додати специфікацію</Button>
       </div>
-      <SimpleTable
-        rows={[]}
-        height={400}
-        theme={'custom'}
-        columnResizing
-        enableStickyParents
-        onCellClick={handleCellClick}
-        // rowGrouping={['group', 'data']}
-        defaultHeaders={headers}
-        customTheme={{
-          rowHeight: 40,
-          headerHeight: 50,
-        }}
-        getRowId={({ row }) => row.id as string}
-      />
+      <Suspense fallback={<div>Loading...</div>}>
+        <SimpleTable
+          rows={[]}
+          height={400}
+          theme={'custom'}
+          columnResizing
+          enableStickyParents
+          onCellClick={handleCellClick}
+          // rowGrouping={['group', 'data']}
+          defaultHeaders={headers}
+          customTheme={{
+            rowHeight: 40,
+            headerHeight: 50,
+          }}
+          getRowId={({ row }) => row.id as string}
+        />
+      </Suspense>
     </div>
   );
 }

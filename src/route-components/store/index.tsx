@@ -1,9 +1,12 @@
-import { type FunctionComponent,  } from "react";
-import { type HeaderObject, Theme, SimpleTable } from "simple-table-core";
+import { type FunctionComponent, lazy, Suspense } from "react";
+import { type HeaderObject, Theme } from "simple-table-core";
 import { useQuery } from '@tanstack/react-query'
 import { convexQuery } from '@convex-dev/react-query'
 import { api } from "convex/_generated/api";
 import "simple-table-core/styles.css";
+const SimpleTable = lazy(() => 
+  import('simple-table-core').then(m => ({ default: m.SimpleTable }))
+)
 interface StoreProps {
   height?: number | string;
   theme?: Theme;
@@ -44,24 +47,26 @@ const Store: FunctionComponent<StoreProps> = ({
   
   return (
     <div className="flex flex-col gap-4 p-4">
-      <SimpleTable
-        editColumns
-        theme={theme}
-        height={height}
-        selectableCells
-        expandAll={false}
-        rows={[]}
-        columnResizing
-        enableStickyParents
-        onCellClick={handleCellClick}
-        rowGrouping={['group', 'data']}
-        defaultHeaders={headers}
-        customTheme={{
-          rowHeight: 40,
-          headerHeight: 50,
-        }}
-        getRowId={({ row }) => row.id as string}
-      />
+      <Suspense fallback={<div>Loading...</div>}>
+        <SimpleTable
+          editColumns
+          theme={theme}
+          height={height}
+          selectableCells
+          expandAll={false}
+          rows={[]}
+          columnResizing
+          enableStickyParents
+          onCellClick={handleCellClick}
+          rowGrouping={['group', 'data']}
+          defaultHeaders={headers}
+          customTheme={{
+            rowHeight: 40,
+            headerHeight: 50,
+          }}
+          getRowId={({ row }) => row.id as string}
+        />
+      </Suspense>
     </div>
   );
 }

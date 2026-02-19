@@ -1,5 +1,6 @@
+import { lazy, Suspense } from "react";
 import { type FunctionComponent, useContext } from "react";
-import { type HeaderObject, SimpleTable } from "simple-table-core";
+import { type HeaderObject } from "simple-table-core";
 import { useQuery } from '@tanstack/react-query'
 import { convexQuery } from '@convex-dev/react-query'
 import { api } from "convex/_generated/api";
@@ -11,6 +12,9 @@ import someJsonDataKashkorse from '@/custom-data/materials_rows (kashkorse).json
 import someJsonDataRiabana from '@/custom-data/materials_rows (ribana).json'
 import someJsonDataTape from '@/custom-data/materials_rows.json'
 import { Button } from "@/components/ui/button";
+const SimpleTable = lazy(() => 
+  import('simple-table-core').then(m => ({ default: m.SimpleTable }))
+)
 interface ProductsProps {
 }
 
@@ -89,24 +93,26 @@ const Products: FunctionComponent<ProductsProps> = () => {
   return (
     <div className="flex flex-col gap-4 p-4">
       <Button onClick={handleCrateMaterial}>Create materials</Button>
-      <SimpleTable
-        rows={[]}
-        editColumns
-        height={400}
-        theme={'custom'}
-        selectableCells
-        expandAll={false}
-        columnResizing
-        enableStickyParents
-        onCellClick={handleCellClick}
-        rowGrouping={['group', 'data']}
-        defaultHeaders={headers}
-        customTheme={{
-          rowHeight: 40,
-          headerHeight: 50,
-        }}
-        getRowId={({ row }) => row.id as string}
-      />
+      <Suspense fallback={<div>Loading..</div>}>
+        <SimpleTable
+          rows={[]}
+          editColumns
+          height={400}
+          theme={'custom'}
+          selectableCells
+          expandAll={false}
+          columnResizing
+          enableStickyParents
+          onCellClick={handleCellClick}
+          rowGrouping={['group', 'data']}
+          defaultHeaders={headers}
+          customTheme={{
+            rowHeight: 40,
+            headerHeight: 50,
+          }}
+          getRowId={({ row }) => row.id as string}
+        />
+      </Suspense>
     </div>
   );
 }

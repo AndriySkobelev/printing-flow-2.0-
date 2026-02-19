@@ -1,6 +1,6 @@
 import * as R from 'ramda'
 import { ArrowDownSquare, ArrowUpSquare, LockKeyhole } from 'lucide-react'
-import { useContext } from "react";
+import { useContext, lazy, Suspense } from "react";
 import type {FunctionComponent} from "react";
 import { useQuery } from '@tanstack/react-query'
 import { useCreateIncomingMutation, useMigrateMutation } from './queries';
@@ -9,9 +9,12 @@ import { api } from "convex/_generated/api";
 import ComingMaterialForm from './forms/coming';
 import type {IncomingFormData} from './forms/coming';
 import type { Fabrics, StoreMovements } from "convex/schema";
-import { type HeaderObject, SimpleTable } from "simple-table-core";
+import { type HeaderObject } from "simple-table-core";
 import { DialogContext } from '@/contexts/dialog'
 import { Button } from '@/components/ui/button';
+const SimpleTable = lazy(() => 
+  import('simple-table-core').then(m => ({ default: m.SimpleTable }))
+)
 import "simple-table-core/styles.css";
 import "simple-table-my-theme.css"
 const typeIcons = {
@@ -169,27 +172,29 @@ const InventoryMovement: FunctionComponent = () => {
         <Button onClick={handleConsumptionMaterial}>- Росхід</Button>
         {/* <Button onClick={handleUpdate}>Update Data</Button> */}
       </div>
-      <SimpleTable
-        editColumns
-        theme={'custom'}
-        columnResizing
-        height={600}
-        selectableCells
-        expandAll={false}
-        rows={data || []}
-        isLoading={!data}
-        enableStickyParents
-        // onCellClick={handleCellClick}
-        rowGrouping={['group', 'data']}
-        defaultHeaders={headers}
-        customTheme={{
-          rowHeight: 42,
-          headerHeight: 40,
-          nestedGridMaxHeight: 400,
-          nestedGridBorderWidth: 1,
-        }}
-        getRowId={({ row }) => row.id as string}
-      />
+      <Suspense fallback={<div>Завантаження...</div>}>
+        <SimpleTable
+          editColumns
+          theme={'custom'}
+          columnResizing
+          height={600}
+          selectableCells
+          expandAll={false}
+          rows={data || []}
+          isLoading={!data}
+          enableStickyParents
+          // onCellClick={handleCellClick}
+          rowGrouping={['group', 'data']}
+          defaultHeaders={headers}
+          customTheme={{
+            rowHeight: 42,
+            headerHeight: 40,
+            nestedGridMaxHeight: 400,
+            nestedGridBorderWidth: 1,
+          }}
+          getRowId={({ row }) => row.id as string}
+        />
+      </Suspense>
     </div>
   );
 }

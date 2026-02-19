@@ -7,9 +7,6 @@ import tailwindcss from '@tailwindcss/vite'
 import netlify from '@netlify/vite-plugin-tanstack-start'
 
 const config = defineConfig({
-  // server: {
-  //   port: 3000
-  // },
   plugins: [
     // devtools(),
     // this is the plugin that enables path aliases
@@ -21,6 +18,13 @@ const config = defineConfig({
     netlify(),
     viteReact(),
   ],
+  build: {
+    rollupOptions: {
+      output: {
+        format: 'esm',
+      },
+    },
+  },
 })
 
 export default config
