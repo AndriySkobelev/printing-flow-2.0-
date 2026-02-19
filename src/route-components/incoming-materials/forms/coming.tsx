@@ -35,7 +35,7 @@ const ComingMaterialForm: FunctionComponent<ComingMaterialFormProps> = ({
   actionSubmit,
   defaultValue,
 }) => {
-  const { data: fabricsData } = useQuery(convexQuery(api.fabrics.getFabrics));
+  const { data: fabricsData } = useQuery(convexQuery(api.queries.fabrics.getFabrics));
 
   const form = useAppForm({
     validationLogic: revalidateLogic(),
