@@ -1,11 +1,9 @@
 import { type FunctionComponent,  } from "react";
-import * as table from 'simple-table-core'
+import { type HeaderObject, Theme, SimpleTable } from "simple-table-core";
 import { useQuery } from '@tanstack/react-query'
 import { convexQuery } from '@convex-dev/react-query'
 import { api } from "convex/_generated/api";
-import type { HeaderObject, Theme } from "simple-table-core";
 import "simple-table-core/styles.css";
-const { SimpleTable } = table;
 interface StoreProps {
   height?: number | string;
   theme?: Theme;
