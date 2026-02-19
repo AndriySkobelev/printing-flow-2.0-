@@ -11,7 +11,6 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteRouteImport } from './routes/_app/route'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
-import { Route as ApiSin_inRouteImport } from './routes/api/sin_in'
 import { Route as ApiRefreshRouteImport } from './routes/api/refresh'
 import { Route as AppLayoutRouteImport } from './routes/_app/layout'
 import { Route as authStoreRouteImport } from './routes/(auth)/store'
@@ -32,11 +31,6 @@ const AppIndexRoute = AppIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AppRouteRoute,
-} as any)
-const ApiSin_inRoute = ApiSin_inRouteImport.update({
-  id: '/api/sin_in',
-  path: '/api/sin_in',
-  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiRefreshRoute = ApiRefreshRouteImport.update({
   id: '/api/refresh',
@@ -103,7 +97,6 @@ export interface FileRoutesByFullPath {
   '/store': typeof authStoreRoute
   '/layout': typeof AppLayoutRoute
   '/api/refresh': typeof ApiRefreshRoute
-  '/api/sin_in': typeof ApiSin_inRoute
   '/': typeof AppIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/layout/profile': typeof AppAuthenticatedLayoutProfileRoute
@@ -117,7 +110,6 @@ export interface FileRoutesByTo {
   '/store': typeof authStoreRoute
   '/layout': typeof AppLayoutRoute
   '/api/refresh': typeof ApiRefreshRoute
-  '/api/sin_in': typeof ApiSin_inRoute
   '/': typeof AppIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/layout/profile': typeof AppAuthenticatedLayoutProfileRoute
@@ -134,7 +126,6 @@ export interface FileRoutesById {
   '/(auth)/store': typeof authStoreRoute
   '/_app/layout': typeof AppLayoutRoute
   '/api/refresh': typeof ApiRefreshRoute
-  '/api/sin_in': typeof ApiSin_inRoute
   '/_app/': typeof AppIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/_app/_authenticated/layout/profile': typeof AppAuthenticatedLayoutProfileRoute
@@ -150,7 +141,6 @@ export interface FileRouteTypes {
     | '/store'
     | '/layout'
     | '/api/refresh'
-    | '/api/sin_in'
     | '/'
     | '/api/auth/$'
     | '/layout/profile'
@@ -164,7 +154,6 @@ export interface FileRouteTypes {
     | '/store'
     | '/layout'
     | '/api/refresh'
-    | '/api/sin_in'
     | '/'
     | '/api/auth/$'
     | '/layout/profile'
@@ -180,7 +169,6 @@ export interface FileRouteTypes {
     | '/(auth)/store'
     | '/_app/layout'
     | '/api/refresh'
-    | '/api/sin_in'
     | '/_app/'
     | '/api/auth/$'
     | '/_app/_authenticated/layout/profile'
@@ -195,7 +183,6 @@ export interface RootRouteChildren {
   authSpecificationsRoute: typeof authSpecificationsRoute
   authStoreRoute: typeof authStoreRoute
   ApiRefreshRoute: typeof ApiRefreshRoute
-  ApiSin_inRoute: typeof ApiSin_inRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
 
@@ -214,13 +201,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRouteRoute
-    }
-    '/api/sin_in': {
-      id: '/api/sin_in'
-      path: '/api/sin_in'
-      fullPath: '/api/sin_in'
-      preLoaderRoute: typeof ApiSin_inRouteImport
-      parentRoute: typeof rootRouteImport
     }
     '/api/refresh': {
       id: '/api/refresh'
@@ -340,7 +320,6 @@ const rootRouteChildren: RootRouteChildren = {
   authSpecificationsRoute: authSpecificationsRoute,
   authStoreRoute: authStoreRoute,
   ApiRefreshRoute: ApiRefreshRoute,
-  ApiSin_inRoute: ApiSin_inRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
 }
 export const routeTree = rootRouteImport
