@@ -56,7 +56,7 @@ const convertDataMaterials = () => {
   return newData;
 }
  
-const Products: FunctionComponent<ProductsProps> = () => {
+const SpecificationsTable: FunctionComponent<ProductsProps> = () => {
   const { data } = useQuery(convexQuery(api.materials.getMaterials, {}));
   const createMutation = useCreateAllMaterials();
   const { openDialog, closeDialog } = useContext(DialogContext);
@@ -90,18 +90,17 @@ const Products: FunctionComponent<ProductsProps> = () => {
   
   return (
     <div className="flex flex-col gap-4 p-4">
-      <Button onClick={handleCrateMaterial}>Create materials</Button>
+      <div className="w-fit">
+        <Button className="w-full" onClick={handleCrateMaterial}>Додати специфікацію</Button>
+      </div>
       <SimpleTable
         rows={[]}
-        editColumns
         height={400}
         theme={'custom'}
-        selectableCells
-        expandAll={false}
         columnResizing
         enableStickyParents
         onCellClick={handleCellClick}
-        rowGrouping={['group', 'data']}
+        // rowGrouping={['group', 'data']}
         defaultHeaders={headers}
         customTheme={{
           rowHeight: 40,
@@ -113,4 +112,4 @@ const Products: FunctionComponent<ProductsProps> = () => {
   );
 }
  
-export default Products;
+export default SpecificationsTable;

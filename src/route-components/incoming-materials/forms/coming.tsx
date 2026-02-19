@@ -1,52 +1,64 @@
 import { type FunctionComponent } from "react";
-import { useStore } from "@tanstack/react-form";
+import { type Option } from '@/components/main-form/form-select' 
 import { useQuery } from '@tanstack/react-query'
 import { convexQuery } from '@convex-dev/react-query'
 import { api } from "convex/_generated/api";
 import { z } from 'zod';
-import { useAppForm } from "@/components/form";
-import Select from 'react-select'
-import { type MaterialsOption } from "../index";
+import { useAppForm } from "@/components/main-form";
 import { revalidateLogic } from '@tanstack/react-form';
 
 const comingFormSchema = z.object({
-  fabricName: z.string(),
-  color: z.string(),
+  materialId: z.object({ value: z.string(), label: z.string() }),
   quantity: z.number().min(0.1, { message: 'Quantity must be at least 0.1' }),
 });
 
 export type IncomingFormData = z.infer<typeof comingFormSchema>;
 
-const valueToOption = (value: string | number | null) => ({
-  value,
-  label: value,
-});
+const makeFabricOptions =<T,> (data: Array<T & { color: string, fabricName: string, sku: string, _id: string}>): Array<Option> => {
+  const operationData = data || [];
+  return operationData.map((item) => ({
+    value: item._id,
+    label: `${item.fabricName} · ${item.color} · ${item.sku}` as string,
+  }))
+}
 
 interface ComingMaterialFormProps {
+  type: 'incoming' | 'outgoing';
   actionSubmit: (data: FormData) => void;
   defaultValue?: IncomingFormData;
-  formId: 'coming-material-form' | 'consumption-material-form'
+  formId: 'incoming-material-form' | 'outgoing-material-form'
 }
  
 const ComingMaterialForm: FunctionComponent<ComingMaterialFormProps> = ({
   formId,
+  type,
   actionSubmit,
   defaultValue,
 }) => {
+  const { data: fabricsData } = useQuery(convexQuery(api.fabrics.getFabrics));
+
   const form = useAppForm({
     validationLogic: revalidateLogic(),
     validators: {
       onDynamic: comingFormSchema,
     },
-    defaultValues: defaultValue || {} as IncomingFormData,
-    onSubmit: ({ value }: any) => actionSubmit(value),
+    defaultValues: defaultValue || { materialId: {} } as IncomingFormData,
+    onSubmit: ({ value }: any) => {
+      const findFabric = fabricsData?.find((fabric) => fabric._id === value.materialId.value);
+      const submitData = {
+        ...value,
+        type,
+        sku: findFabric?.sku,
+        color: findFabric?.color,
+        units: findFabric?.units,
+        name: findFabric?.fabricName,
+      }
+      return actionSubmit(submitData);
+    },
   });
-  const fabricName = useStore(form.store, (formState) => {
-    return formState.values ? formState.values?.fabricName : '';
-  }) as string;
-  console.log("🚀 ~ ComingMaterialForm ~ fabricName:", fabricName)
-  const { data: materialsBy } = useQuery(convexQuery(api.materials.getMaterialsByFilter, { fabricName }));
-  console.log("🚀 ~ ComingMaterialForm ~ materialsBy:", materialsBy)
+
+  const someData = fabricsData || [];
+  const fabricsOptions = makeFabricOptions(someData);
   
 
   return (
@@ -59,59 +71,10 @@ const ComingMaterialForm: FunctionComponent<ComingMaterialFormProps> = ({
         }}
         className="flex flex-col gap-3"
       >
-        <form.Field
-          name="fabricName"
+        <form.AppField
+          name="materialId"
           children={(field) =>
-            <div className="flex flex-col gap-1">
-              <label className="text-sm ml-2 text-[#6a7282]">Назва матеріалу</label>
-              <Select
-                name={field.name}
-                options={[{
-                  value: 'Кулір 190',
-                  label: 'Кулір 190',
-                }]}
-                placeholder="Виберіть матеріал..."
-                value={
-                  typeof field.state.value === 'string'
-                  ? valueToOption(field.state.value)
-                  : field.state.value
-                }
-                onChange={field.handleChange}
-                styles={{
-                  control: (baseStyles, state) => ({
-                    ...baseStyles,
-                    borderRadius: '8px',
-                    borderColor: state.isFocused ? 'grey' : '#e7e3e4',
-                  }),
-                }}/>
-                <span>{field.state.meta.errors[0]?.message}</span>
-            </div>
-          }
-        />
-        <form.Field
-          name="color"
-          children={(field) =>
-            <div className="flex flex-col gap-1">
-              <label className="text-sm ml-2 text-[#6a7282]">Колір</label>
-              <Select
-                name={field.name}
-                placeholder="Виберіть матеріал..."
-                // options={colorOptions}
-                value={
-                  typeof field.state.value === 'string'
-                  ? valueToOption(field.state.value)
-                  : field.state.value
-                }
-                onChange={field.handleChange}
-                styles={{
-                  control: (baseStyles, state) => ({
-                    ...baseStyles,
-                    borderRadius: '8px',
-                    borderColor: state.isFocused ? 'grey' : '#e7e3e4',
-                  }),
-                }} />
-                <span>{field.state.meta.errors[0]?.message}</span>
-            </div>
+            <field.FormSelect label="Матеріал" modeOption="fabric" options={fabricsOptions} />
           }
         />
         <form.AppField
@@ -119,7 +82,7 @@ const ComingMaterialForm: FunctionComponent<ComingMaterialFormProps> = ({
           children={(field) =>
             <field.FormTextField
               type="number"
-              label={'Кількість'}
+              label='Кількість'
               placeholder={''} />
           }
         />

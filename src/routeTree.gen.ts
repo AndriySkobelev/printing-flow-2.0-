@@ -14,11 +14,12 @@ import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as ApiSin_inRouteImport } from './routes/api/sin_in'
 import { Route as ApiRefreshRouteImport } from './routes/api/refresh'
 import { Route as AppLayoutRouteImport } from './routes/_app/layout'
-import { Route as authStoreMovementsRouteImport } from './routes/(auth)/storeMovements'
 import { Route as authStoreRouteImport } from './routes/(auth)/store'
+import { Route as authSpecificationsRouteImport } from './routes/(auth)/specifications'
 import { Route as authRegisterRouteImport } from './routes/(auth)/register'
 import { Route as authProductsRouteImport } from './routes/(auth)/products'
 import { Route as authLoginRouteImport } from './routes/(auth)/login'
+import { Route as authInventoryMovementRouteImport } from './routes/(auth)/inventory-movement'
 import { Route as AppAuthenticatedRouteRouteImport } from './routes/_app/_authenticated/route'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth.$'
 import { Route as AppAuthenticatedLayoutProfileRouteImport } from './routes/_app/_authenticated/layout.profile'
@@ -47,14 +48,14 @@ const AppLayoutRoute = AppLayoutRouteImport.update({
   path: '/layout',
   getParentRoute: () => AppRouteRoute,
 } as any)
-const authStoreMovementsRoute = authStoreMovementsRouteImport.update({
-  id: '/(auth)/storeMovements',
-  path: '/storeMovements',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const authStoreRoute = authStoreRouteImport.update({
   id: '/(auth)/store',
   path: '/store',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const authSpecificationsRoute = authSpecificationsRouteImport.update({
+  id: '/(auth)/specifications',
+  path: '/specifications',
   getParentRoute: () => rootRouteImport,
 } as any)
 const authRegisterRoute = authRegisterRouteImport.update({
@@ -70,6 +71,11 @@ const authProductsRoute = authProductsRouteImport.update({
 const authLoginRoute = authLoginRouteImport.update({
   id: '/(auth)/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const authInventoryMovementRoute = authInventoryMovementRouteImport.update({
+  id: '/(auth)/inventory-movement',
+  path: '/inventory-movement',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppAuthenticatedRouteRoute = AppAuthenticatedRouteRouteImport.update({
@@ -89,11 +95,12 @@ const AppAuthenticatedLayoutProfileRoute =
   } as any)
 
 export interface FileRoutesByFullPath {
+  '/inventory-movement': typeof authInventoryMovementRoute
   '/login': typeof authLoginRoute
   '/products': typeof authProductsRoute
   '/register': typeof authRegisterRoute
+  '/specifications': typeof authSpecificationsRoute
   '/store': typeof authStoreRoute
-  '/storeMovements': typeof authStoreMovementsRoute
   '/layout': typeof AppLayoutRoute
   '/api/refresh': typeof ApiRefreshRoute
   '/api/sin_in': typeof ApiSin_inRoute
@@ -102,11 +109,12 @@ export interface FileRoutesByFullPath {
   '/layout/profile': typeof AppAuthenticatedLayoutProfileRoute
 }
 export interface FileRoutesByTo {
+  '/inventory-movement': typeof authInventoryMovementRoute
   '/login': typeof authLoginRoute
   '/products': typeof authProductsRoute
   '/register': typeof authRegisterRoute
+  '/specifications': typeof authSpecificationsRoute
   '/store': typeof authStoreRoute
-  '/storeMovements': typeof authStoreMovementsRoute
   '/layout': typeof AppLayoutRoute
   '/api/refresh': typeof ApiRefreshRoute
   '/api/sin_in': typeof ApiSin_inRoute
@@ -118,11 +126,12 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_app': typeof AppRouteRouteWithChildren
   '/_app/_authenticated': typeof AppAuthenticatedRouteRouteWithChildren
+  '/(auth)/inventory-movement': typeof authInventoryMovementRoute
   '/(auth)/login': typeof authLoginRoute
   '/(auth)/products': typeof authProductsRoute
   '/(auth)/register': typeof authRegisterRoute
+  '/(auth)/specifications': typeof authSpecificationsRoute
   '/(auth)/store': typeof authStoreRoute
-  '/(auth)/storeMovements': typeof authStoreMovementsRoute
   '/_app/layout': typeof AppLayoutRoute
   '/api/refresh': typeof ApiRefreshRoute
   '/api/sin_in': typeof ApiSin_inRoute
@@ -133,11 +142,12 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
+    | '/inventory-movement'
     | '/login'
     | '/products'
     | '/register'
+    | '/specifications'
     | '/store'
-    | '/storeMovements'
     | '/layout'
     | '/api/refresh'
     | '/api/sin_in'
@@ -146,11 +156,12 @@ export interface FileRouteTypes {
     | '/layout/profile'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/inventory-movement'
     | '/login'
     | '/products'
     | '/register'
+    | '/specifications'
     | '/store'
-    | '/storeMovements'
     | '/layout'
     | '/api/refresh'
     | '/api/sin_in'
@@ -161,11 +172,12 @@ export interface FileRouteTypes {
     | '__root__'
     | '/_app'
     | '/_app/_authenticated'
+    | '/(auth)/inventory-movement'
     | '/(auth)/login'
     | '/(auth)/products'
     | '/(auth)/register'
+    | '/(auth)/specifications'
     | '/(auth)/store'
-    | '/(auth)/storeMovements'
     | '/_app/layout'
     | '/api/refresh'
     | '/api/sin_in'
@@ -176,11 +188,12 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   AppRouteRoute: typeof AppRouteRouteWithChildren
+  authInventoryMovementRoute: typeof authInventoryMovementRoute
   authLoginRoute: typeof authLoginRoute
   authProductsRoute: typeof authProductsRoute
   authRegisterRoute: typeof authRegisterRoute
+  authSpecificationsRoute: typeof authSpecificationsRoute
   authStoreRoute: typeof authStoreRoute
-  authStoreMovementsRoute: typeof authStoreMovementsRoute
   ApiRefreshRoute: typeof ApiRefreshRoute
   ApiSin_inRoute: typeof ApiSin_inRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
@@ -223,18 +236,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppLayoutRouteImport
       parentRoute: typeof AppRouteRoute
     }
-    '/(auth)/storeMovements': {
-      id: '/(auth)/storeMovements'
-      path: '/storeMovements'
-      fullPath: '/storeMovements'
-      preLoaderRoute: typeof authStoreMovementsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/(auth)/store': {
       id: '/(auth)/store'
       path: '/store'
       fullPath: '/store'
       preLoaderRoute: typeof authStoreRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/(auth)/specifications': {
+      id: '/(auth)/specifications'
+      path: '/specifications'
+      fullPath: '/specifications'
+      preLoaderRoute: typeof authSpecificationsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/(auth)/register': {
@@ -256,6 +269,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof authLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/(auth)/inventory-movement': {
+      id: '/(auth)/inventory-movement'
+      path: '/inventory-movement'
+      fullPath: '/inventory-movement'
+      preLoaderRoute: typeof authInventoryMovementRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_app/_authenticated': {
@@ -313,11 +333,12 @@ const AppRouteRouteWithChildren = AppRouteRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   AppRouteRoute: AppRouteRouteWithChildren,
+  authInventoryMovementRoute: authInventoryMovementRoute,
   authLoginRoute: authLoginRoute,
   authProductsRoute: authProductsRoute,
   authRegisterRoute: authRegisterRoute,
+  authSpecificationsRoute: authSpecificationsRoute,
   authStoreRoute: authStoreRoute,
-  authStoreMovementsRoute: authStoreMovementsRoute,
   ApiRefreshRoute: ApiRefreshRoute,
   ApiSin_inRoute: ApiSin_inRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,

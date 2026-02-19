@@ -9,8 +9,9 @@
  */
 
 import type * as actionsHttp from "../actionsHttp.js";
+import type * as fabrics from "../queries/fabrics.js";
 import type * as http from "../http.js";
-import type * as materials from "../materials.js";
+import type * as materials from "../queries/materials.js";
 
 import type {
   ApiFromModules,
@@ -20,6 +21,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   actionsHttp: typeof actionsHttp;
+  fabrics: typeof fabrics;
   http: typeof http;
   materials: typeof materials;
 }>;

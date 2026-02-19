@@ -3,18 +3,20 @@ import { useMutation } from "@tanstack/react-query";
 import { api } from "convex/_generated/api";
 
 
-export function useCreateIncomingMutation() {
+export function useCreateMaterial() {
   const mutationFn = useConvexMutation(
-    api.materials.createIncoming,
+    api.materials.createMaterial,
   )
 
   return useMutation({ mutationFn })
 }
 
-export function useMigrateMutation() {
+export function useCreateAllMaterials() {
   const mutationFn = useConvexMutation(
-    api.materials.makeMigrateData,
+    api.materials.createAllMaterials,
   )
 
   return useMutation({ mutationFn })
 }
+
+

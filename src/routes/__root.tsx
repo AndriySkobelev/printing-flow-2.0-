@@ -74,6 +74,9 @@ function RootDocument({ children }: { children: React.ReactNode }) {
     <html lang={i18n.language} suppressHydrationWarning>
       <head>
         <HeadContent />
+        <link rel="preconnect" href="https://fonts.googleapis.com"/>
+        <link rel="preconnect" href="https://fonts.gstatic.com"/>
+        <link href="https://fonts.googleapis.com/css2?family=Google+Sans:ital,opsz,wght@0,17..18,400..700;1,17..18,400..700&display=swap" rel="stylesheet"/>
       </head>
       <body>
         <Header />

@@ -53,17 +53,19 @@ const generateOptions = <T,> (data: Array<T>, optionValue: keyof T) => {
 
 const headers: Array<HeaderObject> = [
   {
-    accessor: "fabricName",
+    accessor: "name",
     label: "Матеріал",
     width: 80,
     isSortable: true,
     type: "string",
     minWidth: 250
   },
-  { accessor: "color", label: "Колір", width: 220, isSortable: true, type: "string" },
+  {
+    accessor: "color", label: "Колір", width: 220, isSortable: true, type: "string"
+  },
   {
     accessor: "quantity",
-    label: "Кількість (кг)",
+    label: "Кількість",
     width: 150,
     isSortable: true,
     type: "number",
@@ -76,6 +78,7 @@ const headers: Array<HeaderObject> = [
         >
           {typeIcons[row.type].component}
           <span className='text-sm'>{row.type === 'incoming' ? `+${row.quantity}` : `-${row.quantity}`}</span>
+          <span className='text-xs text-[#868686]'>{row?.units || '?'}</span>
         </div>
       )
     }
@@ -100,50 +103,21 @@ const headers: Array<HeaderObject> = [
 
 
 export type MaterialsOption = ReturnType<typeof generateOptions>;
-
-const SelectedRow = ({ row }:{ row?: undefined | Fabrics}) => {
-  return (
-    <div className='flex gap-2 border-1 border-[#d6d6d6] rounded-xl border-solid py-2 px-4 w-fit'>
-      <div className='flex gap-1'>
-        <span className='text-[#6e6e6e]'>Матеріал:</span>
-        <span className='text-m font-[500]'>{row && row.fabricName ? row.fabricName : '-'}</span>
-      </div>
-      <div className='flex gap-1'>
-        <span className='text-[#6e6e6e]'>Колір:</span>
-        <span className='text-m font-[500]'>{row && row.color ? row.color : '-'}</span>
-      </div>
-      <div className='flex gap-1'>
-        <span className='text-[#6e6e6e]'>SKU:</span>
-        <span className='text-m font-[500]'>{row && row.sku ? row.sku : '-'}</span>
-      </div>
-    </div>
-  )
-}
  
-const StoreMovements: FunctionComponent = () => {
+const InventoryMovement: FunctionComponent = () => {
   const { openDialog, closeDialog, setIsLoading } = useContext(DialogContext);
-  const [rowData, setRowData] = useState<CellClickProps>()
   const { data } = useQuery(convexQuery(api.materials.getMovements, {}));
-  const migrate = useMigrateMutation();
   const incomingMutation = useCreateIncomingMutation();
-
-  const defaultValue = useMemo(() => {
-    if (!rowData) return undefined;
-    return {
-      fabricName: rowData.row.fabricName as string,
-      color: rowData.row.color as string,
-      quantity: 1,
-    }
-  }, [rowData]);
+  const someMutate = useMigrateMutation();
 
   const handleSubmit = (data: IncomingFormData | any) => {
-    console.log("🚀 ~ handleSubmit ~ data:", data)
-    setIsLoading(true)
-    incomingMutation.mutate({
+    const preparedData = {
       ...data,
-      materialId: rowData?.row?._id,
-      sku: rowData?.row?.sku as number,
-    },{
+      tableName: 'fabrics',
+      materialId: data.materialId.value,
+    };
+    setIsLoading(true)
+    incomingMutation.mutate(preparedData,{
       onSuccess: () => {
         closeDialog()
         setIsLoading(false)
@@ -161,36 +135,39 @@ const StoreMovements: FunctionComponent = () => {
     openDialog({
       title: 'Прихід матеріалу',
       isLoading: incomingMutation.isPending,
-      content: <ComingMaterialForm
-        defaultValue={defaultValue}
-        formId='coming-material-form'
-        actionSubmit={(data) => handleSubmit({ ...data, type: 'incoming' })}/>,
+      content:
+        <ComingMaterialForm
+          type='incoming'
+          formId='incoming-material-form'
+          actionSubmit={handleSubmit}/>,
       withForm: true,
-      formId: 'coming-material-form',
+      formId: 'incoming-material-form',
     });
   }
 
   const handleConsumptionMaterial = () => {
     openDialog({
       title: 'Росхід матеріал',
-      content: <ComingMaterialForm
-        defaultValue={defaultValue}
-        formId="consumption-material-form"
-        actionSubmit={(data) => handleSubmit({ ...data, type: 'outgoing' })}/>,
+      content:
+        <ComingMaterialForm
+          type='outgoing'
+          formId="outgoing-material-form"
+          actionSubmit={handleSubmit}/>,
       withForm: true,
-      formId: 'consumption-material-form',
+      formId: 'outgoing-material-form',
     });
   }
 
-  const handleCellClick = (row: any) => {
-    console.log("🚀 ~ handleCellClick ~ data:", row)
-    setRowData(row);
+  const handleUpdate = () => {
+    someMutate.mutate({});
   }
+
   return (
     <div className="flex flex-col gap-4 p-4">
       <div className='flex gap-2'>
         <Button onClick={handleComingMaterial}>+ Прихід</Button>
         <Button onClick={handleConsumptionMaterial}>- Росхід</Button>
+        {/* <Button onClick={handleUpdate}>Update Data</Button> */}
       </div>
       <SimpleTable
         editColumns
@@ -217,4 +194,4 @@ const StoreMovements: FunctionComponent = () => {
   );
 }
  
-export default StoreMovements;
+export default InventoryMovement;
