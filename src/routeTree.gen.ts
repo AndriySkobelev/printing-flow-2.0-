@@ -16,6 +16,7 @@ import { Route as authStoreRouteImport } from './routes/(auth)/store'
 import { Route as authSpecificationsRouteImport } from './routes/(auth)/specifications'
 import { Route as authRegisterRouteImport } from './routes/(auth)/register'
 import { Route as authProductsRouteImport } from './routes/(auth)/products'
+import { Route as authMaterialsRouteImport } from './routes/(auth)/materials'
 import { Route as authLoginRouteImport } from './routes/(auth)/login'
 import { Route as authInventoryMovementRouteImport } from './routes/(auth)/inventory-movement'
 import { Route as AppAuthenticatedRouteRouteImport } from './routes/_app/_authenticated/route'
@@ -55,6 +56,11 @@ const authProductsRoute = authProductsRouteImport.update({
   path: '/products',
   getParentRoute: () => rootRouteImport,
 } as any)
+const authMaterialsRoute = authMaterialsRouteImport.update({
+  id: '/(auth)/materials',
+  path: '/materials',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const authLoginRoute = authLoginRouteImport.update({
   id: '/(auth)/login',
   path: '/login',
@@ -80,6 +86,7 @@ export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/inventory-movement': typeof authInventoryMovementRoute
   '/login': typeof authLoginRoute
+  '/materials': typeof authMaterialsRoute
   '/products': typeof authProductsRoute
   '/register': typeof authRegisterRoute
   '/specifications': typeof authSpecificationsRoute
@@ -91,6 +98,7 @@ export interface FileRoutesByTo {
   '/': typeof AppIndexRoute
   '/inventory-movement': typeof authInventoryMovementRoute
   '/login': typeof authLoginRoute
+  '/materials': typeof authMaterialsRoute
   '/products': typeof authProductsRoute
   '/register': typeof authRegisterRoute
   '/specifications': typeof authSpecificationsRoute
@@ -104,6 +112,7 @@ export interface FileRoutesById {
   '/_app/_authenticated': typeof AppAuthenticatedRouteRouteWithChildren
   '/(auth)/inventory-movement': typeof authInventoryMovementRoute
   '/(auth)/login': typeof authLoginRoute
+  '/(auth)/materials': typeof authMaterialsRoute
   '/(auth)/products': typeof authProductsRoute
   '/(auth)/register': typeof authRegisterRoute
   '/(auth)/specifications': typeof authSpecificationsRoute
@@ -118,6 +127,7 @@ export interface FileRouteTypes {
     | '/'
     | '/inventory-movement'
     | '/login'
+    | '/materials'
     | '/products'
     | '/register'
     | '/specifications'
@@ -129,6 +139,7 @@ export interface FileRouteTypes {
     | '/'
     | '/inventory-movement'
     | '/login'
+    | '/materials'
     | '/products'
     | '/register'
     | '/specifications'
@@ -141,6 +152,7 @@ export interface FileRouteTypes {
     | '/_app/_authenticated'
     | '/(auth)/inventory-movement'
     | '/(auth)/login'
+    | '/(auth)/materials'
     | '/(auth)/products'
     | '/(auth)/register'
     | '/(auth)/specifications'
@@ -154,6 +166,7 @@ export interface RootRouteChildren {
   AppRouteRoute: typeof AppRouteRouteWithChildren
   authInventoryMovementRoute: typeof authInventoryMovementRoute
   authLoginRoute: typeof authLoginRoute
+  authMaterialsRoute: typeof authMaterialsRoute
   authProductsRoute: typeof authProductsRoute
   authRegisterRoute: typeof authRegisterRoute
   authSpecificationsRoute: typeof authSpecificationsRoute
@@ -209,6 +222,13 @@ declare module '@tanstack/react-router' {
       path: '/products'
       fullPath: '/products'
       preLoaderRoute: typeof authProductsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/(auth)/materials': {
+      id: '/(auth)/materials'
+      path: '/materials'
+      fullPath: '/materials'
+      preLoaderRoute: typeof authMaterialsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/(auth)/login': {
@@ -275,6 +295,7 @@ const rootRouteChildren: RootRouteChildren = {
   AppRouteRoute: AppRouteRouteWithChildren,
   authInventoryMovementRoute: authInventoryMovementRoute,
   authLoginRoute: authLoginRoute,
+  authMaterialsRoute: authMaterialsRoute,
   authProductsRoute: authProductsRoute,
   authRegisterRoute: authRegisterRoute,
   authSpecificationsRoute: authSpecificationsRoute,

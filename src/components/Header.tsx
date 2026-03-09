@@ -16,6 +16,10 @@ const pages = [
     label: 'Товари',
   },
   {
+    to: '/materials',
+    label: 'Матеріали',
+  },
+  {
     to: '/specifications',
     label: 'Специфікації',
   },

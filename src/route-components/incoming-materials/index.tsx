@@ -61,11 +61,12 @@ const headers: Array<HeaderObject> = [
     width: 80,
     isSortable: true,
     type: "string",
-    minWidth: 250
+    minWidth: 200
   },
   {
-    accessor: "color", label: "Колір", width: 220, isSortable: true, type: "string"
+    accessor: "color", label: "Колір", width: 150, isSortable: true, type: "string"
   },
+  { accessor: "orderId", label: "Номер замовлення", width: 120, isSortable: true, type: "number" },
   {
     accessor: "quantity",
     label: "Кількість",
@@ -80,16 +81,32 @@ const headers: Array<HeaderObject> = [
           className='flex items-center gap-1 rounded-md w-fit px-1.5 py-0'
         >
           {typeIcons[row.type].component}
-          <span className='text-sm'>{row.type === 'incoming' ? `+${row.quantity}` : `-${row.quantity}`}</span>
+          <span className='text-sm'>{row.type === 'incoming' ? `+${Number(row.quantity).toFixed(2)}` : `-${Number(row.quantity).toFixed(2)}`}</span>
           <span className='text-xs text-[#868686]'>{row?.units || '?'}</span>
         </div>
       )
     }
   },
+  { accessor: "manager", label: "Менеджер", width: 150, isSortable: true, type: "string" },
   { accessor: "sku", label: "SKU", width: 100, isSortable: true, type: "string" },
   {
     accessor: "_creationTime",
     label: "Дата створення",
+    width: 200,
+    isSortable: true,
+    type: "date",
+    valueFormatter: ({ value }) => {
+      const date = new Date(value as string);
+      return date.toLocaleDateString("uk-UA", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      });
+    }
+  },
+  {
+    accessor: "orderShippingDate",
+    label: "Дата видачі",
     width: 200,
     isSortable: true,
     type: "date",
@@ -109,7 +126,8 @@ export type MaterialsOption = ReturnType<typeof generateOptions>;
  
 const InventoryMovement: FunctionComponent = () => {
   const { openDialog, closeDialog, setIsLoading } = useContext(DialogContext);
-  const { data } = useQuery(convexQuery(api.queries.materials.getMovements, {}));
+  const { data } = useQuery(convexQuery(api.queries.movements.getMovementsWithMaterials));
+  console.log("🚀 ~ InventoryMovement ~ data:", data)
   const incomingMutation = useCreateIncomingMutation();
   const someMutate = useMigrateMutation();
 
@@ -175,17 +193,16 @@ const InventoryMovement: FunctionComponent = () => {
       <Suspense fallback={<div>Завантаження...</div>}>
         <SimpleTable
           editColumns
-          theme={'custom'}
-          columnResizing
           height={600}
+          columnResizing
+          theme={'light'}
           selectableCells
           expandAll={false}
           rows={data || []}
           isLoading={!data}
           enableStickyParents
-          // onCellClick={handleCellClick}
-          rowGrouping={['group', 'data']}
           defaultHeaders={headers}
+          rowGrouping={['group', 'data']}
           customTheme={{
             rowHeight: 42,
             headerHeight: 40,

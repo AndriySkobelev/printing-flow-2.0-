@@ -30,66 +30,79 @@ export const materialsSchema = {
   code: v.optional(v.string()),
   size: v.optional(v.string()),
   material: v.optional(v.string()), // сатини, бавовна, джинс
+  searchText: v.optional(v.string()),
 };
 
 export const storeMovementsSchema = {
-  sku: v.string(),
-  name: v.string(),
-  color: v.string(),
   units: v.string(),
   quantity: v.number(),
-  tableName: v.union(v.literal('fabrics'), v.literal('materials')),
-  materialId: v.string(),
+  fabricId: v.optional(v.id('fabrics')),
+  materialId: v.optional(v.id('materials')),
   type: v.union(
     v.literal(TRANSACTION_TYPES['INCOMING']),
     v.literal(TRANSACTION_TYPES['OUTGOING']),
     v.literal(TRANSACTION_TYPES['RESERVE'])
   ),
   //// OPTIONAL FIELDS
-  orderId: v.optional(v.string()),
+  orderId: v.optional(v.number()),
   manager: v.optional(v.string()),
   description: v.optional(v.string()),
-  productSku: v.optional(v.string()), //
-  productName: v.optional(v.string()), // Футболка легка
-  productSize: v.optional(v.string()), // S, M, L,
   productQuantity: v.optional(v.number()),
   orderShippingDate: v.optional(v.string()),
+  productInfo: v.optional(v.array(v.string())),
 }
 
 export const productsSpecification = {
-  sku: v.string(),
   name: v.string(),
   category: v.string(),
+  skuPrefix: v.string(),
   materials: v.array(v.object({
-    materialId: v.id('materials'),
-    quantity: v.number(),
     units: v.string(),
+    quantity: v.number(),
+    fabricId: v.optional(v.id('fabrics')),
+    materialId: v.optional(v.id('materials')),
   })),
 }
 
 export const productVariants = {
   sku: v.string(),
-  productId: v.id('products'),
   size: v.string(),
   color: v.string(),
-  style: v.string(),
-  materials: v.array(v.object({
-    materialId: v.id('materials'),
+  skuNumber: v.number(),
+  style: v.optional(v.string()),
+  parentId: v.id('specifications'),
+  materials: v.optional(v.array(v.object({
+    multiplier: v.optional(v.number()),
+    fabricId: v.optional(v.id('fabrics')),
+    materialId: v.optional(v.id('materials')),
     overwriteMaterialId: v.optional(v.id('materials')),
-    multiplier: v.number(),
-  })),
+  }))),
 }
 
 const fabricsTable = defineTable(fabricsSchema)
+const proudctsTable = defineTable(productVariants);
 const materialsTable = defineTable(materialsSchema)
+const specifications = defineTable(productsSpecification)
 const icomingMaterialsTable = defineTable(storeMovementsSchema)
 
 export type Materials = Doc<'materials'>;
 export type Fabrics = Doc<'fabrics'>;
+export type Products = Doc<'products'>;
+export type Specifications = Doc<'specifications'>;
 export type StoreMovements = Doc<'storeMovements'>;
 
 export default defineSchema({
-  fabrics: fabricsTable,
-  materials: materialsTable,
+  fabrics: fabricsTable
+    .searchIndex('search_name', {
+      searchField: 'fabricName'
+    })
+    .index('by_skuNumber', ['skuNumber']),
+  materials: materialsTable
+  .searchIndex('search_name', {
+    searchField: 'searchText'
+  }),
+  products: proudctsTable
+  .index('search_sku', ['sku']),
+  specifications: specifications,
   storeMovements: icomingMaterialsTable,
 });

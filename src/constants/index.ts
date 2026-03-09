@@ -1,0 +1,15 @@
+export const productSizes = [
+  '4XS',
+  '3XS',
+  'XXS',
+  'XS',
+  'S',
+  'M',
+  'L',
+  'XL',
+  'XXL',
+  '3XL',
+  '4XL',
+  '5XL',
+  '6XL',
+];

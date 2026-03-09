@@ -1,28 +1,38 @@
 import { useMemo } from "react";
 import { Input } from "../ui/input";
 import { useFieldContext } from "@/components/main-form";
+import clsx from "clsx";
 
-export const FormTextField = ({ type, placeholder, label }: { type: 'text' | 'number', placeholder?: string, label: string }) => {
+interface FormTextFieldProps {
+  label?: string,
+  onChange?: any,
+  className?: string,
+  placeholder?: string,
+  type: 'text' | 'number',
+  otherValue?: string | number,
+}
+
+export const FormTextField = ({ type, placeholder, label, className, onChange, otherValue }: FormTextFieldProps) => {
   const field = useFieldContext();
   const name = useMemo(() => field.name, [field.name]);
   const value = useMemo(() => field.state.value as string | number | ReadonlyArray<string> | undefined, [field.state.value]);
   const fieldOnChange = useMemo(() => (e: React.ChangeEvent<HTMLInputElement>) =>
-    field.handleChange(type === 'number' ? Number(e.target.value) : e.target.value), [field.handleChange]
+    onChange ? onChange(e.target.value) : field.handleChange(type === 'number' ? Number(e.target.value) : e.target.value), [field.handleChange]
   );
   const errors = useMemo(() => field.state.meta.errors as Array<{ message: string }> | undefined, [field.state.meta.errors]);
   const isValid = useMemo(() => field.state.meta.isValid as boolean | undefined, [field.state.meta.isValid]);
   return (
-    <div className="flex flex-col gap-1">
-      <div className="text-sm text-[#bbbfc7] capitalize ml-2">{label}</div>
+    <div className={clsx("flex flex-col gap-1 w-full", className)}>
+      {label ? <div className="text-sm text-[#bbbfc7] capitalize ml-2">{label}</div> : null}
       <Input
         type={type}
         name={name}
-        value={value}
-        onChange={fieldOnChange}
+        value={otherValue || value}
         placeholder={placeholder}
-        className="placeholder:text-gray-300 h-[38px]"
+        onChange={fieldOnChange}
+        title={`${!isValid ? errors?.[0]?.message : ''}`}
+        className="placeholder:text-gray-300 h-9.5 shadow-none bg-white"
       />
-      {!isValid && <div className="text-sm text-red-500 ml-2">{errors?.[0]?.message}</div>}
     </div>
   )
 };

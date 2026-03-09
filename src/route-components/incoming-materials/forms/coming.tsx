@@ -1,11 +1,11 @@
 import { type FunctionComponent } from "react";
-import { type Option } from '@/components/main-form/form-select' 
 import { useQuery } from '@tanstack/react-query'
 import { convexQuery } from '@convex-dev/react-query'
 import { api } from "convex/_generated/api";
 import { z } from 'zod';
-import { useAppForm } from "@/components/main-form";
+import { makeFabricOptions } from "@/components/main-form/select/options";
 import { revalidateLogic } from '@tanstack/react-form';
+import { useAppForm } from "@/components/main-form";
 
 const comingFormSchema = z.object({
   materialId: z.object({ value: z.string(), label: z.string() }),
@@ -13,14 +13,6 @@ const comingFormSchema = z.object({
 });
 
 export type IncomingFormData = z.infer<typeof comingFormSchema>;
-
-const makeFabricOptions =<T,> (data: Array<T & { color: string, fabricName: string, sku: string, _id: string}>): Array<Option> => {
-  const operationData = data || [];
-  return operationData.map((item) => ({
-    value: item._id,
-    label: `${item.fabricName} · ${item.color} · ${item.sku}` as string,
-  }))
-}
 
 interface ComingMaterialFormProps {
   type: 'incoming' | 'outgoing';
@@ -57,8 +49,8 @@ const ComingMaterialForm: FunctionComponent<ComingMaterialFormProps> = ({
     },
   });
 
-  const someData = fabricsData || [];
-  const fabricsOptions = makeFabricOptions(someData);
+  const optionsData = fabricsData || [];
+  const fabricsOptions = makeFabricOptions(optionsData);
   
 
   return (

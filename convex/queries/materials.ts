@@ -1,6 +1,5 @@
 import { query, mutation } from "../_generated/server";
-import { omit } from 'ramda'
-import { materialsSchema, storeMovementsSchema  } from "../schema";
+import { materialsSchema } from "../schema";
 import { v } from "convex/values";
 
 ///////// MATERIALS //////////
@@ -27,24 +26,28 @@ export const getMaterialsByFilter = query({
     return materials;
   }
 })
-//////////////////////////////
 
-///////// MOVEMENTS //////////
-export const getMovements = query({
-  args: {},
-  handler: async (ctx) => {
-    const movments = await ctx.db.query('storeMovements').collect();
-    return movments;
-  }
-})
-
-export const createIncoming = mutation({
-  args: storeMovementsSchema,
+export const getMaterialOptions = query({
+  args: { inputValue: v.string() },
   handler: async (ctx, args) => {
-    const materials = await ctx.db.insert("storeMovements", args);
+    const materials = await ctx.db
+    .query("materials")
+    .withSearchIndex('search_name', q => q.search('searchText', args.inputValue))
+    .take(20);
     return materials;
   }
 })
+
+export const addSearchText = mutation({
+  handler: async (ctx) => {
+    const materials = await ctx.db
+      .query('materials')
+      .collect();
+    await Promise.all(materials.map(async (material) => {
+      await ctx.db.patch(material._id, { searchText: `${material.name}.${material.color}`})
+    }))
+  }
+});
 
 export const createAllMaterials = mutation({
   args: { materials : v.array(v.object(materialsSchema)) },
@@ -56,9 +59,6 @@ export const createAllMaterials = mutation({
     return null;
   }
 })
-
-//////////////////////////////
-
 
 export const makeMigrateData = mutation({
   args: {},

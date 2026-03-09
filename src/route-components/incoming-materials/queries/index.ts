@@ -5,7 +5,7 @@ import { api } from "convex/_generated/api";
 
 export function useCreateIncomingMutation() {
   const mutationFn = useConvexMutation(
-    api.materials.createIncoming,
+    api.queries.materials.createIncoming,
   )
 
   return useMutation({ mutationFn })
@@ -13,7 +13,7 @@ export function useCreateIncomingMutation() {
 
 export function useMigrateMutation() {
   const mutationFn = useConvexMutation(
-    api.materials.makeMigrateData,
+    api.queries.materials.makeMigrateData,
   )
 
   return useMutation({ mutationFn })

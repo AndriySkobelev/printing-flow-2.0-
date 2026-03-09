@@ -10,6 +10,17 @@ export const getFabrics = query({
   }
 })
 
+export const getFabricsOptions = query({
+  args: { inputValue: v.string() },
+  handler: async (ctx, args) => {
+    const materials = await ctx.db
+    .query("fabrics")
+    .withSearchIndex('search_name', q => q.search('fabricName', args.inputValue))
+    .take(20);
+    return materials;
+  }
+})
+
 export const createMaterial = mutation({
   args: fabricsSchema,
   handler: async (ctx, args) => {
@@ -31,5 +42,13 @@ export const getMaterialsByColor = query({
   handler: async (ctx, args) => {
     const materials = await ctx.db.query("fabrics").filter((q) => q.eq(q.field('color'), args.color)).collect();
     return materials;
+  }
+})
+
+export const getAllColorsByFabric = query({
+  args: { fabricName: v.string() },
+  handler: async (ctx, args) => {
+    const getByName = await ctx.db.query('fabrics').filter((q) => q.eq(q.field('fabricName'), args.fabricName)).collect();
+    return getByName;
   }
 })
