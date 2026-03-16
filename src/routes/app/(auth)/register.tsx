@@ -1,12 +1,12 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { toast } from 'sonner'
 import { useTranslation } from 'react-i18next'
-import RegisterForm from '../../components/auth/register-form'
-import type { FormSchemaType } from '../../components/auth/register-form'
+import RegisterForm from '../../../components/auth/register-form'
+import type { FormSchemaType } from '../../../components/auth/register-form'
 import { signupSupabaseFn } from '@/lib/auth/auth-server'
 // import { registerUser } from '@/lib/auth/auth-server'
 
-export const Route = createFileRoute('/(auth)/register')({
+export const Route = createFileRoute('/app/(auth)/register')({
   component: RouteComponent,
 })
 

@@ -1,12 +1,14 @@
 import { type FunctionComponent } from "react";
 import { Trash2Icon } from 'lucide-react'
 import { z } from 'zod';
+import { has } from 'ramda';
 import clsx from "clsx";
 import { revalidateLogic } from '@tanstack/react-form';
 import { useAppForm } from "@/components/main-form";
 import { Button } from "@/components/ui/button";
 import { useAsyncOptions } from '../utils/hooks'
 import { api } from "convex/_generated/api";
+import { Option } from "@/components/main-form/select/form-select";
 
 export const unitsOptions = [
   {value: 'шт', label: 'шт'},
@@ -38,14 +40,18 @@ export type SpecificationFormType = z.infer<typeof specificationSchema>
 
 interface SpecificationFormProps {
   formId: string,
-  actionSubmit: (values: SpecificationFormType) => void,
-  defaultValues?: SpecificationFormType
+  defaultValues?: SpecificationFormType,
+  defaultFabricOptions?: Array<Option>,
+  defaultMaterialsOptions?: Array<Option>,
+  actionSubmit: (values: SpecificationFormType | SpecificationFormType & { _id: string, _creationTime: string}) => void,
 }
 
 const SpecificationForm: FunctionComponent<SpecificationFormProps> = ({
   formId,
   actionSubmit,
   defaultValues,
+  defaultFabricOptions,
+  defaultMaterialsOptions
 }) => {
   const { loadOptions: fabricOptions } = useAsyncOptions(api.queries.fabrics.getFabricsOptions);
   const { loadOptions: materialOptions } = useAsyncOptions(api.queries.materials.getMaterialOptions, 'materials');
@@ -64,9 +70,7 @@ const SpecificationForm: FunctionComponent<SpecificationFormProps> = ({
         { quantity: 0, units: '' }
       ]
     },
-    onSubmit: ({ value }:{ value: SpecificationFormType}) => {
-      return actionSubmit(value);
-    },
+    onSubmit: (value) => actionSubmit(value.value),
   });
 
 
@@ -95,15 +99,16 @@ const SpecificationForm: FunctionComponent<SpecificationFormProps> = ({
           >
             {(field) => (
               <div className='flex flex-col gap-2 w-full'>
-                {field.state.value.map((_, i) => (
+                {field.state.value.map((value, i) => (
                   <div key={i} className={clsx('flex gap-2 w-full items-end', i === 0 && 'bg-primary/5 border rounded-md p-2')}>
                     <form.AppField key={`materialId-${i}`} name={i != 0 ? `materials[${i}].materialId` : `materials[${i}].fabricId`}
                       children={(subField) => (
                         <subField.FormAsyncSelect
                           className='flex-5'
-                          modeOption="smallFabric"
                           label={i != 0 ? "Матеріал" : 'Тканина'}
-                          asyncOptions={i != 0 ? materialOptions : fabricOptions}/>
+                          modeOption={i != 0  ? 'materials' : 'fabric'}
+                          asyncOptions={i != 0  ? materialOptions : fabricOptions}
+                          defaultOptions={i != 0  ? defaultMaterialsOptions : defaultFabricOptions}/>
                       )}
                     />
                     <form.AppField key={`quantity-${i}`} name={`materials[${i}].quantity`}

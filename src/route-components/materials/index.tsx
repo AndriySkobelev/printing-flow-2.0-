@@ -4,23 +4,19 @@ import { convexQuery } from '@convex-dev/react-query'
 import { api } from "convex/_generated/api";
 import { type HeaderObject } from "simple-table-core";
 import { DialogContext } from '@/contexts/dialog'
-import { useCreateSpecification } from "./utils/queries";
 import { Button } from "@/components/ui/button";
 import { type Specifications } from 'convex/schema'
-import SpecificationForm, { type SpecificationFormType } from './forms/create-specefication';
 import "simple-table-core/styles.css";
 import { Ellipsis, Trash2, Copy, SquarePen, Shirt } from "lucide-react";
 import { MyPopover } from "@/components/my-popover";
 import clsx from "clsx";
-import { useDeleteSpecification, useDuplicateSpecification, useUpdateSpecification } from "./utils/hooks";
 import { Separator } from "radix-ui";
-import { EditSpecifications } from "./forms/edit-specifications";
 import { omit, pick } from "ramda";
 import { Id } from "convex/_generated/dataModel";
 const SimpleTable = lazy(() => 
   import('simple-table-core').then(m => ({ default: m.SimpleTable }))
 )
-interface SpecificationsProps {
+interface MaterialsProps {
 }
 
 
@@ -31,14 +27,14 @@ const actionsList = [
 ];
 
 const ActionsListComponent = ({ row, handleEditSpec }: { row: any, handleEditSpec: (data: any) => void }) => {
-  const { mutate: duplicateAction } = useDuplicateSpecification();
-  const { mutate: deleteAction } = useDeleteSpecification();
+  // const { mutate: duplicateAction } = useDuplicateSpecification();
+  // const { mutate: deleteAction } = useDeleteSpecification();
 
   const handleActions = (actionName: string) => {
     const actionData = { id: row._id };
     const actions = {
-      duplicate: () => duplicateAction(actionData),
-      delete: () => deleteAction(actionData),
+      // duplicate: () => duplicateAction(actionData),
+      // delete: () => deleteAction(actionData),
       edit: () => handleEditSpec(row)
     }
     actions[actionName as keyof typeof actions]?.();
@@ -142,51 +138,51 @@ const headers: ({ handleEditSpec }: HeaderProps) => Array<HeaderObject> = ({ han
   },
 ];
  
-const Specifications: FunctionComponent<SpecificationsProps> = () => {
-  const { data } = useQuery(convexQuery(api.queries.specifications.getSpecificationsWithMaterials));
-  const { mutate: createSpec } = useCreateSpecification();
-  const { mutate: updateSpec } = useUpdateSpecification();
-  const { openDialog, closeDialog } = useContext(DialogContext);
+const Materials: FunctionComponent<MaterialsProps> = () => {
+  const { data } = useQuery(convexQuery(api.queries.materials.getMaterials));
+  // const { mutate: createSpec } = useCreateSpecification();
+  // const { mutate: updateSpec } = useUpdateSpecification();
+  // const { openDialog, closeDialog } = useContext(DialogContext);
 
-  const handleSubmitAdd = (values: SpecificationFormType) => {
-    createSpec(values as Specifications);
-    closeDialog();
-  }
+  // const handleSubmitAdd = (values: SpecificationFormType) => {
+  //   createSpec(values as Specifications);
+  //   closeDialog();
+  // }
 
-  const handleSubmitEdit = (values: SpecificationFormType | (SpecificationFormType & { _id: Id<'specifications'>, _creationTime: string })) => {
-    if ('_id' in values && '_creationTime' in values) {
-      const newMaterials = values.materials.map((material) => pick(['fabricId', 'materialId', 'units', 'quantity'], material));
-      const newData = {
-        ...omit(['_id', '_creationTime', 'materials'], values),
-        materials: newMaterials
-      };
-      updateSpec({ id: values._id, data: newData as Specifications });
-    }
-    closeDialog();
-  }
+  // const handleSubmitEdit = (values: SpecificationFormType | (SpecificationFormType & { _id: Id<'specifications'>, _creationTime: string })) => {
+  //   if ('_id' in values && '_creationTime' in values) {
+  //     const newMaterials = values.materials.map((material) => pick(['fabricId', 'materialId', 'units', 'quantity'], material));
+  //     const newData = {
+  //       ...omit(['_id', '_creationTime', 'materials'], values),
+  //       materials: newMaterials
+  //     };
+  //     updateSpec({ id: values._id, data: newData as Specifications });
+  //   }
+  //   closeDialog();
+  // }
 
-  const handleAddSpec = () => {
-    openDialog({
-      title: 'Створення специфікації',
-      content: <SpecificationForm
-        formId="create-specification-form"
-        actionSubmit={handleSubmitAdd}/>,
-      withForm: true,
-      formId: 'create-specification-form',
-    });
-  }
+  // const handleAddSpec = () => {
+  //   openDialog({
+  //     title: 'Створення специфікації',
+  //     content: <SpecificationForm
+  //       formId="create-specification-form"
+  //       actionSubmit={handleSubmitAdd}/>,
+  //     withForm: true,
+  //     formId: 'create-specification-form',
+  //   });
+  // }
 
-  const handleEditSpec = (data: Specifications) => {
-    openDialog({
-      title: 'Редагування специфікації',
-      content: <EditSpecifications
-        formId="edit-specification-form"
-        actionSubmit={handleSubmitEdit}
-        specification={data}/>,
-      withForm: true,
-      formId: 'edit-specification-form',
-    });
-  };
+  // const handleEditSpec = (data: Specifications) => {
+  //   openDialog({
+  //     title: 'Редагування специфікації',
+  //     content: <EditSpecifications
+  //       formId="edit-specification-form"
+  //       actionSubmit={handleSubmitEdit}
+  //       specification={data}/>,
+  //     withForm: true,
+  //     formId: 'edit-specification-form',
+  //   });
+  // };
   
   return (
     <div className="flex flex-col gap-4 p-4">
@@ -195,7 +191,7 @@ const Specifications: FunctionComponent<SpecificationsProps> = () => {
       </div>
       <Suspense fallback={<div>Loading...</div>}>
         <SimpleTable
-          height={600}
+          height={400}
           rows={data || []}
           enableStickyParents
           enableRowSelection
@@ -215,4 +211,4 @@ const Specifications: FunctionComponent<SpecificationsProps> = () => {
   );
 }
  
-export default Specifications;
+export default Materials;

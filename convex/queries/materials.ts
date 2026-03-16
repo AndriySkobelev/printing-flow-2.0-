@@ -1,8 +1,9 @@
+import { getAll } from "convex-helpers/server/relationships";
 import { query, mutation } from "../_generated/server";
 import { materialsSchema } from "../schema";
 import { v } from "convex/values";
 
-///////// MATERIALS //////////
+///////// QUERY //////////
 export const getMaterials = query({
   args: {},
   handler: async (ctx) => {
@@ -38,6 +39,33 @@ export const getMaterialOptions = query({
   }
 })
 
+export const getMaterialById = query({
+  args: { id: v.id('materials') },
+  handler: async (ctx, args) => {
+    const { id } = args;
+    const material = await ctx.db
+    .get(id)
+    if (!material) {
+      throw new Error(`Material with id ${id} not found`);
+    }
+    return material;
+  }
+})
+
+export const getMaterialByIds = query({
+  args: { ids: v.array(v.id('materials')) },
+  handler: async (ctx, args) => {
+    const { ids } = args;
+    const materials = await getAll(ctx.db, ids);
+    if (!materials) {
+      throw new Error(`Materials with id ${ids.join(', ')} not found`);
+    }
+    return materials;
+  }
+})
+///////// QUERY //////////
+
+///////// MUTATIONS //////////
 export const addSearchText = mutation({
   handler: async (ctx) => {
     const materials = await ctx.db
@@ -69,3 +97,4 @@ export const makeMigrateData = mutation({
     return null;
   }
 })
+///////// MUTATIONS //////////

@@ -3,7 +3,7 @@ import { useServerFn } from '@tanstack/react-start'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 // components
-import LogInForm from '../../components/auth/login-form'
+import LogInForm from '../../../components/auth/login-form'
 // hooks
 import { loginSupabaseFn } from '@/lib/auth/auth-server'
 import { useMutation, useQuery, useQueryClient  } from '@tanstack/react-query'
@@ -13,7 +13,7 @@ type LoginSupabaseFnResponse = {
   message?: string | undefined;
 }
 // route
-export const Route = createFileRoute('/(auth)/login')({
+export const Route = createFileRoute('/app/(auth)/login')({
   component: RouteComponent,
 })
 

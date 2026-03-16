@@ -8,19 +8,19 @@ const pages = [
   //   label: 'Home',
   // },
   {
-    to: '/inventory-movement',
+    to: '/app/inventory-movement',
     label: 'Рух матеріалів',
   },
   {
-    to: '/products',
+    to: '/app/products',
     label: 'Товари',
   },
   {
-    to: '/materials',
+    to: '/app/materials',
     label: 'Матеріали',
   },
   {
-    to: '/specifications',
+    to: '/app/specifications',
     label: 'Специфікації',
   },
 ]

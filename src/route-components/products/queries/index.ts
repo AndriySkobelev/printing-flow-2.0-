@@ -11,12 +11,12 @@ export function useCreateProducts() {
   return useMutation({ mutationFn })
 }
 
-// export function useCreateAllMaterials() {
-//   const mutationFn = useConvexMutation(
-//     api.queries.products.createAllMaterialsBySpecification,
-//   )
+export function useUpdateProducts() {
+  const mutationFn = useConvexMutation(
+    api.queries.products.updateProducts,
+  )
 
-//   return useMutation({ mutationFn })
-// }
+  return useMutation({ mutationFn })
+}
 
 

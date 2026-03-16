@@ -7,7 +7,7 @@ import { useQuery } from '@tanstack/react-query'
 import { convexQuery } from '@convex-dev/react-query'
 import { api } from "convex/_generated/api";
 import { DialogContext } from '@/contexts/dialog'
-import { useCreateProducts } from "./queries";
+import { useCreateProducts, useUpdateProducts } from "./queries";
 import { Button } from "@/components/ui/button";
 import CreateProductForm from "./forms/create-product";
 import "simple-table-core/styles.css";
@@ -79,24 +79,31 @@ const TableComponent = memo(({ rows, searchText, isLoading, handleSelectRow }: T
 
 const Products: FunctionComponent<ProductsProps> = () => {
   const { data, isLoading } = useQuery(convexQuery(api.queries.products.getProductsWithSpec));
-  console.log("🚀 ~ Products ~ isLoading:", isLoading)
+  const { mutate: updateProducts } = useUpdateProducts();
   const [search, setSearch] = useState('');
   const [selectedData, setSelectedData] = useState<Array<any>>([]);
   const createProduct = useCreateProducts();
   const { openDialog, closeDialog } = useContext(DialogContext);
 
-  const handleSubmit = (data: any) => {
+  const handleAddProducts = (data: any) => {
     console.log("🚀 ~ handleSubmit ~ data:", data)
     createProduct.mutate(data);
     closeDialog();
   }
 
+  const handleSubmitChangeMaterials = (data: any) => {
+    console.log("🚀 ~ handleSubmitChangeMaterials ~ data:", data)
+    console.log('selectedData', selectedData)
+    const ids = selectedData.map((el) => el._id);
+    updateProducts({ ...data, ids });
+  }
+
   const handleOpenDialog = () => {
     openDialog({
-      title: 'Росхід матеріал',
+      title: 'Додати товари',
       content: <CreateProductForm
         formId="create-products-form"
-        actionSubmit={handleSubmit}/>,
+        actionSubmit={handleAddProducts}/>,
       withForm: true,
       formId: 'create-products-form',
     });
@@ -125,9 +132,10 @@ const Products: FunctionComponent<ProductsProps> = () => {
       title: 'Редагувати матеріали',
       content: <ChangeMaterials
         formId="change-materials-form"
-        actionSubmit={handleSubmit}
+        actionSubmit={handleSubmitChangeMaterials}
         specificationIds={uniq(selectedData.map((el) => el.parentId))}/>,
       withForm: true,
+      className: 'max-w-[600px]',
       formId: 'change-materials-form',
     });
   }

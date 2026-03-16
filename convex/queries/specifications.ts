@@ -1,7 +1,16 @@
 import { query, mutation } from "../_generated/server";
 import { getAll } from 'convex-helpers/server/relationships'
-import { productsSpecification } from "../schema";
+import { Fabrics, Materials, productsSpecification } from "../schema";
+import { pick, omit } from "ramda";
 import { v } from "convex/values";
+
+const renameKey = (obj: any, oldKey: string, newKey: string) => {
+  if (oldKey !== newKey && obj.hasOwnProperty(oldKey)) {
+    obj[newKey] = obj[oldKey];
+    delete obj[oldKey];
+  }
+  return obj;
+}
 
 export const getSpecifications = query({
   handler: async (ctx) => {
@@ -23,7 +32,7 @@ export const getSpecificationsWithMaterials = query({
           data = await ctx.db.get('materials', material.materialId)
         }
 
-        return data;
+        return {...data, ...material};
       }));
 
       return {
@@ -35,14 +44,39 @@ export const getSpecificationsWithMaterials = query({
   }
 });
 
-export const getAllSpecifications = query({
+export const getSpecsWithMaterials = query({
   args: { specs: v.array(v.id('specifications')) },
   handler: async (ctx, args) => {
     const { specs } = args;
     const specifications = await getAll(ctx.db, specs);
-    return specifications;
+    const withMaterials = await Promise.all(specifications.flatMap(async (spec) => {
+      if (!spec) return null;
+      const mapData = await Promise.all(spec.materials.map(async (material) => {
+        let data, pickData;
+        if (material.fabricId) {
+          data = await ctx.db.get('fabrics', material.fabricId)
+          pickData = renameKey(pick(['fabricName', 'color'], data as Fabrics || {}), 'fabricName', 'name')
+        }
+        if (material.materialId) {
+          data = await ctx.db.get('materials', material.materialId)
+          pickData = pick(['name', 'color', 'size'], data as Materials || {})
+        }
+
+        return {
+          ...material,
+          ...pickData
+        };
+      }));
+
+      return {
+        ...spec,
+        materials: mapData
+      }
+    }))
+    return withMaterials;
   }
 })
+
 
 export const insertSpecification = mutation({
   args: productsSpecification,
@@ -53,19 +87,31 @@ export const insertSpecification = mutation({
 })
 
 export const updateSpecification = mutation({
-  args: { _id: v.id('specifications'), data: v.optional(v.object(productsSpecification)) },
+  args: { id: v.id('specifications'), data: v.optional(v.object(productsSpecification)) },
   handler: async (ctx, args) => {
-    const { _id, data } = args;
-    const req = await ctx.db.patch(_id, data || {})
+    const { id, data } = args;
+    const req = await ctx.db.patch(id, data || {})
     return req;
   }
 })
 
 export const deleteSpecification = mutation({
-  args: { _id: v.id('specifications') },
+  args: { id: v.id('specifications') },
   handler: async (ctx, args) => {
-    const { _id } = args;
-    const req = await ctx.db.delete(_id)
+    const { id } = args;
+    const req = await ctx.db.delete(id)
+    return { result: 'success'};
+  }
+})
+
+export const duplicateSpecification = mutation({
+  args: { id: v.id('specifications') },
+  handler: async (ctx, args) => {
+    const { id } = args;
+    const spec = await ctx.db.get(id);
+    if (!spec) return { result: 'error', message: 'Specification not found' };
+    const updateData = {...omit(['_id', '_creationTime'], spec), name: `${spec?.name} копія`};
+    const req = await ctx.db.insert('specifications', updateData)
     return { result: 'success'};
   }
 })

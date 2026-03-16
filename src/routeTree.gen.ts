@@ -9,282 +9,244 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as AppRouteRouteImport } from './routes/_app/route'
-import { Route as AppIndexRouteImport } from './routes/_app/index'
-import { Route as AppLayoutRouteImport } from './routes/_app/layout'
-import { Route as authStoreRouteImport } from './routes/(auth)/store'
-import { Route as authSpecificationsRouteImport } from './routes/(auth)/specifications'
-import { Route as authRegisterRouteImport } from './routes/(auth)/register'
-import { Route as authProductsRouteImport } from './routes/(auth)/products'
-import { Route as authMaterialsRouteImport } from './routes/(auth)/materials'
-import { Route as authLoginRouteImport } from './routes/(auth)/login'
-import { Route as authInventoryMovementRouteImport } from './routes/(auth)/inventory-movement'
-import { Route as AppAuthenticatedRouteRouteImport } from './routes/_app/_authenticated/route'
-import { Route as AppAuthenticatedLayoutProfileRouteImport } from './routes/_app/_authenticated/layout.profile'
+import { Route as AppRouteRouteImport } from './routes/app/route'
+import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppSeamstressRouteImport } from './routes/_app/seamstress'
+import { Route as AppauthStoreRouteImport } from './routes/app/(auth)/store'
+import { Route as AppauthSpecificationsRouteImport } from './routes/app/(auth)/specifications'
+import { Route as AppauthRegisterRouteImport } from './routes/app/(auth)/register'
+import { Route as AppauthProductsRouteImport } from './routes/app/(auth)/products'
+import { Route as AppauthMaterialsRouteImport } from './routes/app/(auth)/materials'
+import { Route as AppauthLoginRouteImport } from './routes/app/(auth)/login'
+import { Route as AppauthInventoryMovementRouteImport } from './routes/app/(auth)/inventory-movement'
 
 const AppRouteRoute = AppRouteRouteImport.update({
-  id: '/_app',
+  id: '/app',
+  path: '/app',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AppIndexRoute = AppIndexRouteImport.update({
+const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => AppRouteRoute,
+  getParentRoute: () => rootRouteImport,
 } as any)
-const AppLayoutRoute = AppLayoutRouteImport.update({
-  id: '/layout',
-  path: '/layout',
-  getParentRoute: () => AppRouteRoute,
+const AppSeamstressRoute = AppSeamstressRouteImport.update({
+  id: '/_app/seamstress',
+  path: '/seamstress',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const authStoreRoute = authStoreRouteImport.update({
+const AppauthStoreRoute = AppauthStoreRouteImport.update({
   id: '/(auth)/store',
   path: '/store',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const authSpecificationsRoute = authSpecificationsRouteImport.update({
-  id: '/(auth)/specifications',
-  path: '/specifications',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const authRegisterRoute = authRegisterRouteImport.update({
-  id: '/(auth)/register',
-  path: '/register',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const authProductsRoute = authProductsRouteImport.update({
-  id: '/(auth)/products',
-  path: '/products',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const authMaterialsRoute = authMaterialsRouteImport.update({
-  id: '/(auth)/materials',
-  path: '/materials',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const authLoginRoute = authLoginRouteImport.update({
-  id: '/(auth)/login',
-  path: '/login',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const authInventoryMovementRoute = authInventoryMovementRouteImport.update({
-  id: '/(auth)/inventory-movement',
-  path: '/inventory-movement',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AppAuthenticatedRouteRoute = AppAuthenticatedRouteRouteImport.update({
-  id: '/_authenticated',
   getParentRoute: () => AppRouteRoute,
 } as any)
-const AppAuthenticatedLayoutProfileRoute =
-  AppAuthenticatedLayoutProfileRouteImport.update({
-    id: '/layout/profile',
-    path: '/layout/profile',
-    getParentRoute: () => AppAuthenticatedRouteRoute,
+const AppauthSpecificationsRoute = AppauthSpecificationsRouteImport.update({
+  id: '/(auth)/specifications',
+  path: '/specifications',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppauthRegisterRoute = AppauthRegisterRouteImport.update({
+  id: '/(auth)/register',
+  path: '/register',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppauthProductsRoute = AppauthProductsRouteImport.update({
+  id: '/(auth)/products',
+  path: '/products',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppauthMaterialsRoute = AppauthMaterialsRouteImport.update({
+  id: '/(auth)/materials',
+  path: '/materials',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppauthLoginRoute = AppauthLoginRouteImport.update({
+  id: '/(auth)/login',
+  path: '/login',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppauthInventoryMovementRoute =
+  AppauthInventoryMovementRouteImport.update({
+    id: '/(auth)/inventory-movement',
+    path: '/inventory-movement',
+    getParentRoute: () => AppRouteRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof AppIndexRoute
-  '/inventory-movement': typeof authInventoryMovementRoute
-  '/login': typeof authLoginRoute
-  '/materials': typeof authMaterialsRoute
-  '/products': typeof authProductsRoute
-  '/register': typeof authRegisterRoute
-  '/specifications': typeof authSpecificationsRoute
-  '/store': typeof authStoreRoute
-  '/layout': typeof AppLayoutRoute
-  '/layout/profile': typeof AppAuthenticatedLayoutProfileRoute
+  '/': typeof IndexRoute
+  '/app': typeof AppRouteRouteWithChildren
+  '/seamstress': typeof AppSeamstressRoute
+  '/app/inventory-movement': typeof AppauthInventoryMovementRoute
+  '/app/login': typeof AppauthLoginRoute
+  '/app/materials': typeof AppauthMaterialsRoute
+  '/app/products': typeof AppauthProductsRoute
+  '/app/register': typeof AppauthRegisterRoute
+  '/app/specifications': typeof AppauthSpecificationsRoute
+  '/app/store': typeof AppauthStoreRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof AppIndexRoute
-  '/inventory-movement': typeof authInventoryMovementRoute
-  '/login': typeof authLoginRoute
-  '/materials': typeof authMaterialsRoute
-  '/products': typeof authProductsRoute
-  '/register': typeof authRegisterRoute
-  '/specifications': typeof authSpecificationsRoute
-  '/store': typeof authStoreRoute
-  '/layout': typeof AppLayoutRoute
-  '/layout/profile': typeof AppAuthenticatedLayoutProfileRoute
+  '/': typeof IndexRoute
+  '/app': typeof AppRouteRouteWithChildren
+  '/seamstress': typeof AppSeamstressRoute
+  '/app/inventory-movement': typeof AppauthInventoryMovementRoute
+  '/app/login': typeof AppauthLoginRoute
+  '/app/materials': typeof AppauthMaterialsRoute
+  '/app/products': typeof AppauthProductsRoute
+  '/app/register': typeof AppauthRegisterRoute
+  '/app/specifications': typeof AppauthSpecificationsRoute
+  '/app/store': typeof AppauthStoreRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/_app': typeof AppRouteRouteWithChildren
-  '/_app/_authenticated': typeof AppAuthenticatedRouteRouteWithChildren
-  '/(auth)/inventory-movement': typeof authInventoryMovementRoute
-  '/(auth)/login': typeof authLoginRoute
-  '/(auth)/materials': typeof authMaterialsRoute
-  '/(auth)/products': typeof authProductsRoute
-  '/(auth)/register': typeof authRegisterRoute
-  '/(auth)/specifications': typeof authSpecificationsRoute
-  '/(auth)/store': typeof authStoreRoute
-  '/_app/layout': typeof AppLayoutRoute
-  '/_app/': typeof AppIndexRoute
-  '/_app/_authenticated/layout/profile': typeof AppAuthenticatedLayoutProfileRoute
+  '/': typeof IndexRoute
+  '/app': typeof AppRouteRouteWithChildren
+  '/_app/seamstress': typeof AppSeamstressRoute
+  '/app/(auth)/inventory-movement': typeof AppauthInventoryMovementRoute
+  '/app/(auth)/login': typeof AppauthLoginRoute
+  '/app/(auth)/materials': typeof AppauthMaterialsRoute
+  '/app/(auth)/products': typeof AppauthProductsRoute
+  '/app/(auth)/register': typeof AppauthRegisterRoute
+  '/app/(auth)/specifications': typeof AppauthSpecificationsRoute
+  '/app/(auth)/store': typeof AppauthStoreRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/inventory-movement'
-    | '/login'
-    | '/materials'
-    | '/products'
-    | '/register'
-    | '/specifications'
-    | '/store'
-    | '/layout'
-    | '/layout/profile'
+    | '/app'
+    | '/seamstress'
+    | '/app/inventory-movement'
+    | '/app/login'
+    | '/app/materials'
+    | '/app/products'
+    | '/app/register'
+    | '/app/specifications'
+    | '/app/store'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/inventory-movement'
-    | '/login'
-    | '/materials'
-    | '/products'
-    | '/register'
-    | '/specifications'
-    | '/store'
-    | '/layout'
-    | '/layout/profile'
+    | '/app'
+    | '/seamstress'
+    | '/app/inventory-movement'
+    | '/app/login'
+    | '/app/materials'
+    | '/app/products'
+    | '/app/register'
+    | '/app/specifications'
+    | '/app/store'
   id:
     | '__root__'
-    | '/_app'
-    | '/_app/_authenticated'
-    | '/(auth)/inventory-movement'
-    | '/(auth)/login'
-    | '/(auth)/materials'
-    | '/(auth)/products'
-    | '/(auth)/register'
-    | '/(auth)/specifications'
-    | '/(auth)/store'
-    | '/_app/layout'
-    | '/_app/'
-    | '/_app/_authenticated/layout/profile'
+    | '/'
+    | '/app'
+    | '/_app/seamstress'
+    | '/app/(auth)/inventory-movement'
+    | '/app/(auth)/login'
+    | '/app/(auth)/materials'
+    | '/app/(auth)/products'
+    | '/app/(auth)/register'
+    | '/app/(auth)/specifications'
+    | '/app/(auth)/store'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
+  IndexRoute: typeof IndexRoute
   AppRouteRoute: typeof AppRouteRouteWithChildren
-  authInventoryMovementRoute: typeof authInventoryMovementRoute
-  authLoginRoute: typeof authLoginRoute
-  authMaterialsRoute: typeof authMaterialsRoute
-  authProductsRoute: typeof authProductsRoute
-  authRegisterRoute: typeof authRegisterRoute
-  authSpecificationsRoute: typeof authSpecificationsRoute
-  authStoreRoute: typeof authStoreRoute
+  AppSeamstressRoute: typeof AppSeamstressRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/_app': {
-      id: '/_app'
-      path: ''
-      fullPath: '/'
+    '/app': {
+      id: '/app'
+      path: '/app'
+      fullPath: '/app'
       preLoaderRoute: typeof AppRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_app/': {
-      id: '/_app/'
+    '/': {
+      id: '/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof AppIndexRouteImport
-      parentRoute: typeof AppRouteRoute
+      preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_app/layout': {
-      id: '/_app/layout'
-      path: '/layout'
-      fullPath: '/layout'
-      preLoaderRoute: typeof AppLayoutRouteImport
-      parentRoute: typeof AppRouteRoute
+    '/_app/seamstress': {
+      id: '/_app/seamstress'
+      path: '/seamstress'
+      fullPath: '/seamstress'
+      preLoaderRoute: typeof AppSeamstressRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/(auth)/store': {
-      id: '/(auth)/store'
+    '/app/(auth)/store': {
+      id: '/app/(auth)/store'
       path: '/store'
-      fullPath: '/store'
-      preLoaderRoute: typeof authStoreRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/(auth)/specifications': {
-      id: '/(auth)/specifications'
-      path: '/specifications'
-      fullPath: '/specifications'
-      preLoaderRoute: typeof authSpecificationsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/(auth)/register': {
-      id: '/(auth)/register'
-      path: '/register'
-      fullPath: '/register'
-      preLoaderRoute: typeof authRegisterRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/(auth)/products': {
-      id: '/(auth)/products'
-      path: '/products'
-      fullPath: '/products'
-      preLoaderRoute: typeof authProductsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/(auth)/materials': {
-      id: '/(auth)/materials'
-      path: '/materials'
-      fullPath: '/materials'
-      preLoaderRoute: typeof authMaterialsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/(auth)/login': {
-      id: '/(auth)/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof authLoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/(auth)/inventory-movement': {
-      id: '/(auth)/inventory-movement'
-      path: '/inventory-movement'
-      fullPath: '/inventory-movement'
-      preLoaderRoute: typeof authInventoryMovementRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_app/_authenticated': {
-      id: '/_app/_authenticated'
-      path: ''
-      fullPath: '/'
-      preLoaderRoute: typeof AppAuthenticatedRouteRouteImport
+      fullPath: '/app/store'
+      preLoaderRoute: typeof AppauthStoreRouteImport
       parentRoute: typeof AppRouteRoute
     }
-    '/_app/_authenticated/layout/profile': {
-      id: '/_app/_authenticated/layout/profile'
-      path: '/layout/profile'
-      fullPath: '/layout/profile'
-      preLoaderRoute: typeof AppAuthenticatedLayoutProfileRouteImport
-      parentRoute: typeof AppAuthenticatedRouteRoute
+    '/app/(auth)/specifications': {
+      id: '/app/(auth)/specifications'
+      path: '/specifications'
+      fullPath: '/app/specifications'
+      preLoaderRoute: typeof AppauthSpecificationsRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/app/(auth)/register': {
+      id: '/app/(auth)/register'
+      path: '/register'
+      fullPath: '/app/register'
+      preLoaderRoute: typeof AppauthRegisterRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/app/(auth)/products': {
+      id: '/app/(auth)/products'
+      path: '/products'
+      fullPath: '/app/products'
+      preLoaderRoute: typeof AppauthProductsRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/app/(auth)/materials': {
+      id: '/app/(auth)/materials'
+      path: '/materials'
+      fullPath: '/app/materials'
+      preLoaderRoute: typeof AppauthMaterialsRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/app/(auth)/login': {
+      id: '/app/(auth)/login'
+      path: '/login'
+      fullPath: '/app/login'
+      preLoaderRoute: typeof AppauthLoginRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/app/(auth)/inventory-movement': {
+      id: '/app/(auth)/inventory-movement'
+      path: '/inventory-movement'
+      fullPath: '/app/inventory-movement'
+      preLoaderRoute: typeof AppauthInventoryMovementRouteImport
+      parentRoute: typeof AppRouteRoute
     }
   }
 }
 
-interface AppAuthenticatedRouteRouteChildren {
-  AppAuthenticatedLayoutProfileRoute: typeof AppAuthenticatedLayoutProfileRoute
-}
-
-const AppAuthenticatedRouteRouteChildren: AppAuthenticatedRouteRouteChildren = {
-  AppAuthenticatedLayoutProfileRoute: AppAuthenticatedLayoutProfileRoute,
-}
-
-const AppAuthenticatedRouteRouteWithChildren =
-  AppAuthenticatedRouteRoute._addFileChildren(
-    AppAuthenticatedRouteRouteChildren,
-  )
-
 interface AppRouteRouteChildren {
-  AppAuthenticatedRouteRoute: typeof AppAuthenticatedRouteRouteWithChildren
-  AppLayoutRoute: typeof AppLayoutRoute
-  AppIndexRoute: typeof AppIndexRoute
+  AppauthInventoryMovementRoute: typeof AppauthInventoryMovementRoute
+  AppauthLoginRoute: typeof AppauthLoginRoute
+  AppauthMaterialsRoute: typeof AppauthMaterialsRoute
+  AppauthProductsRoute: typeof AppauthProductsRoute
+  AppauthRegisterRoute: typeof AppauthRegisterRoute
+  AppauthSpecificationsRoute: typeof AppauthSpecificationsRoute
+  AppauthStoreRoute: typeof AppauthStoreRoute
 }
 
 const AppRouteRouteChildren: AppRouteRouteChildren = {
-  AppAuthenticatedRouteRoute: AppAuthenticatedRouteRouteWithChildren,
-  AppLayoutRoute: AppLayoutRoute,
-  AppIndexRoute: AppIndexRoute,
+  AppauthInventoryMovementRoute: AppauthInventoryMovementRoute,
+  AppauthLoginRoute: AppauthLoginRoute,
+  AppauthMaterialsRoute: AppauthMaterialsRoute,
+  AppauthProductsRoute: AppauthProductsRoute,
+  AppauthRegisterRoute: AppauthRegisterRoute,
+  AppauthSpecificationsRoute: AppauthSpecificationsRoute,
+  AppauthStoreRoute: AppauthStoreRoute,
 }
 
 const AppRouteRouteWithChildren = AppRouteRoute._addFileChildren(
@@ -292,14 +254,9 @@ const AppRouteRouteWithChildren = AppRouteRoute._addFileChildren(
 )
 
 const rootRouteChildren: RootRouteChildren = {
+  IndexRoute: IndexRoute,
   AppRouteRoute: AppRouteRouteWithChildren,
-  authInventoryMovementRoute: authInventoryMovementRoute,
-  authLoginRoute: authLoginRoute,
-  authMaterialsRoute: authMaterialsRoute,
-  authProductsRoute: authProductsRoute,
-  authRegisterRoute: authRegisterRoute,
-  authSpecificationsRoute: authSpecificationsRoute,
-  authStoreRoute: authStoreRoute,
+  AppSeamstressRoute: AppSeamstressRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

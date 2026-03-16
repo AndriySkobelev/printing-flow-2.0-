@@ -59,6 +59,7 @@ export const productsSpecification = {
   materials: v.array(v.object({
     units: v.string(),
     quantity: v.number(),
+    materialName: v.optional(v.string()),
     fabricId: v.optional(v.id('fabrics')),
     materialId: v.optional(v.id('materials')),
   })),
@@ -75,7 +76,7 @@ export const productVariants = {
     multiplier: v.optional(v.number()),
     fabricId: v.optional(v.id('fabrics')),
     materialId: v.optional(v.id('materials')),
-    overwriteMaterialId: v.optional(v.id('materials')),
+    overwriteMaterialId: v.optional(v.union(v.id('materials'), v.id('fabrics'))),
   }))),
 }
 
@@ -94,7 +95,10 @@ export type StoreMovements = Doc<'storeMovements'>;
 export default defineSchema({
   fabrics: fabricsTable
     .searchIndex('search_name', {
-      searchField: 'fabricName'
+      searchField: 'fabricName',
+    })
+    .searchIndex('search_color', {
+      searchField: 'color',
     })
     .index('by_skuNumber', ['skuNumber']),
   materials: materialsTable

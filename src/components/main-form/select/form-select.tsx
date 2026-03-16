@@ -5,15 +5,15 @@ import { useFieldContext } from "@/components/main-form";
 import clsx from 'clsx';
 
 export type Option = {
-  value: string | number | null | undefined;
-  label: string | number | null | undefined;
+  value: string | number;
+  label: string | number;
 }
 
 const regex = /^([^·]+) · ([^·]+) · ([^·]+)$/;
 
 const valueToOption = (value: string | number | null | undefined, options: Array<{ value: string, label: string}>) => {
   const findValue = options.find((o: { value: string, label: string}) => o.value === value);
-  console.log("🚀 ~ valueToOption ~ findValue:", findValue)
+
   return findValue;
 };
 
@@ -67,12 +67,13 @@ type OptionTypes = typeof OptionModes;
 interface FormSelectProps {
   label?: string;
   isMulti?: boolean,
+  disabled?: boolean;
   className?: string,
   modeOption?: keyof OptionTypes;
   options: Array<{ value: string | number; label: string }> | any;
 }
 
-const FormSelect: FunctionComponent<FormSelectProps> = ({ options, label, isMulti = false, className, modeOption = 'default' }) => {
+const FormSelect: FunctionComponent<FormSelectProps> = ({ options, label, disabled, isMulti = false, className, modeOption = 'default' }) => {
   const field = useFieldContext();
   const name = useMemo(() => field.name, [field.name]);
   const value = useMemo(() => field.state.value as string | number | undefined, [field.state.value]);
@@ -88,6 +89,7 @@ const FormSelect: FunctionComponent<FormSelectProps> = ({ options, label, isMult
         name={name}
         options={options}
         isMulti={isMulti}
+        isDisabled={disabled}
         placeholder="Виберіть..."
         className='hover:active:border-none'
         value={
