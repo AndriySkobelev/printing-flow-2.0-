@@ -20,6 +20,10 @@ const pages = [
     label: 'Матеріали',
   },
   {
+    to: '/app/fabrics',
+    label: 'Тканини',
+  },
+  {
     to: '/app/specifications',
     label: 'Специфікації',
   },

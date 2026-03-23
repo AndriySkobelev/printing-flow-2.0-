@@ -1,4 +1,5 @@
 import { memo, useState } from "react";
+import clsx from "clsx";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "./ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
@@ -14,12 +15,14 @@ export default memo(function MyDialog({
   description,
   actionSubmit,
   isLoading = true,
+  outerClose = false,
 }: {
   open?: boolean,
   formId?: string,
   withForm?: boolean,
   className?: string,
   isLoading?: boolean,
+  outerClose?: boolean,
   title?: React.ReactNode,
   trigger?: React.ReactNode,
   content?: React.ReactNode | null,
@@ -29,49 +32,56 @@ export default memo(function MyDialog({
   setIsLoading?: (isLoading: boolean) => void,
 }) {  
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      {
-        trigger
-        ? <DialogTrigger asChild>
-            {trigger}
-          </DialogTrigger>
-        : null
-      }
-      <DialogContent className={className}>
+    <div className="no-scrollbar max-h-[50vh] overflow-y-auto relative">
+      <Dialog open={open} onOpenChange={setOpen}>
         {
-          isLoading && (
-            <div className="absolute top-0 left-0 w-full h-full flex items-center justify-center bg-white/60 z-50 rounded-md">
-              <Loader2 className="w-7 h-7 animate-spin" />
-            </div>
-          )
+          trigger
+          ? <DialogTrigger asChild>
+              {trigger}
+            </DialogTrigger>
+          : null
         }
-        <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          <div className="text-sm text-primary">{description}</div>
-        </DialogHeader>
-        {content}
-        <DialogFooter className="flex items-center justify-end gap-2 w-full">
+        <DialogContent
+          className={clsx('', className)}
+          onInteractOutside={(event) => {
+            if (!outerClose) return event.preventDefault()
+          }}
+        >
           {
-            actionSubmit
-            ? <>
-              <DialogClose asChild>
-                <Button id="dialog-cancel" type="button" variant="outline" className=" w-full md:w-auto flex-1">Відмінити</Button>
-              </DialogClose>
-              <Button id="dialog-save" type="button" disabled={isLoading} onClick={actionSubmit} className="w-full md:w-auto flex-1">
-                {isLoading ? <div className="flex items-center gap-2"> <Loader2 className="w-4 h-4 animate-spin" /> Підтвердження... </div> : 'Підтвердити'}
-              </Button>
-            </>
-            : <>
-              <DialogClose asChild>
-                <Button id="dialog-cancel" type="button" variant="outline" className="w-full md:w-auto flex-1">Відмінити</Button>
-              </DialogClose>
-              <Button id="dialog-save" type="submit" disabled={isLoading} form={formId} className="w-full md:w-auto flex-1">
-                {isLoading ? <div className="flex items-center gap-2"> <Loader2 className="w-4 h-4 animate-spin" /> Підтвердження... </div> : 'Підтвердити'}
-              </Button>
-            </>
+            isLoading && (
+              <div className="absolute top-0 left-0 w-full h-full flex items-center justify-center bg-white/60 z-50 rounded-md">
+                <Loader2 className="w-7 h-7 animate-spin" />
+              </div>
+            )
           }
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+          <DialogHeader>
+            <DialogTitle>{title}</DialogTitle>
+            <div className="text-sm text-primary">{description}</div>
+          </DialogHeader>
+          {content}
+          <DialogFooter className="flex items-center justify-end gap-2 w-full">
+            {
+              actionSubmit
+              ? <>
+                <DialogClose asChild>
+                  <Button id="dialog-cancel" type="button" variant="outline" className=" w-full md:w-auto flex-1">Відмінити</Button>
+                </DialogClose>
+                <Button id="dialog-save" type="button" disabled={isLoading} onClick={actionSubmit} className="w-full md:w-auto flex-1">
+                  {isLoading ? <div className="flex items-center gap-2"> <Loader2 className="w-4 h-4 animate-spin" /> Підтвердження... </div> : 'Підтвердити'}
+                </Button>
+              </>
+              : <>
+                <DialogClose asChild>
+                  <Button id="dialog-cancel" type="button" variant="outline" className="w-full md:w-auto flex-1">Відмінити</Button>
+                </DialogClose>
+                <Button id="dialog-save" type="submit" disabled={isLoading} form={formId} className="w-full md:w-auto flex-1">
+                  {isLoading ? <div className="flex items-center gap-2"> <Loader2 className="w-4 h-4 animate-spin" /> Підтвердження... </div> : 'Підтвердити'}
+                </Button>
+              </>
+            }
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
   )
 });

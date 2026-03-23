@@ -5,7 +5,7 @@ import { api } from "convex/_generated/api";
 
 export function useCreateIncomingMutation() {
   const mutationFn = useConvexMutation(
-    api.queries.materials.createIncoming,
+    api.queries.movements.createIncoming,
   )
 
   return useMutation({ mutationFn })

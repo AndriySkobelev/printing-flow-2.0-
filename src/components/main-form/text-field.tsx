@@ -8,11 +8,11 @@ interface FormTextFieldProps {
   onChange?: any,
   className?: string,
   placeholder?: string,
-  type: 'text' | 'number',
+  type?: 'text' | 'number',
   otherValue?: string | number,
 }
 
-export const FormTextField = ({ type, placeholder, label, className, onChange, otherValue }: FormTextFieldProps) => {
+export const FormTextField = ({ type = 'text', placeholder, label, className, onChange, otherValue }: FormTextFieldProps) => {
   const field = useFieldContext();
   const name = useMemo(() => field.name, [field.name]);
   const value = useMemo(() => field.state.value as string | number | ReadonlyArray<string> | undefined, [field.state.value]);

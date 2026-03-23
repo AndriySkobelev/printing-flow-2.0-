@@ -188,7 +188,7 @@ const InventoryMovement: FunctionComponent = () => {
       <div className='flex gap-2'>
         <Button onClick={handleComingMaterial}>+ Прихід</Button>
         <Button onClick={handleConsumptionMaterial}>- Росхід</Button>
-        {/* <Button onClick={handleUpdate}>Update Data</Button> */}
+        <Button onClick={handleUpdate}>Update Data</Button>
       </div>
       <Suspense fallback={<div>Завантаження...</div>}>
         <SimpleTable

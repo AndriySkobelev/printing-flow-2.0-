@@ -88,6 +88,23 @@ export const getProductsWithSpec = query({
   }
 })
 
+export const getSearchProducts = query({
+  args: { inputValue: v.string() },
+  handler: async (ctx, args) => {
+    const { inputValue } = args
+    const products = await ctx.db
+      .query("products")
+      .withSearchIndex('search_text', q => q.search('searchText', inputValue))
+      .take(10);
+    const gproupedByParentId = groupBy(prop('parentId'), products);
+    const specIds = keys(gproupedByParentId);
+    const specs = await getAll(ctx.db, specIds) || [];
+    const combineProducs = specs.flatMap((spec) => addToAll({ name: spec?.name }, gproupedByParentId[spec?._id as any] as unknown as Array<any> ));
+
+    return combineProducs;
+  }
+})
+
 export const getProductsByManySku = internalQuery({
   args: { sku: v.array(v.string()) },
   handler: async (ctx, args) => {
@@ -123,7 +140,7 @@ export const createProductsBySpecification = mutation({
   handler: async (ctx, args) => {
     const spec = await getSpecWithMaterials(ctx, args.specification);
     const sizes = args.allSizes ? productSizes : args.sizes?.map(size => size.value);
-    const specFabric = spec?.materials.find(material => material.fabricId);
+    const specFabric = spec?.materials.find(material => material.fabricId && material?.type === 'base');
     const fabricsByColors: Array<{ color: string, _id: string}> = args.allColors 
       ? await getFabricsByNameAndColors(ctx, args.fabricName)
       : await getFabricsByNameAndColors(ctx, args.fabricName, args.colors?.map(color => color.value) || []);
@@ -139,6 +156,7 @@ export const createProductsBySpecification = mutation({
         color: color?.color,
         parentId: spec?._id,
         skuNumber: numberSku,
+        searchText: `${spec?.name}.${size}.${color?.color}`,
         materials: [
           { fabricId: color._id, multiplier: 1, overwriteMaterialId: specFabric?.fabricId },
         ],

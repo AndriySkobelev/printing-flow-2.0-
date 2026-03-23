@@ -154,14 +154,15 @@ const Specifications: FunctionComponent<SpecificationsProps> = () => {
   }
 
   const handleSubmitEdit = (values: SpecificationFormType | (SpecificationFormType & { _id: Id<'specifications'>, _creationTime: string })) => {
-    if ('_id' in values && '_creationTime' in values) {
-      const newMaterials = values.materials.map((material) => pick(['fabricId', 'materialId', 'units', 'quantity'], material));
-      const newData = {
-        ...omit(['_id', '_creationTime', 'materials'], values),
-        materials: newMaterials
-      };
-      updateSpec({ id: values._id, data: newData as Specifications });
-    }
+    console.log('values', values)
+    // if ('_id' in values && '_creationTime' in values) {
+    //   const newMaterials = values.materials.map((material) => pick(['fabricId', 'materialId', 'units', 'quantity'], material));
+    //   const newData = {
+    //     ...omit(['_id', '_creationTime', 'materials'], values),
+    //     materials: newMaterials
+    //   };
+    //   updateSpec({ id: values._id, data: newData as Specifications });
+    // }
     closeDialog();
   }
 

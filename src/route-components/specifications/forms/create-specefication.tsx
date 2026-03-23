@@ -36,6 +36,12 @@ const defaultMaterialValues = {
   units: ''
 }
 
+const defaultFabricsValues = {
+  fabricId: '',
+  quantity: 0,
+  units: ''
+}
+
 export type SpecificationFormType = z.infer<typeof specificationSchema>
 
 interface SpecificationFormProps {
@@ -67,7 +73,7 @@ const SpecificationForm: FunctionComponent<SpecificationFormProps> = ({
       category: '',
       skuPrefix: '',
       materials: [
-        { quantity: 0, units: '' }
+        { fabricId: '', quantity: 0, units: '', type: 'base' }
       ]
     },
     onSubmit: (value) => actionSubmit(value.value),
@@ -101,14 +107,14 @@ const SpecificationForm: FunctionComponent<SpecificationFormProps> = ({
               <div className='flex flex-col gap-2 w-full'>
                 {field.state.value.map((value, i) => (
                   <div key={i} className={clsx('flex gap-2 w-full items-end', i === 0 && 'bg-primary/5 border rounded-md p-2')}>
-                    <form.AppField key={`materialId-${i}`} name={i != 0 ? `materials[${i}].materialId` : `materials[${i}].fabricId`}
+                    <form.AppField key={`materialId-${i}`} name={!has('fabricId', value) ? `materials[${i}].materialId` : `materials[${i}].fabricId`}
                       children={(subField) => (
                         <subField.FormAsyncSelect
                           className='flex-5'
-                          label={i != 0 ? "Матеріал" : 'Тканина'}
-                          modeOption={i != 0  ? 'materials' : 'fabric'}
-                          asyncOptions={i != 0  ? materialOptions : fabricOptions}
-                          defaultOptions={i != 0  ? defaultMaterialsOptions : defaultFabricOptions}/>
+                          label={!has('fabricId', value) ? "Матеріал" : 'Тканина'}
+                          modeOption={!has('fabricId', value) ? 'materials' : 'fabric'}
+                          asyncOptions={!has('fabricId', value) ? materialOptions : fabricOptions}
+                          defaultOptions={!has('fabricId', value) ? defaultMaterialsOptions : defaultFabricOptions}/>
                       )}
                     />
                     <form.AppField key={`quantity-${i}`} name={`materials[${i}].quantity`}
@@ -125,7 +131,10 @@ const SpecificationForm: FunctionComponent<SpecificationFormProps> = ({
                     
                   </div>
                 ))}
-                <Button type="button" variant='secondary' onClick={() => field.pushValue(defaultMaterialValues)}>Додати матеріал</Button>
+                <div className="flex flex-row justify-between gap-2 bg-white py-2">
+                  <Button className="flex-1 w-full" type="button" variant='secondary' onClick={() => field.pushValue(defaultMaterialValues)}>Додати матеріал</Button>
+                  <Button className="flex-1 w-full" type="button" variant='secondary' onClick={() => field.pushValue(defaultFabricsValues)}>Додати Тканину</Button>
+                </div>
               </div>
             )}
           </form.Field>

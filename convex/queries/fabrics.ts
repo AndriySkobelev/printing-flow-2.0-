@@ -1,5 +1,6 @@
 import { query, mutation } from "../_generated/server";
-import { fabricsSchema  } from "../schema";
+import { pick, prop } from 'ramda';
+import { fabricsSchema } from "../schema";
 import { v } from "convex/values";
 
 ///////// QUERY //////////
@@ -64,11 +65,27 @@ export const getFabricById = query({
 ///////// QUERY //////////
 
 ///////// MUTATIONS //////////
-export const createMaterial = mutation({
-  args: fabricsSchema,
+export const createFabrics = mutation({
+  args: {
+    name: v.string(),
+    skuPrefix: v.string(),
+    colors: v.array(v.string()),
+    units: fabricsSchema['units']
+  },
   handler: async (ctx, args) => {
-    const materials = await ctx.db.insert("fabrics", args);
-    return materials;
+    const { name, units, skuPrefix, colors } = args;
+    if (!colors) throw new Error("Colors are required");
+
+    await Promise.all(colors?.map(async (color, i) => {
+      await ctx.db.insert("fabrics", {
+        fabricName: name,
+        units,
+        skuPrefix,
+        color,
+        skuNumber: i + 1,
+        sku: `${skuPrefix}-${String(i+1).padStart(3, '0')}`,
+      })
+    }))
   }
 })
 ///////// MUTATIONS //////////

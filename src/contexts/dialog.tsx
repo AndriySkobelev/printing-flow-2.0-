@@ -14,6 +14,7 @@ export const ContextDialogComponent = ({ children }: { children: React.ReactNode
     description: '',
     withForm: false,
     form: null,
+    outerClose: true,
     formId: '',
     className: ''
   });
@@ -42,6 +43,7 @@ export const ContextDialogComponent = ({ children }: { children: React.ReactNode
         withForm={state?.withForm}
         setIsLoading={setIsLoading}
         className={state?.className}
+        outerClose={state?.outerClose}
         description={state?.description}
         actionSubmit={state?.actionSubmit}
       />
@@ -58,6 +60,7 @@ type DialogOptions = {
   withForm?: boolean,
   form?: any,
   formId?: string,
+  outerClose?: boolean,
   className?: string,
   actionSubmit?: (data: any) => void
 }

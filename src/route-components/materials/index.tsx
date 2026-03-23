@@ -186,7 +186,7 @@ const Materials: FunctionComponent<MaterialsProps> = () => {
   
   return (
     <div className="flex flex-col gap-4 p-4">
-      <div className="w-fit">
+      {/* <div className="w-fit">
         <Button className="w-full" onClick={handleAddSpec}>Додати специфікацію</Button>
       </div>
       <Suspense fallback={<div>Loading...</div>}>
@@ -206,7 +206,7 @@ const Materials: FunctionComponent<MaterialsProps> = () => {
           }}
           getRowId={({ row }) => row.id as string}
         />
-      </Suspense>
+      </Suspense> */}
     </div>
   );
 }

@@ -57,16 +57,17 @@ const processingIcoming = async ({ ctx, orderId, menegerId }:{ ctx: ActionCtx, o
 
     if (productMaterials && productMaterials.length > 0) {
       finalMaterilas = parentMaterials.map((parent) => {
-        const findMaterilal = productMaterials?.find((el: any) =>
+        //шукаю перезаписуючий матеріал для батьківського матеріалу, якщо він є, якщо ні - залишаю батьківський матеріал
+        const findOverwriteMaterilal = productMaterials?.find((el: any) =>
           parent.fabricId
             ? parent.fabricId === el.overwriteMaterialId
             : parent.materialId === el.overwriteMaterialId
         );
-        const quantity = (findMaterilal?.multiplier ? parent.quantity * findMaterilal.multiplier : parent.quantity) * product.quantity;
-        if (findMaterilal) {
+        const quantity = (findOverwriteMaterilal?.multiplier ? parent.quantity * findOverwriteMaterilal.multiplier : parent.quantity) * product.quantity;
+        if (findOverwriteMaterilal) {
           return {
             ...parent,
-            ...findMaterilal,
+            ...findOverwriteMaterilal,
             quantity,
             orderId: id,
             type: 'reserve',

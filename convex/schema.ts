@@ -6,17 +6,17 @@ export enum TransactionType { INCOMING = 'incoming', OUTGOING = 'outgoing', RESE
 export const TRANSACTION_TYPES = { INCOMING: 'incoming', OUTGOING: 'outgoing', RESERVE: 'reserve' } as const;
 
 export const fabricsSchema = {
-  id: v.string(),
   sku: v.string(),
   color: v.string(),
   skuNumber: v.number(),
-  thredsSku: v.string(),
-  createdAt: v.string(),
-  updatedAt: v.string(),
+  thredsSku: v.optional(v.string()),
+  createdAt: v.optional(v.string()),
+  updatedAt: v.optional(v.string()),
+  id: v.optional(v.string()),
   skuPrefix: v.string(),
   fabricName: v.string(),
-  units: v.literal('кг'),
-  threds: v.union(v.string(), v.number()),
+  units: v.union(v.literal('кг'), v.literal('м')),
+  threds: v.optional(v.union(v.string(), v.number())),
 };
 
 export const materialsSchema = {
@@ -62,6 +62,7 @@ export const productsSpecification = {
     materialName: v.optional(v.string()),
     fabricId: v.optional(v.id('fabrics')),
     materialId: v.optional(v.id('materials')),
+    type: v.optional(v.union(v.literal('base'), v.literal('additional'))),
   })),
 }
 
@@ -72,6 +73,7 @@ export const productVariants = {
   skuNumber: v.number(),
   style: v.optional(v.string()),
   parentId: v.id('specifications'),
+  searchText: v.optional(v.string()),
   materials: v.optional(v.array(v.object({
     multiplier: v.optional(v.number()),
     fabricId: v.optional(v.id('fabrics')),
@@ -100,13 +102,19 @@ export default defineSchema({
     .searchIndex('search_color', {
       searchField: 'color',
     })
+    .searchIndex('search_skuPrefix', {
+      searchField: 'skuPrefix',
+    })
     .index('by_skuNumber', ['skuNumber']),
   materials: materialsTable
-  .searchIndex('search_name', {
-    searchField: 'searchText'
-  }),
+    .searchIndex('search_name', {
+      searchField: 'searchText'
+    }),
   products: proudctsTable
-  .index('search_sku', ['sku']),
+    .index('search_sku', ['sku'])
+    .searchIndex('search_text', {
+      searchField: 'searchText'
+    }),
   specifications: specifications,
   storeMovements: icomingMaterialsTable,
 });

@@ -89,10 +89,7 @@ export const createAllMaterials = mutation({
 })
 
 export const makeMigrateData = mutation({
-  args: {},
   handler: async (ctx) => {
-    const fabrics = await ctx.db.query('fabrics').collect();
-    for (const fabric of fabrics) { await ctx.db.patch(fabric._id, { units: "кг" }); }
 
     return null;
   }
