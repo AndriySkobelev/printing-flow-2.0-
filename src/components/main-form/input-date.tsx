@@ -8,11 +8,10 @@ interface FormTextFieldProps {
   onChange?: any,
   className?: string,
   placeholder?: string,
-  type?: 'text' | 'number',
   otherValue?: string | number,
 }
 
-export const InputDate = ({ type = 'text', placeholder, label, className, onChange, otherValue }: FormTextFieldProps) => {
+export const InputDate = ({ placeholder, label, className, onChange, otherValue }: FormTextFieldProps) => {
   const field = useFieldContext();
   const name = useMemo(() => field.name, [field.name]);
   const value = useMemo(() => {
@@ -24,8 +23,9 @@ export const InputDate = ({ type = 'text', placeholder, label, className, onChan
   const errors = useMemo(() => field.state.meta.errors as Array<{ message: string }> | undefined, [field.state.meta.errors]);
   const isValid = useMemo(() => field.state.meta.isValid as boolean | undefined, [field.state.meta.isValid]);
   return (
-    <div className={clsx("flex flex-col gap-1 w-full", className)}>
+    <div className={clsx("flex flex-col justify-start gap-1 w-full", className)}>
       <DatePicker onChange={fieldOnChange} />
+      {!isValid && <div className="text-sm text-red-500 ml-2">{errors?.[0]?.message}</div>}
     </div>
   )
 };

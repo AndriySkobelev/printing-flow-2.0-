@@ -1,5 +1,6 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
+import { authTables } from "@convex-dev/auth/server";
 import type { Doc, Id } from "../convex/_generated/dataModel";
 
 export enum TransactionType { INCOMING = 'incoming', OUTGOING = 'outgoing', RESERVE='reserve' }
@@ -95,6 +96,7 @@ export type Specifications = Doc<'specifications'>;
 export type StoreMovements = Doc<'storeMovements'>;
 
 export default defineSchema({
+  ...authTables,
   fabrics: fabricsTable
     .searchIndex('search_name', {
       searchField: 'fabricName',

@@ -2,6 +2,7 @@ import { type FunctionComponent, useMemo } from 'react';
 import { DotIcon } from 'lucide-react';
 import { type SingleValue } from 'react-select';
 import AsyncSelect from 'react-select/async';
+import { PropsValue } from 'react-select';
 import { useFieldContext } from "@/components/main-form";
 import clsx from 'clsx';
 
@@ -22,11 +23,13 @@ interface FormAsyncSelectProps {
   defaultOptions?: Array<{ value: string | number; label: string }> | any;
 }
 
-const valueToOption = (value: string | number | null | undefined, options: Array<{ value: string, label: string}>) => {
-  const findValue = options.find((o: { value: string, label: string}) => o.value === value);
-  console.log("🚀 ~ valueToOption ~ findValue:", findValue)
-
-  return findValue;
+const valueToOption = <T extends { value: any }>(value: T['value'], options: Array<T>) => {
+  const valueToObject: Option = { value: value, label: value !== null && value !== undefined ? `${value}` : null };
+  if (options.length < 1) {
+    return valueToObject;
+  }
+  const findValue = options.find((o) => o.value === value);
+  return findValue || valueToObject;
 };
 
 const CustomDefaultOption: FunctionComponent<{ innerProps: any, innerRef: any, data: Option }> = ({ innerProps, innerRef, data }) => {
@@ -127,14 +130,35 @@ const OptionModes = {
 };
 
 type OptionTypes = typeof OptionModes;
+type Primitive = string | number | unknown;
+
+type ValueObject = {
+  value: Primitive;
+  label: string;
+};
+
+type ValueType =  ValueObject;
  
-const FormAsyncSelect: FunctionComponent<FormAsyncSelectProps> = ({ asyncOptions, defaultOptions = [], valueMode = 'string', label, className, modeOption = 'default' }) => {
+const FormAsyncSelect: FunctionComponent<FormAsyncSelectProps> = ({
+  label,
+  className,
+  asyncOptions,
+  defaultOptions = [],
+  valueMode = 'string',
+  modeOption = 'default'
+}) => {
+  console.log('HERE')
   const field = useFieldContext();
   const name = useMemo(() => field.name, [field.name]);
-  const value = useMemo(() => field.state.value as string | number | undefined, [field.state.value]);
+  const value: PropsValue<Option> | unknown = useMemo(() => {
+    return field.state.value as PropsValue<Option> | unknown
+  }, [field.state.value]);
+  console.log("🚀 ~ FormAsyncSelect ~ value:", value)
   const fieldOnChange = useMemo(() => (value: SingleValue<Option>) => field.handleChange(valueMode === 'object' ? value : value?.value), [field.handleChange]);
   const errors = useMemo(() => field.state.meta.errors as Array<{ message: string }> | undefined, [field.state.meta.errors]);
   const isValid = useMemo(() => field.state.meta.isValid as boolean | undefined, [field.state.meta.isValid]);
+  const valueByOptions = typeof value === 'string' ? valueToOption(value, defaultOptions) : value;
+  console.log("🚀 ~ FormAsyncSelect ~ valueByOptions:", valueByOptions)
 
   return (
     <div className={clsx('flex flex-col gap-1 w-full', className)}>
@@ -143,12 +167,12 @@ const FormAsyncSelect: FunctionComponent<FormAsyncSelectProps> = ({ asyncOptions
         name={name}
         cacheOptions
         placeholder="Пошук..."
+        onChange={fieldOnChange}
+        value={valueByOptions as PropsValue<Option> ?? null}
         defaultOptions={defaultOptions}
         className='hover:active:border-none'
-        value={valueToOption(value, defaultOptions)}
-        defaultValue={valueToOption(value, defaultOptions)}
         loadOptions={(inputValue) => asyncOptions({inputValue})}
-        onChange={fieldOnChange}
+        defaultValue={defaultOptions.length > 0 ? valueToOption(value, defaultOptions) as PropsValue<Option> : null}
         components={{
           Option: OptionModes[modeOption || 'default'],
         }}

@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as auth from "../auth.js";
 import type * as http from "../http.js";
 import type * as htttp_actions_iventory_movements from "../htttp_actions/iventory_movements.js";
 import type * as queries_fabrics from "../queries/fabrics.js";
@@ -24,6 +25,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  auth: typeof auth;
   http: typeof http;
   "htttp_actions/iventory_movements": typeof htttp_actions_iventory_movements;
   "queries/fabrics": typeof queries_fabrics;

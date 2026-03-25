@@ -1,4 +1,5 @@
 import { ErrorComponent, createRouter } from '@tanstack/react-router'
+import { ConvexAuthProvider } from "@convex-dev/auth/react";
 import {
   MutationCache,
   QueryClient,
@@ -42,11 +43,13 @@ export const getRouter = () => {
     defaultNotFoundComponent: () => <div>Not Found</div>,
     context: { queryClient },
     Wrap: ({ children }) => (
-      <ConvexProvider client={convexQueryClient.convexClient}>
-        <ContextDialogComponent>
-          {children}
-        </ContextDialogComponent>
-      </ConvexProvider>
+      <ConvexAuthProvider client={convexQueryClient.convexClient}>
+        <ConvexProvider client={convexQueryClient.convexClient}>
+          <ContextDialogComponent>
+            {children}
+          </ContextDialogComponent>
+        </ConvexProvider>
+      </ConvexAuthProvider>
     ),
     scrollRestoration: true,
   })
