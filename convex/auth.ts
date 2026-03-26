@@ -5,21 +5,21 @@ import { Id } from "./_generated/dataModel";
 
 export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
   providers: [Google],
-  callbacks: {
-    async createOrUpdateUser(ctx, args) {
-      if (args.existingUserId) {
-        return args.existingUserId;
-      }
-      // if (args.existingUserId === null) {
-      //   console.log("Пішов звідци бешкетник!!!")
-      //   throw Error ("Пішов звідци бешкетник!!!")
-      // }
-      return ctx.db.insert("users", {
-        email: args.profile.email,
-        name: args.profile.name,
-      });
-    },
-  }
+  // callbacks: {
+  //   async createOrUpdateUser(ctx, args) {
+  //     if (args.existingUserId) {
+  //       return args.existingUserId;
+  //     }
+  //     // if (args.existingUserId === null) {
+  //     //   console.log("Пішов звідци бешкетник!!!")
+  //     //   throw Error ("Пішов звідци бешкетник!!!")
+  //     // }
+  //     return ctx.db.insert("users", {
+  //       email: args.profile.email,
+  //       name: args.profile.name,
+  //     });
+  //   },
+  // }
 });
 
 export const authMutation = query({
