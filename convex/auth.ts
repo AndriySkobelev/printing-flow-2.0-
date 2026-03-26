@@ -27,7 +27,9 @@ export const authMutation = query({
     console.log('HERE')
     const currTimeStamp = new Date().valueOf();
     const identity = await ctx.auth.getUserIdentity();
+    console.log("🚀 ~ identity:", identity)
     if (identity === null) {
+      console.log('Unauthorized')
       return {
         code: 400,
         message: 'Unauthorized'
@@ -37,6 +39,7 @@ export const authMutation = query({
     const [userId, sessionId] = subject.split('|')
     const getSession = await ctx.db.get('authSessions', sessionId as Id<'authSessions'>);
     if (!getSession) {
+      console.log('Session not found')
       return {
         code: 401,
         message: 'Session not found'
@@ -45,6 +48,7 @@ export const authMutation = query({
     const { expirationTime } = getSession;
     const isExpired = currTimeStamp > expirationTime;
     if (isExpired) {
+      console.log('Token was expired.')
       return {
         code: 301,
         message: 'Token was expired.'
@@ -52,6 +56,7 @@ export const authMutation = query({
     }
     const userData = await ctx.db.get('users', userId as Id<'users'>)
     if (!userData) {
+      console.log('User not found/')
       return {
         code: 400,
         message: 'User not found/'
