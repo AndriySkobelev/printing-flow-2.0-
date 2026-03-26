@@ -1,9 +1,13 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useAuthActions } from "@convex-dev/auth/react";
 import LoginForm from '@/route-components/auth/forms/login'
+import { convexQuery } from '@convex-dev/react-query';
+import { api } from 'convex/_generated/api';
+
 export const Route = createFileRoute('/_app/login')({
-  beforeLoad: ({ location }) => {
-    console.log("🚀 ~ location:", location)
+  beforeLoad: async ({ context: { queryClient } }) => {
+    const auth = await queryClient.ensureQueryData(convexQuery(api.auth.authMutation))
+    console.log("🚀 ~ auth:", auth)
   },
   component: RouteComponent,
 })

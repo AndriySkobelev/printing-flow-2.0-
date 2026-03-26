@@ -7,14 +7,15 @@ import { convexQuery } from '@convex-dev/react-query'
 export const Route = createFileRoute('/app')({
   component: RouteComponent,
   beforeLoad: async ({ context: { queryClient} }) => {
-    console.log('IN route')
-    const auth = await queryClient.ensureQueryData(convexQuery(api.auth.authMutation))
-    console.log("index ~ auth:", auth)
-    if (has('code', auth)) {
-      throw redirect({to:'/app/fabrics'})
-    }
+    // console.log('IN route')
+    // const identity = await ctx.auth.getUserIdentity();
+    // const auth = await queryClient.ensureQueryData(convexQuery(api.auth.authMutation))
+    // console.log("index ~ auth:", auth)
+    // if (has('code', auth)) {
+    //   throw redirect({to:'/app/fabrics'})
+    // }
 
-    throw redirect({ to: '/seamstress' })
+    // throw redirect({ to: '/seamstress' })
   }
 })
 
