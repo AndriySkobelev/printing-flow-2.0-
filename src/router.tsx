@@ -41,7 +41,10 @@ export const getRouter = () => {
     defaultPreload: 'intent',
     defaultErrorComponent: ErrorComponent,
     defaultNotFoundComponent: () => <div>Not Found</div>,
-    context: { queryClient },
+    context: {
+      queryClient,
+      auth: undefined!
+    },
     Wrap: ({ children }) => (
       <ConvexAuthProvider client={convexQueryClient.convexClient}>
         <ConvexProvider client={convexQueryClient.convexClient}>
