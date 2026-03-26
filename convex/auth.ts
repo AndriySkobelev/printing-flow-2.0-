@@ -24,6 +24,7 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
 
 export const authMutation = query({
   handler: async (ctx) => {
+    console.log('HERE')
     const currTimeStamp = new Date().valueOf();
     const identity = await ctx.auth.getUserIdentity();
     if (identity === null) {

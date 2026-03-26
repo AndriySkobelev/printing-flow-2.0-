@@ -5,9 +5,6 @@ export const Route = createFileRoute('/_app/login')({
   beforeLoad: ({ location }) => {
     console.log("🚀 ~ location:", location)
   },
-  loader: async ({ context }) => {
-    console.log("🚀 ~ context:", context)
-  },
   component: RouteComponent,
 })
 
