@@ -2,6 +2,12 @@ import { createFileRoute } from '@tanstack/react-router'
 import { useAuthActions } from "@convex-dev/auth/react";
 import LoginForm from '@/route-components/auth/forms/login'
 export const Route = createFileRoute('/_app/login')({
+  beforeLoad: ({ location }) => {
+    console.log("🚀 ~ location:", location)
+  },
+  loader: async ({ context }) => {
+    console.log("🚀 ~ context:", context)
+  },
   component: RouteComponent,
 })
 

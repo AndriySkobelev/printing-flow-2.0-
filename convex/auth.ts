@@ -10,10 +10,10 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
       if (args.existingUserId) {
         return args.existingUserId;
       }
-      if (args.existingUserId === null) {
-        console.log("Пішов звідци бешкетник!!!")
-        throw Error ("Пішов звідци бешкетник!!!")
-      }
+      // if (args.existingUserId === null) {
+      //   console.log("Пішов звідци бешкетник!!!")
+      //   throw Error ("Пішов звідци бешкетник!!!")
+      // }
       return ctx.db.insert("users", {
         email: args.profile.email,
         name: args.profile.name,
