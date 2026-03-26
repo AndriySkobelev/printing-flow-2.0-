@@ -6,7 +6,7 @@ import { api } from 'convex/_generated/api'
 export const Route = createFileRoute('/')({
   loader: async ({ context: { queryClient } }) => {
     const auth = await queryClient.ensureQueryData(convexQuery(api.auth.authMutation))
-    console.log("🚀 ~ auth:", auth)
+    console.log("index ~ auth:", auth)
     if (has('code', auth)) {
       throw redirect({to:'/login'})
     }

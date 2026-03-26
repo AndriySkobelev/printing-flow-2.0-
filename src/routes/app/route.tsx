@@ -7,6 +7,7 @@ export const Route = createFileRoute('/app')({
   component: RouteComponent,
   beforeLoad: async ({ context: { queryClient} }) => {
     const auth = await queryClient.ensureQueryData(convexQuery(api.auth.authMutation))
+    console.log("🚀 ~ auth:", auth)
     if (auth && 'code' in auth && auth.code === 400) {
       throw redirect({ to: '/login'})
     }
