@@ -6,10 +6,11 @@ export const Route = createFileRoute('/_app/login')({
 })
 
 function RouteComponent() {
-  const { signIn} = useAuthActions();
+  const { signIn,  } = useAuthActions();
   const handleSubmit = (actionName: string) => {
     console.log('here')
-    signIn(actionName)
+    const some = signIn(actionName)
+    console.log("🚀 ~ handleSubmit ~ some:", some)
   }
 
   return (
