@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteRouteImport } from './routes/app/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppSeamstressRouteImport } from './routes/_app/seamstress'
+import { Route as AppLoginRouteImport } from './routes/_app/login'
 import { Route as AppauthStoreRouteImport } from './routes/app/(auth)/store'
 import { Route as AppauthSpecificationsRouteImport } from './routes/app/(auth)/specifications'
 import { Route as AppauthRegisterRouteImport } from './routes/app/(auth)/register'
@@ -34,6 +35,11 @@ const IndexRoute = IndexRouteImport.update({
 const AppSeamstressRoute = AppSeamstressRouteImport.update({
   id: '/_app/seamstress',
   path: '/seamstress',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppLoginRoute = AppLoginRouteImport.update({
+  id: '/_app/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppauthStoreRoute = AppauthStoreRouteImport.update({
@@ -81,6 +87,7 @@ const AppauthFabricsRoute = AppauthFabricsRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/app': typeof AppRouteRouteWithChildren
+  '/login': typeof AppLoginRoute
   '/seamstress': typeof AppSeamstressRoute
   '/app/fabrics': typeof AppauthFabricsRoute
   '/app/inventory-movement': typeof AppauthInventoryMovementRoute
@@ -94,6 +101,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/app': typeof AppRouteRouteWithChildren
+  '/login': typeof AppLoginRoute
   '/seamstress': typeof AppSeamstressRoute
   '/app/fabrics': typeof AppauthFabricsRoute
   '/app/inventory-movement': typeof AppauthInventoryMovementRoute
@@ -108,6 +116,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/app': typeof AppRouteRouteWithChildren
+  '/_app/login': typeof AppLoginRoute
   '/_app/seamstress': typeof AppSeamstressRoute
   '/app/(auth)/fabrics': typeof AppauthFabricsRoute
   '/app/(auth)/inventory-movement': typeof AppauthInventoryMovementRoute
@@ -123,6 +132,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/app'
+    | '/login'
     | '/seamstress'
     | '/app/fabrics'
     | '/app/inventory-movement'
@@ -136,6 +146,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/app'
+    | '/login'
     | '/seamstress'
     | '/app/fabrics'
     | '/app/inventory-movement'
@@ -149,6 +160,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/app'
+    | '/_app/login'
     | '/_app/seamstress'
     | '/app/(auth)/fabrics'
     | '/app/(auth)/inventory-movement'
@@ -163,6 +175,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRouteRoute: typeof AppRouteRouteWithChildren
+  AppLoginRoute: typeof AppLoginRoute
   AppSeamstressRoute: typeof AppSeamstressRoute
 }
 
@@ -187,6 +200,13 @@ declare module '@tanstack/react-router' {
       path: '/seamstress'
       fullPath: '/seamstress'
       preLoaderRoute: typeof AppSeamstressRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_app/login': {
+      id: '/_app/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof AppLoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/app/(auth)/store': {
@@ -277,6 +297,7 @@ const AppRouteRouteWithChildren = AppRouteRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRouteRoute: AppRouteRouteWithChildren,
+  AppLoginRoute: AppLoginRoute,
   AppSeamstressRoute: AppSeamstressRoute,
 }
 export const routeTree = rootRouteImport
