@@ -44,7 +44,7 @@ export const getRouter = () => {
     context: {
       queryClient,
       auth: null,
-      convexClient: convexQueryClient.convexClient,
+      // convexClient: convexQueryClient.convexClient,
     },
     Wrap: ({ children }) => (
       <ConvexAuthProvider client={convexQueryClient.convexClient}>
