@@ -18,7 +18,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     user: null,
     isAuntificated: false
   });
-  const { data: userData } = useQuery(convexQuery(api.auth.authMutation));
+  const { data: userData } = useQuery(convexQuery(api.auth.authQuery));
   console.log("🚀 ~ AuthContext ~ userData:", userData)
 
   const oauthSinIn = (provider: ProviderType) => signIn(provider);

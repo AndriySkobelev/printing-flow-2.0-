@@ -22,47 +22,34 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
   // }
 });
 
-export const authMutation = query({
+export const authQuery = query({
   handler: async (ctx) => {
     const currTimeStamp = new Date().valueOf();
     const identity = await ctx.auth.getUserIdentity();
     console.log("🚀 ~ identity:", identity)
-    if (identity === null) {
-      console.log('Unauthorized')
-      return {
-        code: 400,
-        message: 'Unauthorized'
-      }
+    if (!identity) {
+      throw new Error("Not authenticated");
     }
     const { subject } = identity;
     const [userId, sessionId] = subject.split('|')
     const getSession = await ctx.db.get('authSessions', sessionId as Id<'authSessions'>);
     if (!getSession) {
       console.log('Session not found')
-      return {
-        code: 401,
-        message: 'Session not found'
-      }
+      throw new Error("Not Session found");
     }
     const { expirationTime } = getSession;
     const isExpired = currTimeStamp > expirationTime;
     if (isExpired) {
       console.log('Token was expired.')
-      return {
-        code: 301,
-        message: 'Token was expired.'
-      }
+      throw new Error("Token was expired.");
     }
     const userData = await ctx.db.get('users', userId as Id<'users'>)
     console.log("🚀 ~ userData:", userData)
     if (!userData) {
       console.log('User not found/')
-      return {
-        code: 400,
-        message: 'User not found/'
-      }
+      throw new Error("User not found.");
     }
-    return userData;
+    return {userData, identity};
   }
 })
 

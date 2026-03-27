@@ -38,11 +38,3 @@ export const getUser = createServerFn()
       },
     }
   })
-
-export const authServerFn = createServerFn().handler(async () => {
-  const verify = await convexQuery(api.auth.authMutation)
-  console.log("🚀 ~ verify:", verify)
-  return {
-    code: '!'
-  };
-})
