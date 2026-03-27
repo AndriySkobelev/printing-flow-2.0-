@@ -17,11 +17,7 @@ import appCss from '../styles.css?url'
 import type { QueryClient } from '@tanstack/react-query'
 import { Toaster } from '@/components/ui/sonner'
 import { setSSRLanguage } from '@/lib/i18n'
-import { authQueries } from '@/services/queries'
-import { convexQuery } from '@convex-dev/react-query'
 import { api } from 'convex/_generated/api'
-import { authServerFn } from '@/services/server-func/auth'
-import { ConvexClient } from 'convex/browser'
 import { ConvexReactClient } from 'convex/react'
 import { AuthPropsType } from '@/contexts/auth';
 

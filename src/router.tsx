@@ -13,8 +13,6 @@ import '@/lib/i18n';
 // Import the generated route tree
 import { routeTree } from './routeTree.gen'
 import { ContextDialogComponent } from './contexts/dialog'
-import { useContext } from 'react';
-import { useAuth } from './hooks/auth-hooks';
 
 // Create a new router instance
 export const getRouter = () => {
