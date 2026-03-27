@@ -5,10 +5,6 @@ import { convexQuery } from '@convex-dev/react-query';
 import { api } from 'convex/_generated/api';
 
 export const Route = createFileRoute('/_app/login')({
-  // beforeLoad: async ({ context: { queryClient } }) => {
-  //   const auth = await queryClient.ensureQueryData(convexQuery(api.auth.authMutation))
-  //   console.log("🚀 ~ auth:", auth)
-  // },
   component: RouteComponent,
 })
 

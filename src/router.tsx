@@ -13,6 +13,8 @@ import '@/lib/i18n';
 // Import the generated route tree
 import { routeTree } from './routeTree.gen'
 import { ContextDialogComponent } from './contexts/dialog'
+import { useContext } from 'react';
+import { useAuth } from './hooks/auth-hooks';
 
 // Create a new router instance
 export const getRouter = () => {
@@ -43,7 +45,8 @@ export const getRouter = () => {
     defaultNotFoundComponent: () => <div>Not Found</div>,
     context: {
       queryClient,
-      auth: undefined!
+      auth: null,
+      convexClient: convexQueryClient.convexClient,
     },
     Wrap: ({ children }) => (
       <ConvexAuthProvider client={convexQueryClient.convexClient}>

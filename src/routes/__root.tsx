@@ -6,6 +6,7 @@ import {
   useRouter
 } from '@tanstack/react-router'
 import { useEffect } from 'react'
+import { has } from 'ramda';
 import { TanStackDevtools } from '@tanstack/react-devtools'
 import { useTranslation } from 'react-i18next'
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
@@ -19,25 +20,27 @@ import { setSSRLanguage } from '@/lib/i18n'
 import { authQueries } from '@/services/queries'
 import { convexQuery } from '@convex-dev/react-query'
 import { api } from 'convex/_generated/api'
-
-interface AuthState {
-  isAuthenticated: boolean
-  user: { id: string; username: string; email: string } | null
-  login: (username: string, password: string) => Promise<void>
-  logout: () => void
-}
+import { authServerFn } from '@/services/server-func/auth'
+import { ConvexClient } from 'convex/browser'
+import { ConvexReactClient } from 'convex/react'
+import { AuthPropsType } from '@/contexts/auth';
 
 interface MyRouterContext {
-  auth: AuthState
+  convexClient: ConvexReactClient
+  auth: AuthPropsType | null
   queryClient: QueryClient
 }
 
 export const Route = createRootRouteWithContext<MyRouterContext>()({
-  beforeLoad: async ({ context: { queryClient } }) => {
-    const auth = await queryClient.ensureQueryData(convexQuery(api.auth.authMutation))
-    console.log("🚀 ~ auth:", auth)
+  beforeLoad: async ({ context: { convexClient } }) => {
+    const auth = await convexClient.query(api.auth.authMutation);
     await setSSRLanguage();
-    // return { authState }
+    return {
+      auth: {
+        user: auth,
+        isAuthenticated: !has('code', auth)
+      }
+    }
   },
   head: () => ({
     meta: [

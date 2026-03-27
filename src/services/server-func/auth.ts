@@ -1,6 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getSupabaseServerClient } from "@/lib/supabase";
 import { z } from "zod"
+import { convexQuery } from "@convex-dev/react-query";
+import { api } from "convex/_generated/api";
 
 export const UserMetaSchema = z.object({
   username: z.string().min(3).max(20),
@@ -36,3 +38,11 @@ export const getUser = createServerFn()
       },
     }
   })
+
+export const authServerFn = createServerFn().handler(async () => {
+  const verify = await convexQuery(api.auth.authMutation)
+  console.log("🚀 ~ verify:", verify)
+  return {
+    code: '!'
+  };
+})
