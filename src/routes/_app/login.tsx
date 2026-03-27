@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, useRouteContext } from '@tanstack/react-router'
 import { useAuthActions } from "@convex-dev/auth/react";
 import LoginForm from '@/route-components/auth/forms/login'
 import { convexQuery } from '@convex-dev/react-query';
@@ -9,6 +9,8 @@ export const Route = createFileRoute('/_app/login')({
 })
 
 function RouteComponent() {
+  const context = useRouteContext({ from: '/_app/login'})
+  console.log("🚀 ~ RouteComponent ~ context:", context)
   const { signIn,  } = useAuthActions();
   const handleSubmit = (actionName: string) => {
     console.log('here')
