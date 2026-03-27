@@ -20,6 +20,7 @@ import { setSSRLanguage } from '@/lib/i18n'
 import { api } from 'convex/_generated/api'
 import { ConvexReactClient } from 'convex/react'
 import { AuthPropsType } from '@/contexts/auth';
+import { convexQuery } from '@convex-dev/react-query';
 
 interface MyRouterContext {
   auth: AuthPropsType | null
@@ -27,15 +28,15 @@ interface MyRouterContext {
 }
 
 export const Route = createRootRouteWithContext<MyRouterContext>()({
-  beforeLoad: async ({ context: {  } }) => {
-    // const auth = await convexClient.query(api.auth.authMutation);
-    // await setSSRLanguage();
-    // return {
-    //   auth: {
-    //     user: auth,
-    //     isAuthenticated: !has('code', auth)
-    //   }
-    // }
+  beforeLoad: async ({ context: { queryClient } }) => {
+    const auth = await queryClient.ensureQueryData(convexQuery(api.auth.authMutation));
+    await setSSRLanguage();
+    return {
+      auth: {
+        user: auth,
+        isAuthenticated: !has('code', auth)
+      }
+    }
   },
   head: () => ({
     meta: [
