@@ -28,28 +28,41 @@ export const authQuery = query({
     const identity = await ctx.auth.getUserIdentity();
     console.log("🚀 ~ identity:", identity)
     if (!identity) {
-      throw new Error("Not authenticated");
+      console.log('Unauthorized')
+      return {
+        code: 400,
+        message: 'Unauthorized'
+      }
     }
     const { subject } = identity;
     const [userId, sessionId] = subject.split('|')
     const getSession = await ctx.db.get('authSessions', sessionId as Id<'authSessions'>);
     if (!getSession) {
       console.log('Session not found')
-      throw new Error("Not Session found");
+      return {
+        code: 401,
+        message: 'Session not found'
+      }
     }
     const { expirationTime } = getSession;
     const isExpired = currTimeStamp > expirationTime;
     if (isExpired) {
       console.log('Token was expired.')
-      throw new Error("Token was expired.");
+      return {
+        code: 301,
+        message: 'Token was expired.'
+      }
     }
     const userData = await ctx.db.get('users', userId as Id<'users'>)
     console.log("🚀 ~ userData:", userData)
     if (!userData) {
       console.log('User not found/')
-      throw new Error("User not found.");
+      return {
+        code: 400,
+        message: 'User not found/'
+      }
     }
-    return {userData, identity};
+    return userData;
   }
 })
 

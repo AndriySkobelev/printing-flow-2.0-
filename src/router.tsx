@@ -9,10 +9,10 @@ import { ConvexQueryClient } from '@convex-dev/react-query'
 import { ConvexProvider } from 'convex/react'
 import { toast } from 'sonner'
 import '@/lib/i18n';
-
 // Import the generated route tree
 import { routeTree } from './routeTree.gen'
 import { ContextDialogComponent } from './contexts/dialog'
+import { AuthProvider } from './contexts/auth';
 
 // Create a new router instance
 export const getRouter = () => {
@@ -49,9 +49,11 @@ export const getRouter = () => {
     Wrap: ({ children }) => (
       <ConvexAuthProvider client={convexQueryClient.convexClient}>
         <ConvexProvider client={convexQueryClient.convexClient}>
-          <ContextDialogComponent>
-            {children}
-          </ContextDialogComponent>
+          <AuthProvider>
+            <ContextDialogComponent>
+              {children}
+            </ContextDialogComponent>
+          </AuthProvider>
         </ConvexProvider>
       </ConvexAuthProvider>
     ),
