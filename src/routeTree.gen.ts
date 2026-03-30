@@ -9,10 +9,10 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedSeamstressRouteImport } from './routes/_authenticated/seamstress'
-import { Route as AuthenticatedLoginRouteImport } from './routes/_authenticated/login'
 import { Route as AuthenticatedAppRouteRouteImport } from './routes/_authenticated/app/route'
 import { Route as AuthenticatedAppStoreRouteImport } from './routes/_authenticated/app/store'
 import { Route as AuthenticatedAppSpecificationsRouteImport } from './routes/_authenticated/app/specifications'
@@ -23,6 +23,11 @@ import { Route as AuthenticatedAppLoginRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedAppInventoryMovementRouteImport } from './routes/_authenticated/app/inventory-movement'
 import { Route as AuthenticatedAppFabricsRouteImport } from './routes/_authenticated/app/fabrics'
 
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedRoute = AuthenticatedRouteImport.update({
   id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
@@ -35,11 +40,6 @@ const IndexRoute = IndexRouteImport.update({
 const AuthenticatedSeamstressRoute = AuthenticatedSeamstressRouteImport.update({
   id: '/seamstress',
   path: '/seamstress',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const AuthenticatedLoginRoute = AuthenticatedLoginRouteImport.update({
-  id: '/login',
-  path: '/login',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedAppRouteRoute = AuthenticatedAppRouteRouteImport.update({
@@ -95,8 +95,8 @@ const AuthenticatedAppFabricsRoute = AuthenticatedAppFabricsRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
   '/app': typeof AuthenticatedAppRouteRouteWithChildren
-  '/login': typeof AuthenticatedLoginRoute
   '/seamstress': typeof AuthenticatedSeamstressRoute
   '/app/fabrics': typeof AuthenticatedAppFabricsRoute
   '/app/inventory-movement': typeof AuthenticatedAppInventoryMovementRoute
@@ -109,8 +109,8 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
   '/app': typeof AuthenticatedAppRouteRouteWithChildren
-  '/login': typeof AuthenticatedLoginRoute
   '/seamstress': typeof AuthenticatedSeamstressRoute
   '/app/fabrics': typeof AuthenticatedAppFabricsRoute
   '/app/inventory-movement': typeof AuthenticatedAppInventoryMovementRoute
@@ -125,8 +125,8 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteWithChildren
+  '/login': typeof LoginRoute
   '/_authenticated/app': typeof AuthenticatedAppRouteRouteWithChildren
-  '/_authenticated/login': typeof AuthenticatedLoginRoute
   '/_authenticated/seamstress': typeof AuthenticatedSeamstressRoute
   '/_authenticated/app/fabrics': typeof AuthenticatedAppFabricsRoute
   '/_authenticated/app/inventory-movement': typeof AuthenticatedAppInventoryMovementRoute
@@ -141,8 +141,8 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/app'
     | '/login'
+    | '/app'
     | '/seamstress'
     | '/app/fabrics'
     | '/app/inventory-movement'
@@ -155,8 +155,8 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/app'
     | '/login'
+    | '/app'
     | '/seamstress'
     | '/app/fabrics'
     | '/app/inventory-movement'
@@ -170,8 +170,8 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/_authenticated'
+    | '/login'
     | '/_authenticated/app'
-    | '/_authenticated/login'
     | '/_authenticated/seamstress'
     | '/_authenticated/app/fabrics'
     | '/_authenticated/app/inventory-movement'
@@ -186,10 +186,18 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
+  LoginRoute: typeof LoginRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated': {
       id: '/_authenticated'
       path: ''
@@ -209,13 +217,6 @@ declare module '@tanstack/react-router' {
       path: '/seamstress'
       fullPath: '/seamstress'
       preLoaderRoute: typeof AuthenticatedSeamstressRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/login': {
-      id: '/_authenticated/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof AuthenticatedLoginRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/app': {
@@ -314,13 +315,11 @@ const AuthenticatedAppRouteRouteWithChildren =
 
 interface AuthenticatedRouteChildren {
   AuthenticatedAppRouteRoute: typeof AuthenticatedAppRouteRouteWithChildren
-  AuthenticatedLoginRoute: typeof AuthenticatedLoginRoute
   AuthenticatedSeamstressRoute: typeof AuthenticatedSeamstressRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAppRouteRoute: AuthenticatedAppRouteRouteWithChildren,
-  AuthenticatedLoginRoute: AuthenticatedLoginRoute,
   AuthenticatedSeamstressRoute: AuthenticatedSeamstressRoute,
 }
 
@@ -331,6 +330,7 @@ const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
+  LoginRoute: LoginRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

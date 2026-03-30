@@ -2,42 +2,24 @@ import {
   HeadContent,
   Scripts,
   createRootRouteWithContext,
-  redirect,
   useRouter
 } from '@tanstack/react-router'
 import { useEffect } from 'react'
-import { has } from 'ramda';
-import { TanStackDevtools } from '@tanstack/react-devtools'
 import { useTranslation } from 'react-i18next'
-import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
-import TanStackQueryDevtools from '../integrations/tanstack-query/devtools'
-import StoreDevtools from '../lib/demo-store-devtools'
 import appCss from '../styles.css?url'
-import { useQuery, type QueryClient } from '@tanstack/react-query'
+import { type QueryClient } from '@tanstack/react-query'
 import { Toaster } from '@/components/ui/sonner'
 import { setSSRLanguage } from '@/lib/i18n'
-import { api } from 'convex/_generated/api'
 import { AuthPropsType } from '@/contexts/auth';
-import { convexQuery } from '@convex-dev/react-query';
 import {   } from '@convex-dev/auth/react'
-import { createServerFn } from '@tanstack/react-start';
 interface MyRouterContext {
   auth: AuthPropsType | null
   queryClient: QueryClient
 }
 
 export const Route = createRootRouteWithContext<MyRouterContext>()({
-  beforeLoad: async ({ context: { queryClient } }) => {
-    // const auth = await queryClient.ensureQueryData(convexQuery(api.auth.authQuery));
-    // console.log("🚀 ~ auth:", auth)
-    // return {
-    //   auth: {
-    //     user: auth,
-    //     isAuthenticated: !!auth
-    //   }
-    // }
+  beforeLoad: async ({ context }) => {
     await setSSRLanguage();
-
   },
   head: () => ({
     meta: [
