@@ -14,7 +14,7 @@ function RouteComponent() {
   const { signIn,  } = useAuthActions();
   const handleSubmit = (actionName: string) => {
     console.log('here')
-    const some = signIn(actionName)
+    const some = signIn(actionName, { redirectTo: '/app/fabrics'})
     console.log("🚀 ~ handleSubmit ~ some:", some)
   }
 
