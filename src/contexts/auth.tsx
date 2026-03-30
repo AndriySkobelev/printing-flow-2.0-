@@ -16,15 +16,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // const { navigate } = useRouter();
 
 
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      console.log('navigate to login')
-      // navigate({ to: '/login' })
-    }
-  }, [isLoading])
-
+  if (isLoading) {
+    return <div>Loading...</div>
+  }
+  
   const value = { isAuthenticated };
-
   return (
     <AuthContext.Provider value={value}>
       <Suspense fallback={<div>Loading...</div>}>

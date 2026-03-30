@@ -28,7 +28,8 @@ interface MyRouterContext {
 
 export const Route = createRootRouteWithContext<MyRouterContext>()({
   beforeLoad: async ({ context: { queryClient } }) => {
-    const auth = await queryClient.ensureQueryData(convexQuery(api.auth.authQuery));
+    // const auth = await queryClient.ensureQueryData(convexQuery(api.auth.authQuery));
+    const auth = await queryClient.fetchQuery(convexQuery(api.auth.authQuery));
     console.log("createRootRouteWithContext ~ auth:", auth)
     await setSSRLanguage();
     return {
