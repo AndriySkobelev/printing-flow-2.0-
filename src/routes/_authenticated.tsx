@@ -1,5 +1,6 @@
 import { useAuth } from '@/hooks/auth-hooks';
 import { createFileRoute, Navigate, Outlet, useLocation, useRouter } from '@tanstack/react-router'
+import { useEffect } from 'react';
 
 export const Route = createFileRoute('/_authenticated')({
   // beforeLoad: ({context}) => {
@@ -13,23 +14,27 @@ export const Route = createFileRoute('/_authenticated')({
 })
 
 function RouteComponent() {
-  const route = useRouter();
+  const router = useRouter();
   const location = useLocation()
   console.log("🚀 ~ RouteComponent ~ location:", location)
-  console.log("🚀 ~ RouteComponent ~ route:", route)
+  console.log("🚀 ~ RouteComponent ~ route:", router)
   const { isAuthenticated, isLoading } = useAuth();
   console.log("🚀 ~ RouteComponent ~ isLoading:", isLoading)
   console.log("🚀 ~ RouteComponent ~ isAuthenticated:", isAuthenticated)
+ 
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      router.navigate({
+        to: '/login',
+        search: { redirectTo: location.href },
+      })
+    }
+  }, [isAuthenticated, isLoading])
   if (isLoading) {
     return <div>Loading...</div>
   }
-
   if (!isAuthenticated) {
-    return (
-      <Navigate
-        to="/login"
-        from={`/${location.href}` as any}/>
-    )
+    return null
   }
   return <Outlet/>
 }

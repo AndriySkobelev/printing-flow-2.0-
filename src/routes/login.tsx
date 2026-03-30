@@ -12,6 +12,7 @@ export const Route = createFileRoute('/login')({
 function RouteComponent() {
   const route = useRouter();
   const search = useSearch({ from: '/login'})
+  console.log("🚀 ~ RouteComponent ~ search:", search)
   console.log("🚀 ~ RouteComponent ~ route:", route)
   const { signIn,  } = useAuthActions();
   const handleSubmit = (actionName: string) => {
