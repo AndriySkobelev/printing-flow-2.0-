@@ -5,7 +5,7 @@ import { api } from 'convex/_generated/api'
 
 export const Route = createFileRoute('/')({
   beforeLoad: () => {
-    throw redirect({ to: '/app' })
+    throw redirect({ to: '/app/fabrics' })
   },
   component: RouteComponent,
 })
