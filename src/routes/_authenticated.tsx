@@ -30,11 +30,9 @@ function RouteComponent() {
       })
     }
   }, [isAuthenticated, isLoading])
-  if (isLoading) {
+  if (isLoading || !isAuthenticated) {
     return <div>Loading...</div>
   }
-  if (!isAuthenticated) {
-    return null
-  }
+
   return <Outlet/>
 }
