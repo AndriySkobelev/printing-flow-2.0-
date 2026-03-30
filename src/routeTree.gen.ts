@@ -9,33 +9,28 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as AppRouteRouteImport } from './routes/app/route'
+import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AppAuthenticatedRouteImport } from './routes/app/_authenticated'
 import { Route as AppSeamstressRouteImport } from './routes/_app/seamstress'
 import { Route as AppLoginRouteImport } from './routes/_app/login'
-import { Route as AppAuthenticatedStoreRouteImport } from './routes/app/_authenticated/store'
-import { Route as AppAuthenticatedSpecificationsRouteImport } from './routes/app/_authenticated/specifications'
-import { Route as AppAuthenticatedRegisterRouteImport } from './routes/app/_authenticated/register'
-import { Route as AppAuthenticatedProductsRouteImport } from './routes/app/_authenticated/products'
-import { Route as AppAuthenticatedMaterialsRouteImport } from './routes/app/_authenticated/materials'
-import { Route as AppAuthenticatedLoginRouteImport } from './routes/app/_authenticated/login'
-import { Route as AppAuthenticatedInventoryMovementRouteImport } from './routes/app/_authenticated/inventory-movement'
-import { Route as AppAuthenticatedFabricsRouteImport } from './routes/app/_authenticated/fabrics'
+import { Route as AuthenticatedAppRouteRouteImport } from './routes/_authenticated/app/route'
+import { Route as AuthenticatedAppStoreRouteImport } from './routes/_authenticated/app/store'
+import { Route as AuthenticatedAppSpecificationsRouteImport } from './routes/_authenticated/app/specifications'
+import { Route as AuthenticatedAppRegisterRouteImport } from './routes/_authenticated/app/register'
+import { Route as AuthenticatedAppProductsRouteImport } from './routes/_authenticated/app/products'
+import { Route as AuthenticatedAppMaterialsRouteImport } from './routes/_authenticated/app/materials'
+import { Route as AuthenticatedAppLoginRouteImport } from './routes/_authenticated/app/login'
+import { Route as AuthenticatedAppInventoryMovementRouteImport } from './routes/_authenticated/app/inventory-movement'
+import { Route as AuthenticatedAppFabricsRouteImport } from './routes/_authenticated/app/fabrics'
 
-const AppRouteRoute = AppRouteRouteImport.update({
-  id: '/app',
-  path: '/app',
+const AuthenticatedRoute = AuthenticatedRouteImport.update({
+  id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
-} as any)
-const AppAuthenticatedRoute = AppAuthenticatedRouteImport.update({
-  id: '/_authenticated',
-  getParentRoute: () => AppRouteRoute,
 } as any)
 const AppSeamstressRoute = AppSeamstressRouteImport.update({
   id: '/_app/seamstress',
@@ -47,95 +42,100 @@ const AppLoginRoute = AppLoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AppAuthenticatedStoreRoute = AppAuthenticatedStoreRouteImport.update({
+const AuthenticatedAppRouteRoute = AuthenticatedAppRouteRouteImport.update({
+  id: '/app',
+  path: '/app',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedAppStoreRoute = AuthenticatedAppStoreRouteImport.update({
   id: '/store',
   path: '/store',
-  getParentRoute: () => AppAuthenticatedRoute,
+  getParentRoute: () => AuthenticatedAppRouteRoute,
 } as any)
-const AppAuthenticatedSpecificationsRoute =
-  AppAuthenticatedSpecificationsRouteImport.update({
+const AuthenticatedAppSpecificationsRoute =
+  AuthenticatedAppSpecificationsRouteImport.update({
     id: '/specifications',
     path: '/specifications',
-    getParentRoute: () => AppAuthenticatedRoute,
+    getParentRoute: () => AuthenticatedAppRouteRoute,
   } as any)
-const AppAuthenticatedRegisterRoute =
-  AppAuthenticatedRegisterRouteImport.update({
+const AuthenticatedAppRegisterRoute =
+  AuthenticatedAppRegisterRouteImport.update({
     id: '/register',
     path: '/register',
-    getParentRoute: () => AppAuthenticatedRoute,
+    getParentRoute: () => AuthenticatedAppRouteRoute,
   } as any)
-const AppAuthenticatedProductsRoute =
-  AppAuthenticatedProductsRouteImport.update({
+const AuthenticatedAppProductsRoute =
+  AuthenticatedAppProductsRouteImport.update({
     id: '/products',
     path: '/products',
-    getParentRoute: () => AppAuthenticatedRoute,
+    getParentRoute: () => AuthenticatedAppRouteRoute,
   } as any)
-const AppAuthenticatedMaterialsRoute =
-  AppAuthenticatedMaterialsRouteImport.update({
+const AuthenticatedAppMaterialsRoute =
+  AuthenticatedAppMaterialsRouteImport.update({
     id: '/materials',
     path: '/materials',
-    getParentRoute: () => AppAuthenticatedRoute,
+    getParentRoute: () => AuthenticatedAppRouteRoute,
   } as any)
-const AppAuthenticatedLoginRoute = AppAuthenticatedLoginRouteImport.update({
+const AuthenticatedAppLoginRoute = AuthenticatedAppLoginRouteImport.update({
   id: '/login',
   path: '/login',
-  getParentRoute: () => AppAuthenticatedRoute,
+  getParentRoute: () => AuthenticatedAppRouteRoute,
 } as any)
-const AppAuthenticatedInventoryMovementRoute =
-  AppAuthenticatedInventoryMovementRouteImport.update({
+const AuthenticatedAppInventoryMovementRoute =
+  AuthenticatedAppInventoryMovementRouteImport.update({
     id: '/inventory-movement',
     path: '/inventory-movement',
-    getParentRoute: () => AppAuthenticatedRoute,
+    getParentRoute: () => AuthenticatedAppRouteRoute,
   } as any)
-const AppAuthenticatedFabricsRoute = AppAuthenticatedFabricsRouteImport.update({
+const AuthenticatedAppFabricsRoute = AuthenticatedAppFabricsRouteImport.update({
   id: '/fabrics',
   path: '/fabrics',
-  getParentRoute: () => AppAuthenticatedRoute,
+  getParentRoute: () => AuthenticatedAppRouteRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/app': typeof AppAuthenticatedRouteWithChildren
+  '/app': typeof AuthenticatedAppRouteRouteWithChildren
   '/login': typeof AppLoginRoute
   '/seamstress': typeof AppSeamstressRoute
-  '/app/fabrics': typeof AppAuthenticatedFabricsRoute
-  '/app/inventory-movement': typeof AppAuthenticatedInventoryMovementRoute
-  '/app/login': typeof AppAuthenticatedLoginRoute
-  '/app/materials': typeof AppAuthenticatedMaterialsRoute
-  '/app/products': typeof AppAuthenticatedProductsRoute
-  '/app/register': typeof AppAuthenticatedRegisterRoute
-  '/app/specifications': typeof AppAuthenticatedSpecificationsRoute
-  '/app/store': typeof AppAuthenticatedStoreRoute
+  '/app/fabrics': typeof AuthenticatedAppFabricsRoute
+  '/app/inventory-movement': typeof AuthenticatedAppInventoryMovementRoute
+  '/app/login': typeof AuthenticatedAppLoginRoute
+  '/app/materials': typeof AuthenticatedAppMaterialsRoute
+  '/app/products': typeof AuthenticatedAppProductsRoute
+  '/app/register': typeof AuthenticatedAppRegisterRoute
+  '/app/specifications': typeof AuthenticatedAppSpecificationsRoute
+  '/app/store': typeof AuthenticatedAppStoreRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/app': typeof AppAuthenticatedRouteWithChildren
+  '/app': typeof AuthenticatedAppRouteRouteWithChildren
   '/login': typeof AppLoginRoute
   '/seamstress': typeof AppSeamstressRoute
-  '/app/fabrics': typeof AppAuthenticatedFabricsRoute
-  '/app/inventory-movement': typeof AppAuthenticatedInventoryMovementRoute
-  '/app/login': typeof AppAuthenticatedLoginRoute
-  '/app/materials': typeof AppAuthenticatedMaterialsRoute
-  '/app/products': typeof AppAuthenticatedProductsRoute
-  '/app/register': typeof AppAuthenticatedRegisterRoute
-  '/app/specifications': typeof AppAuthenticatedSpecificationsRoute
-  '/app/store': typeof AppAuthenticatedStoreRoute
+  '/app/fabrics': typeof AuthenticatedAppFabricsRoute
+  '/app/inventory-movement': typeof AuthenticatedAppInventoryMovementRoute
+  '/app/login': typeof AuthenticatedAppLoginRoute
+  '/app/materials': typeof AuthenticatedAppMaterialsRoute
+  '/app/products': typeof AuthenticatedAppProductsRoute
+  '/app/register': typeof AuthenticatedAppRegisterRoute
+  '/app/specifications': typeof AuthenticatedAppSpecificationsRoute
+  '/app/store': typeof AuthenticatedAppStoreRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/app': typeof AppRouteRouteWithChildren
+  '/_authenticated': typeof AuthenticatedRouteWithChildren
+  '/_authenticated/app': typeof AuthenticatedAppRouteRouteWithChildren
   '/_app/login': typeof AppLoginRoute
   '/_app/seamstress': typeof AppSeamstressRoute
-  '/app/_authenticated': typeof AppAuthenticatedRouteWithChildren
-  '/app/_authenticated/fabrics': typeof AppAuthenticatedFabricsRoute
-  '/app/_authenticated/inventory-movement': typeof AppAuthenticatedInventoryMovementRoute
-  '/app/_authenticated/login': typeof AppAuthenticatedLoginRoute
-  '/app/_authenticated/materials': typeof AppAuthenticatedMaterialsRoute
-  '/app/_authenticated/products': typeof AppAuthenticatedProductsRoute
-  '/app/_authenticated/register': typeof AppAuthenticatedRegisterRoute
-  '/app/_authenticated/specifications': typeof AppAuthenticatedSpecificationsRoute
-  '/app/_authenticated/store': typeof AppAuthenticatedStoreRoute
+  '/_authenticated/app/fabrics': typeof AuthenticatedAppFabricsRoute
+  '/_authenticated/app/inventory-movement': typeof AuthenticatedAppInventoryMovementRoute
+  '/_authenticated/app/login': typeof AuthenticatedAppLoginRoute
+  '/_authenticated/app/materials': typeof AuthenticatedAppMaterialsRoute
+  '/_authenticated/app/products': typeof AuthenticatedAppProductsRoute
+  '/_authenticated/app/register': typeof AuthenticatedAppRegisterRoute
+  '/_authenticated/app/specifications': typeof AuthenticatedAppSpecificationsRoute
+  '/_authenticated/app/store': typeof AuthenticatedAppStoreRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -169,34 +169,34 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
-    | '/app'
+    | '/_authenticated'
+    | '/_authenticated/app'
     | '/_app/login'
     | '/_app/seamstress'
-    | '/app/_authenticated'
-    | '/app/_authenticated/fabrics'
-    | '/app/_authenticated/inventory-movement'
-    | '/app/_authenticated/login'
-    | '/app/_authenticated/materials'
-    | '/app/_authenticated/products'
-    | '/app/_authenticated/register'
-    | '/app/_authenticated/specifications'
-    | '/app/_authenticated/store'
+    | '/_authenticated/app/fabrics'
+    | '/_authenticated/app/inventory-movement'
+    | '/_authenticated/app/login'
+    | '/_authenticated/app/materials'
+    | '/_authenticated/app/products'
+    | '/_authenticated/app/register'
+    | '/_authenticated/app/specifications'
+    | '/_authenticated/app/store'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AppRouteRoute: typeof AppRouteRouteWithChildren
+  AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   AppLoginRoute: typeof AppLoginRoute
   AppSeamstressRoute: typeof AppSeamstressRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/app': {
-      id: '/app'
-      path: '/app'
-      fullPath: '/app'
-      preLoaderRoute: typeof AppRouteRouteImport
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -205,13 +205,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
-    }
-    '/app/_authenticated': {
-      id: '/app/_authenticated'
-      path: ''
-      fullPath: '/app'
-      preLoaderRoute: typeof AppAuthenticatedRouteImport
-      parentRoute: typeof AppRouteRoute
     }
     '/_app/seamstress': {
       id: '/_app/seamstress'
@@ -227,106 +220,115 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppLoginRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/app/_authenticated/store': {
-      id: '/app/_authenticated/store'
+    '/_authenticated/app': {
+      id: '/_authenticated/app'
+      path: '/app'
+      fullPath: '/app'
+      preLoaderRoute: typeof AuthenticatedAppRouteRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/app/store': {
+      id: '/_authenticated/app/store'
       path: '/store'
       fullPath: '/app/store'
-      preLoaderRoute: typeof AppAuthenticatedStoreRouteImport
-      parentRoute: typeof AppAuthenticatedRoute
+      preLoaderRoute: typeof AuthenticatedAppStoreRouteImport
+      parentRoute: typeof AuthenticatedAppRouteRoute
     }
-    '/app/_authenticated/specifications': {
-      id: '/app/_authenticated/specifications'
+    '/_authenticated/app/specifications': {
+      id: '/_authenticated/app/specifications'
       path: '/specifications'
       fullPath: '/app/specifications'
-      preLoaderRoute: typeof AppAuthenticatedSpecificationsRouteImport
-      parentRoute: typeof AppAuthenticatedRoute
+      preLoaderRoute: typeof AuthenticatedAppSpecificationsRouteImport
+      parentRoute: typeof AuthenticatedAppRouteRoute
     }
-    '/app/_authenticated/register': {
-      id: '/app/_authenticated/register'
+    '/_authenticated/app/register': {
+      id: '/_authenticated/app/register'
       path: '/register'
       fullPath: '/app/register'
-      preLoaderRoute: typeof AppAuthenticatedRegisterRouteImport
-      parentRoute: typeof AppAuthenticatedRoute
+      preLoaderRoute: typeof AuthenticatedAppRegisterRouteImport
+      parentRoute: typeof AuthenticatedAppRouteRoute
     }
-    '/app/_authenticated/products': {
-      id: '/app/_authenticated/products'
+    '/_authenticated/app/products': {
+      id: '/_authenticated/app/products'
       path: '/products'
       fullPath: '/app/products'
-      preLoaderRoute: typeof AppAuthenticatedProductsRouteImport
-      parentRoute: typeof AppAuthenticatedRoute
+      preLoaderRoute: typeof AuthenticatedAppProductsRouteImport
+      parentRoute: typeof AuthenticatedAppRouteRoute
     }
-    '/app/_authenticated/materials': {
-      id: '/app/_authenticated/materials'
+    '/_authenticated/app/materials': {
+      id: '/_authenticated/app/materials'
       path: '/materials'
       fullPath: '/app/materials'
-      preLoaderRoute: typeof AppAuthenticatedMaterialsRouteImport
-      parentRoute: typeof AppAuthenticatedRoute
+      preLoaderRoute: typeof AuthenticatedAppMaterialsRouteImport
+      parentRoute: typeof AuthenticatedAppRouteRoute
     }
-    '/app/_authenticated/login': {
-      id: '/app/_authenticated/login'
+    '/_authenticated/app/login': {
+      id: '/_authenticated/app/login'
       path: '/login'
       fullPath: '/app/login'
-      preLoaderRoute: typeof AppAuthenticatedLoginRouteImport
-      parentRoute: typeof AppAuthenticatedRoute
+      preLoaderRoute: typeof AuthenticatedAppLoginRouteImport
+      parentRoute: typeof AuthenticatedAppRouteRoute
     }
-    '/app/_authenticated/inventory-movement': {
-      id: '/app/_authenticated/inventory-movement'
+    '/_authenticated/app/inventory-movement': {
+      id: '/_authenticated/app/inventory-movement'
       path: '/inventory-movement'
       fullPath: '/app/inventory-movement'
-      preLoaderRoute: typeof AppAuthenticatedInventoryMovementRouteImport
-      parentRoute: typeof AppAuthenticatedRoute
+      preLoaderRoute: typeof AuthenticatedAppInventoryMovementRouteImport
+      parentRoute: typeof AuthenticatedAppRouteRoute
     }
-    '/app/_authenticated/fabrics': {
-      id: '/app/_authenticated/fabrics'
+    '/_authenticated/app/fabrics': {
+      id: '/_authenticated/app/fabrics'
       path: '/fabrics'
       fullPath: '/app/fabrics'
-      preLoaderRoute: typeof AppAuthenticatedFabricsRouteImport
-      parentRoute: typeof AppAuthenticatedRoute
+      preLoaderRoute: typeof AuthenticatedAppFabricsRouteImport
+      parentRoute: typeof AuthenticatedAppRouteRoute
     }
   }
 }
 
-interface AppAuthenticatedRouteChildren {
-  AppAuthenticatedFabricsRoute: typeof AppAuthenticatedFabricsRoute
-  AppAuthenticatedInventoryMovementRoute: typeof AppAuthenticatedInventoryMovementRoute
-  AppAuthenticatedLoginRoute: typeof AppAuthenticatedLoginRoute
-  AppAuthenticatedMaterialsRoute: typeof AppAuthenticatedMaterialsRoute
-  AppAuthenticatedProductsRoute: typeof AppAuthenticatedProductsRoute
-  AppAuthenticatedRegisterRoute: typeof AppAuthenticatedRegisterRoute
-  AppAuthenticatedSpecificationsRoute: typeof AppAuthenticatedSpecificationsRoute
-  AppAuthenticatedStoreRoute: typeof AppAuthenticatedStoreRoute
+interface AuthenticatedAppRouteRouteChildren {
+  AuthenticatedAppFabricsRoute: typeof AuthenticatedAppFabricsRoute
+  AuthenticatedAppInventoryMovementRoute: typeof AuthenticatedAppInventoryMovementRoute
+  AuthenticatedAppLoginRoute: typeof AuthenticatedAppLoginRoute
+  AuthenticatedAppMaterialsRoute: typeof AuthenticatedAppMaterialsRoute
+  AuthenticatedAppProductsRoute: typeof AuthenticatedAppProductsRoute
+  AuthenticatedAppRegisterRoute: typeof AuthenticatedAppRegisterRoute
+  AuthenticatedAppSpecificationsRoute: typeof AuthenticatedAppSpecificationsRoute
+  AuthenticatedAppStoreRoute: typeof AuthenticatedAppStoreRoute
 }
 
-const AppAuthenticatedRouteChildren: AppAuthenticatedRouteChildren = {
-  AppAuthenticatedFabricsRoute: AppAuthenticatedFabricsRoute,
-  AppAuthenticatedInventoryMovementRoute:
-    AppAuthenticatedInventoryMovementRoute,
-  AppAuthenticatedLoginRoute: AppAuthenticatedLoginRoute,
-  AppAuthenticatedMaterialsRoute: AppAuthenticatedMaterialsRoute,
-  AppAuthenticatedProductsRoute: AppAuthenticatedProductsRoute,
-  AppAuthenticatedRegisterRoute: AppAuthenticatedRegisterRoute,
-  AppAuthenticatedSpecificationsRoute: AppAuthenticatedSpecificationsRoute,
-  AppAuthenticatedStoreRoute: AppAuthenticatedStoreRoute,
+const AuthenticatedAppRouteRouteChildren: AuthenticatedAppRouteRouteChildren = {
+  AuthenticatedAppFabricsRoute: AuthenticatedAppFabricsRoute,
+  AuthenticatedAppInventoryMovementRoute:
+    AuthenticatedAppInventoryMovementRoute,
+  AuthenticatedAppLoginRoute: AuthenticatedAppLoginRoute,
+  AuthenticatedAppMaterialsRoute: AuthenticatedAppMaterialsRoute,
+  AuthenticatedAppProductsRoute: AuthenticatedAppProductsRoute,
+  AuthenticatedAppRegisterRoute: AuthenticatedAppRegisterRoute,
+  AuthenticatedAppSpecificationsRoute: AuthenticatedAppSpecificationsRoute,
+  AuthenticatedAppStoreRoute: AuthenticatedAppStoreRoute,
 }
 
-const AppAuthenticatedRouteWithChildren =
-  AppAuthenticatedRoute._addFileChildren(AppAuthenticatedRouteChildren)
+const AuthenticatedAppRouteRouteWithChildren =
+  AuthenticatedAppRouteRoute._addFileChildren(
+    AuthenticatedAppRouteRouteChildren,
+  )
 
-interface AppRouteRouteChildren {
-  AppAuthenticatedRoute: typeof AppAuthenticatedRouteWithChildren
+interface AuthenticatedRouteChildren {
+  AuthenticatedAppRouteRoute: typeof AuthenticatedAppRouteRouteWithChildren
 }
 
-const AppRouteRouteChildren: AppRouteRouteChildren = {
-  AppAuthenticatedRoute: AppAuthenticatedRouteWithChildren,
+const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
+  AuthenticatedAppRouteRoute: AuthenticatedAppRouteRouteWithChildren,
 }
 
-const AppRouteRouteWithChildren = AppRouteRoute._addFileChildren(
-  AppRouteRouteChildren,
+const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
+  AuthenticatedRouteChildren,
 )
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AppRouteRoute: AppRouteRouteWithChildren,
+  AuthenticatedRoute: AuthenticatedRouteWithChildren,
   AppLoginRoute: AppLoginRoute,
   AppSeamstressRoute: AppSeamstressRoute,
 }
