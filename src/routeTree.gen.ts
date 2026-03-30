@@ -11,8 +11,8 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedLoginRouteImport } from './routes/_authenticated/login'
 import { Route as AppSeamstressRouteImport } from './routes/_app/seamstress'
-import { Route as AppLoginRouteImport } from './routes/_app/login'
 import { Route as AuthenticatedAppRouteRouteImport } from './routes/_authenticated/app/route'
 import { Route as AuthenticatedAppStoreRouteImport } from './routes/_authenticated/app/store'
 import { Route as AuthenticatedAppSpecificationsRouteImport } from './routes/_authenticated/app/specifications'
@@ -32,14 +32,14 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedLoginRoute = AuthenticatedLoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AppSeamstressRoute = AppSeamstressRouteImport.update({
   id: '/_app/seamstress',
   path: '/seamstress',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AppLoginRoute = AppLoginRouteImport.update({
-  id: '/_app/login',
-  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedAppRouteRoute = AuthenticatedAppRouteRouteImport.update({
@@ -96,8 +96,8 @@ const AuthenticatedAppFabricsRoute = AuthenticatedAppFabricsRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/app': typeof AuthenticatedAppRouteRouteWithChildren
-  '/login': typeof AppLoginRoute
   '/seamstress': typeof AppSeamstressRoute
+  '/login': typeof AuthenticatedLoginRoute
   '/app/fabrics': typeof AuthenticatedAppFabricsRoute
   '/app/inventory-movement': typeof AuthenticatedAppInventoryMovementRoute
   '/app/login': typeof AuthenticatedAppLoginRoute
@@ -110,8 +110,8 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/app': typeof AuthenticatedAppRouteRouteWithChildren
-  '/login': typeof AppLoginRoute
   '/seamstress': typeof AppSeamstressRoute
+  '/login': typeof AuthenticatedLoginRoute
   '/app/fabrics': typeof AuthenticatedAppFabricsRoute
   '/app/inventory-movement': typeof AuthenticatedAppInventoryMovementRoute
   '/app/login': typeof AuthenticatedAppLoginRoute
@@ -126,8 +126,8 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/_authenticated/app': typeof AuthenticatedAppRouteRouteWithChildren
-  '/_app/login': typeof AppLoginRoute
   '/_app/seamstress': typeof AppSeamstressRoute
+  '/_authenticated/login': typeof AuthenticatedLoginRoute
   '/_authenticated/app/fabrics': typeof AuthenticatedAppFabricsRoute
   '/_authenticated/app/inventory-movement': typeof AuthenticatedAppInventoryMovementRoute
   '/_authenticated/app/login': typeof AuthenticatedAppLoginRoute
@@ -142,8 +142,8 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/app'
-    | '/login'
     | '/seamstress'
+    | '/login'
     | '/app/fabrics'
     | '/app/inventory-movement'
     | '/app/login'
@@ -156,8 +156,8 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/app'
-    | '/login'
     | '/seamstress'
+    | '/login'
     | '/app/fabrics'
     | '/app/inventory-movement'
     | '/app/login'
@@ -171,8 +171,8 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/_authenticated/app'
-    | '/_app/login'
     | '/_app/seamstress'
+    | '/_authenticated/login'
     | '/_authenticated/app/fabrics'
     | '/_authenticated/app/inventory-movement'
     | '/_authenticated/app/login'
@@ -186,7 +186,6 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
-  AppLoginRoute: typeof AppLoginRoute
   AppSeamstressRoute: typeof AppSeamstressRoute
 }
 
@@ -206,18 +205,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/login': {
+      id: '/_authenticated/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof AuthenticatedLoginRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_app/seamstress': {
       id: '/_app/seamstress'
       path: '/seamstress'
       fullPath: '/seamstress'
       preLoaderRoute: typeof AppSeamstressRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_app/login': {
-      id: '/_app/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof AppLoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/app': {
@@ -316,10 +315,12 @@ const AuthenticatedAppRouteRouteWithChildren =
 
 interface AuthenticatedRouteChildren {
   AuthenticatedAppRouteRoute: typeof AuthenticatedAppRouteRouteWithChildren
+  AuthenticatedLoginRoute: typeof AuthenticatedLoginRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAppRouteRoute: AuthenticatedAppRouteRouteWithChildren,
+  AuthenticatedLoginRoute: AuthenticatedLoginRoute,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
@@ -329,7 +330,6 @@ const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
-  AppLoginRoute: AppLoginRoute,
   AppSeamstressRoute: AppSeamstressRoute,
 }
 export const routeTree = rootRouteImport
