@@ -1,4 +1,4 @@
-import { convexAuth } from "@convex-dev/auth/server";
+import { convexAuth, getAuthUserId } from "@convex-dev/auth/server";
 import Google from "@auth/core/providers/google";
 import { mutation, internalMutation, query } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
@@ -26,6 +26,8 @@ export const authQuery = query({
   handler: async (ctx) => {
     const currTimeStamp = new Date().valueOf();
     const identity = await ctx.auth.getUserIdentity();
+    const user = await getAuthUserId(ctx);
+    console.log("🚀 ~ user:", user)
     console.log("🚀 ~ identity:", identity)
     if (!identity) {
       console.log('Unauthorized')
