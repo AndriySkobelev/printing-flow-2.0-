@@ -31,10 +31,7 @@ export const authQuery = query({
     console.log("🚀 ~ identity:", identity)
     if (!identity) {
       console.log('Unauthorized')
-      return {
-        code: 400,
-        message: 'Unauthorized'
-      }
+      return null;
     }
     const { subject } = identity;
     const [userId, sessionId] = subject.split('|')

@@ -20,7 +20,7 @@ export const getRouter = () => {
   if (!CONVEX_URL) {
     console.error('missing envar CONVEX_URL')
   }
-  const convexQueryClient = new ConvexQueryClient(CONVEX_URL)
+  const convexQueryClient = new ConvexQueryClient(CONVEX_URL, { expectAuth: true })
 
   const queryClient: QueryClient = new QueryClient({
     defaultOptions: {
@@ -43,17 +43,17 @@ export const getRouter = () => {
     defaultNotFoundComponent: () => <div>Not Found</div>,
     context: {
       queryClient,
-      auth: null,
+      auth: undefined!,
       // convexClient: convexQueryClient.convexClient,
     },
     Wrap: ({ children }) => (
       <ConvexAuthProvider client={convexQueryClient.convexClient}>
         <ConvexProvider client={convexQueryClient.convexClient}>
-          <AuthProvider>
+          {/* <AuthProvider> */}
             <ContextDialogComponent>
               {children}
             </ContextDialogComponent>
-          </AuthProvider>
+          {/* </AuthProvider> */}
         </ConvexProvider>
       </ConvexAuthProvider>
     ),

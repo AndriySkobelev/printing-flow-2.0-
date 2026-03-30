@@ -4,6 +4,9 @@ import { createFileRoute, redirect } from '@tanstack/react-router'
 import { api } from 'convex/_generated/api'
 
 export const Route = createFileRoute('/')({
+  beforeLoad: () => {
+    throw redirect({ to: '/app/fabrics' })
+  },
   component: RouteComponent,
 })
 

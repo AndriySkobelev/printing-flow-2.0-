@@ -16,9 +16,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // const { navigate } = useRouter();
 
 
-  // if (isLoading) {
-  //   return <div>Loading...</div>
-  // }
+  if (isLoading) {
+    return <div>Loading...</div>
+  }
   
   const value = { isAuthenticated };
   return (
