@@ -20,8 +20,8 @@ function RouteComponent() {
     return <div>Loading...</div>
   }
 
-  // if (!isAuthenticated) {
-  //   return <Navigate to="/login" />
-  // }
+  if (!isAuthenticated) {
+    return <Navigate to="/login" />
+  }
   return <Outlet/>
 }
