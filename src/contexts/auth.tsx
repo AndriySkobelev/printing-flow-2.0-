@@ -13,13 +13,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, isLoading } = useConvexAuth();
   console.log("🚀 ~ AuthProvider ~ isLoading:", isLoading)
   console.log("🚀 ~ AuthProvider ~ isAuthenticated:", isAuthenticated)
-  // const { navigate } = useRouter();
 
-
-  if (isLoading) {
-    return <div>Loading...</div>
-  }
-  
   const value = { isAuthenticated };
   return (
     <AuthContext.Provider value={value}>
