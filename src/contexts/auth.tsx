@@ -11,10 +11,10 @@ type ProviderType = 'google' | 'github'
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, isLoading } = useConvexAuth();
-  // console.log("🚀 ~ AuthProvider ~ isLoading:", isLoading)
-  // console.log("🚀 ~ AuthProvider ~ isAuthenticated:", isAuthenticated)
+  console.log("🚀 ~ AuthProvider ~ isLoading:", isLoading)
+  console.log("🚀 ~ AuthProvider ~ isAuthenticated:", isAuthenticated)
 
-  const value = { isAuthenticated };
+  const value = { isLoading, isAuthenticated };
   return (
     <AuthContext.Provider value={value}>
       <Suspense fallback={<div>Loading...</div>}>
