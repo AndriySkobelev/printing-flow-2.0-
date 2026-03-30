@@ -11,8 +11,8 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedSeamstressRouteImport } from './routes/_authenticated/seamstress'
 import { Route as AuthenticatedLoginRouteImport } from './routes/_authenticated/login'
-import { Route as AppSeamstressRouteImport } from './routes/_app/seamstress'
 import { Route as AuthenticatedAppRouteRouteImport } from './routes/_authenticated/app/route'
 import { Route as AuthenticatedAppStoreRouteImport } from './routes/_authenticated/app/store'
 import { Route as AuthenticatedAppSpecificationsRouteImport } from './routes/_authenticated/app/specifications'
@@ -32,15 +32,15 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedSeamstressRoute = AuthenticatedSeamstressRouteImport.update({
+  id: '/seamstress',
+  path: '/seamstress',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedLoginRoute = AuthenticatedLoginRouteImport.update({
   id: '/login',
   path: '/login',
   getParentRoute: () => AuthenticatedRoute,
-} as any)
-const AppSeamstressRoute = AppSeamstressRouteImport.update({
-  id: '/_app/seamstress',
-  path: '/seamstress',
-  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedAppRouteRoute = AuthenticatedAppRouteRouteImport.update({
   id: '/app',
@@ -96,8 +96,8 @@ const AuthenticatedAppFabricsRoute = AuthenticatedAppFabricsRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/app': typeof AuthenticatedAppRouteRouteWithChildren
-  '/seamstress': typeof AppSeamstressRoute
   '/login': typeof AuthenticatedLoginRoute
+  '/seamstress': typeof AuthenticatedSeamstressRoute
   '/app/fabrics': typeof AuthenticatedAppFabricsRoute
   '/app/inventory-movement': typeof AuthenticatedAppInventoryMovementRoute
   '/app/login': typeof AuthenticatedAppLoginRoute
@@ -110,8 +110,8 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/app': typeof AuthenticatedAppRouteRouteWithChildren
-  '/seamstress': typeof AppSeamstressRoute
   '/login': typeof AuthenticatedLoginRoute
+  '/seamstress': typeof AuthenticatedSeamstressRoute
   '/app/fabrics': typeof AuthenticatedAppFabricsRoute
   '/app/inventory-movement': typeof AuthenticatedAppInventoryMovementRoute
   '/app/login': typeof AuthenticatedAppLoginRoute
@@ -126,8 +126,8 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/_authenticated/app': typeof AuthenticatedAppRouteRouteWithChildren
-  '/_app/seamstress': typeof AppSeamstressRoute
   '/_authenticated/login': typeof AuthenticatedLoginRoute
+  '/_authenticated/seamstress': typeof AuthenticatedSeamstressRoute
   '/_authenticated/app/fabrics': typeof AuthenticatedAppFabricsRoute
   '/_authenticated/app/inventory-movement': typeof AuthenticatedAppInventoryMovementRoute
   '/_authenticated/app/login': typeof AuthenticatedAppLoginRoute
@@ -142,8 +142,8 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/app'
-    | '/seamstress'
     | '/login'
+    | '/seamstress'
     | '/app/fabrics'
     | '/app/inventory-movement'
     | '/app/login'
@@ -156,8 +156,8 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/app'
-    | '/seamstress'
     | '/login'
+    | '/seamstress'
     | '/app/fabrics'
     | '/app/inventory-movement'
     | '/app/login'
@@ -171,8 +171,8 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/_authenticated/app'
-    | '/_app/seamstress'
     | '/_authenticated/login'
+    | '/_authenticated/seamstress'
     | '/_authenticated/app/fabrics'
     | '/_authenticated/app/inventory-movement'
     | '/_authenticated/app/login'
@@ -186,7 +186,6 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
-  AppSeamstressRoute: typeof AppSeamstressRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -205,19 +204,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/seamstress': {
+      id: '/_authenticated/seamstress'
+      path: '/seamstress'
+      fullPath: '/seamstress'
+      preLoaderRoute: typeof AuthenticatedSeamstressRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/login': {
       id: '/_authenticated/login'
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof AuthenticatedLoginRouteImport
       parentRoute: typeof AuthenticatedRoute
-    }
-    '/_app/seamstress': {
-      id: '/_app/seamstress'
-      path: '/seamstress'
-      fullPath: '/seamstress'
-      preLoaderRoute: typeof AppSeamstressRouteImport
-      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/app': {
       id: '/_authenticated/app'
@@ -316,11 +315,13 @@ const AuthenticatedAppRouteRouteWithChildren =
 interface AuthenticatedRouteChildren {
   AuthenticatedAppRouteRoute: typeof AuthenticatedAppRouteRouteWithChildren
   AuthenticatedLoginRoute: typeof AuthenticatedLoginRoute
+  AuthenticatedSeamstressRoute: typeof AuthenticatedSeamstressRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAppRouteRoute: AuthenticatedAppRouteRouteWithChildren,
   AuthenticatedLoginRoute: AuthenticatedLoginRoute,
+  AuthenticatedSeamstressRoute: AuthenticatedSeamstressRoute,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
@@ -330,7 +331,6 @@ const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
-  AppSeamstressRoute: AppSeamstressRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
