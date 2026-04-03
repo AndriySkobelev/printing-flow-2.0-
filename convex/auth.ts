@@ -65,3 +65,14 @@ export const authQuery = query({
   }
 })
 
+export const getUser = query({
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      return;
+    }
+    const userData = ctx.db.get(userId)
+    return userData;
+  }
+})
+

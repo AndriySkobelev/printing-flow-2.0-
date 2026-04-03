@@ -22,6 +22,7 @@ const specificationSchema = z.object({
   name: z.string().min(3, 'Must be an 3 min charts'),
   category: z.string().min(3, 'Must be an 3 min charts'),
   skuPrefix: z.string().min(1, 'Must be an 1 min charts'),
+  productionPrice: z.number().min(1),
   materials: z.array(z.object({
     units: z.string(),
     quantity: z.number().min(0.01, 'Must be an 0.01 min number'),
@@ -72,6 +73,7 @@ const SpecificationForm: FunctionComponent<SpecificationFormProps> = ({
       name: '',
       category: '',
       skuPrefix: '',
+      productionPrice: 1,
       materials: [
         { fabricId: '', quantity: 0, units: '', type: 'base' }
       ]
@@ -96,9 +98,14 @@ const SpecificationForm: FunctionComponent<SpecificationFormProps> = ({
         <form.AppField
           name='category'
           children={(field) => <field.FormTextField type="text" label='Категорія'/>} />
-        <form.AppField
-          name='skuPrefix'
-          children={(field) => <field.FormTextField type="text" label='SKU prefix'/>} />
+        <div className="flex gap-2">
+          <form.AppField
+            name='skuPrefix'
+            children={(field) => <field.FormTextField type="text" label='SKU prefix'/>} />
+          <form.AppField
+            name='productionPrice'
+            children={(field) => <field.FormTextField type="number" label='Ціна виробництва'/>} />
+        </div>
         <form.Field
           mode="array"
           name='materials'
@@ -121,7 +128,7 @@ const SpecificationForm: FunctionComponent<SpecificationFormProps> = ({
                       children={(subField) => (<subField.FormTextField className="flex-3" type='number' label="Кількість"/>)}
                     />
                      <form.AppField key={`units-${i}`} name={`materials[${i}].units`}
-                      children={(subField) => (<subField.FormSelect className="flex-3" options={unitsOptions} label="Од. виміру"/>)}
+                        children={(subField) => (<subField.FormSelect className="flex-3" options={unitsOptions} label="Од. виміру"/>)}
                     />
                     {
                       i != 0

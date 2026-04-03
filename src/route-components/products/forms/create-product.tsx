@@ -37,8 +37,6 @@ const CreateProductForm: FunctionComponent<CreateProductFormProps> = ({
 }) => {
   const { data } = useQuery(convexQuery(api.queries.specifications.getSpecificationsWithMaterials));
   
-  console.log("🚀 ~ CreateProductForm ~ specifications:", data)
-  
   const form = useAppForm({
     validationLogic: revalidateLogic(),
     validators: {
@@ -59,6 +57,7 @@ const CreateProductForm: FunctionComponent<CreateProductFormProps> = ({
       actionSubmit({ ...value, fabricName: fabric.fabricName })
     }
   })
+  console.log("🚀 ~ CreateProductForm ~ form:", form.state)
   const specification = useStore(form.store, (state: any) => state.values.specification);
   const values = useStore(form.store, (state: any) => {
     return state.values;

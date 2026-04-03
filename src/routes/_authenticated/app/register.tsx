@@ -13,20 +13,8 @@ export const Route = createFileRoute('/_authenticated/app/register')({
 function RouteComponent() {
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const actionSubmit = async (data: FormSchemaType) => {
-
-    // console.log("🚀 ~ actionSubmit ~ data:", data)
-    const response: any = await signupSupabaseFn({ data } as any);
-    console.log("🚀 ~ response:", response)
-    if (response?.error) {
-    return toast.error(response.message, {
-        duration: 3000,
-        position: 'top-center',
-      })
-    }
-    navigate({ to: '/login' })
-  }
+ 
   return <div>
-    <RegisterForm actionSubmit={actionSubmit} />
+    {/* <RegisterForm actionSubmit={actionSubmit} /> */}
   </div>
 }

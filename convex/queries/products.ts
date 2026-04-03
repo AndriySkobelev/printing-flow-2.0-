@@ -99,7 +99,7 @@ export const getSearchProducts = query({
     const gproupedByParentId = groupBy(prop('parentId'), products);
     const specIds = keys(gproupedByParentId);
     const specs = await getAll(ctx.db, specIds) || [];
-    const combineProducs = specs.flatMap((spec) => addToAll({ name: spec?.name }, gproupedByParentId[spec?._id as any] as unknown as Array<any> ));
+    const combineProducs = specs.flatMap((spec) => addToAll({ name: spec?.name, price: spec?.productionPrice }, gproupedByParentId[spec?._id as any] as unknown as Array<any> ));
 
     return combineProducs;
   }

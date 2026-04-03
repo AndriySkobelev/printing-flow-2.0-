@@ -1,27 +1,16 @@
+import { Spinner } from '@/components/ui/spinner';
 import { useAuth } from '@/hooks/auth-hooks';
-import { createFileRoute, Navigate, Outlet, useLocation, useRouter } from '@tanstack/react-router'
+import { createFileRoute, Outlet, useLocation, useRouter } from '@tanstack/react-router'
 import { useEffect } from 'react';
 
 export const Route = createFileRoute('/_authenticated')({
-  // beforeLoad: ({context}) => {
-  //   const { auth } = context;
-  //   console.log("🚀 ~ auth:", auth)
-  //   if (!auth.isAuthenticated) {
-  //     throw redirect({ to: '/login' })
-  //   }
-  // },
   component: RouteComponent,
 })
 
 function RouteComponent() {
   const router = useRouter();
   const location = useLocation()
-  console.log("🚀 ~ RouteComponent ~ location:", location)
-  console.log("🚀 ~ RouteComponent ~ route:", router)
   const { isAuthenticated, isLoading } = useAuth();
-  console.log("🚀 ~ RouteComponent ~ isLoading:", isLoading)
-  console.log("🚀 ~ RouteComponent ~ isAuthenticated:", isAuthenticated)
- 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       router.navigate({
@@ -30,8 +19,11 @@ function RouteComponent() {
       })
     }
   }, [isAuthenticated, isLoading])
+
   if (isLoading || !isAuthenticated) {
-    return <div>Loading...</div>
+    return <div className='flex justify-center gap-2 items-center w-screen h-screen'>
+      <Spinner className='h-5 w-5'/>
+    </div>
   }
 
   return <Outlet/>

@@ -1,28 +1,27 @@
 import { useConvexAuth } from 'convex/react'
-import { Navigate, RouterProvider, useRouter } from '@tanstack/react-router'
+import {memo} from 'react'
 import { convexQuery } from "@convex-dev/react-query";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "convex/_generated/api";
-import { createContext, Suspense, useContext, useState, useEffect } from "react";
+import { createContext } from "react";
 
 export const AuthContext = createContext<any>({});
 
-type ProviderType = 'google' | 'github'
 
-export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+export const AuthProvider = memo(({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, isLoading } = useConvexAuth();
-  console.log("🚀 ~ AuthProvider ~ isLoading:", isLoading)
-  console.log("🚀 ~ AuthProvider ~ isAuthenticated:", isAuthenticated)
-
-  const value = { isLoading, isAuthenticated };
+  const { data } = useQuery({
+    ...convexQuery(api.auth.getUser),
+    enabled: !isLoading && isAuthenticated
+  })
+  
+  const value = { isLoading, isAuthenticated, user: data };
   return (
     <AuthContext.Provider value={value}>
-      <Suspense fallback={<div>Loading...</div>}>
-        {children}
-      </Suspense>
+      {children}
     </AuthContext.Provider>
   );
-};
+});
 
 export type AuthPropsType = {
   user: any,

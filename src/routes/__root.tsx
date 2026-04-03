@@ -11,7 +11,12 @@ import { type QueryClient } from '@tanstack/react-query'
 import { Toaster } from '@/components/ui/sonner'
 import { setSSRLanguage } from '@/lib/i18n'
 import { AuthPropsType } from '@/contexts/auth';
-import {   } from '@convex-dev/auth/react'
+
+import TanStackQueryDevtools from '../integrations/tanstack-query/devtools'
+import StoreDevtools from '../lib/demo-store-devtools'
+import { TanStackDevtools } from '@tanstack/react-devtools'
+import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
+
 interface MyRouterContext {
   auth: AuthPropsType | null
   queryClient: QueryClient
@@ -68,7 +73,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       <body>
         <Toaster />
         {children}
-        {/* <TanStackDevtools
+        <TanStackDevtools
           config={{
             position: 'bottom-right',
           }}
@@ -80,7 +85,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
             TanStackQueryDevtools,
             StoreDevtools,
           ]}
-        /> */}
+        />
         <Scripts />
       </body>
     </html>

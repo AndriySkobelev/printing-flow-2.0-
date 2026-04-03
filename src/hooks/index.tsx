@@ -1,8 +1,9 @@
 import { useConvex } from "convex/react";
-import { makeFabricOptions, makeMaterialsOptions } from '@/components/main-form/select/options';
+import { makeFabricOptions, makeMaterialsOptions, makeProductOptions } from '@/components/main-form/select/options';
 
 const developOptions = {
   fabric: makeFabricOptions,
+  products: makeProductOptions,
   materials: makeMaterialsOptions
 };
 

@@ -1,6 +1,6 @@
 import z from 'zod';
 import clsx from 'clsx';
-import { pick, remove } from 'ramda';
+import { pick, omit, remove } from 'ramda';
 import { Key, useState, type FunctionComponent } from 'react';
 import { revalidateLogic } from "@tanstack/react-form";
 import { useAppForm } from '@/components/main-form';
@@ -25,9 +25,8 @@ interface WorkPerformedFormProps {
 }
 
 const formSchema = z.object({
-  date: z.number({ error: 'Заповніть дату' }).nullable(),
+  timeStamp: z.number({ error: 'Заповніть дату' }).nullable(),
   products: z.array(z.object(), { error: 'Додайте вироби' }).min(1, 'Додайте хочаб один виріб'),
-  product: z.object().optional().nullable(),
   quantity: z.number().optional(),
 });
 
@@ -39,20 +38,17 @@ type ProductListType = {
   error: any,
   handleRemove: (index: number) => void
   data: Array<{
-    product: { value: string, label: string },
+    product: { value: string, label: string, price: number },
     quantity: number,
   }>,
 }
 
-const price = 100;
 const ProductsList = ({ data, error, handleRemove }: ProductListType) => {
-  console.log("🚀 ~ ProductsList ~ error:", error)
   
-  const sumOfProducts = data.reduce((prev, curr) => prev + (curr.quantity * price), 0)
+  const sumOfProducts = data.reduce((prev, curr) => prev + (curr.quantity * curr.product?.price), 0)
   return (
     <div className='mt-5'>
       <ScrollArea className='h-70'>
-
         {
           error.length > 0
           ? (
@@ -62,7 +58,7 @@ const ProductsList = ({ data, error, handleRemove }: ProductListType) => {
           )
           : data.map((item: any, i: number) => {
             const { quantity, product } = item;
-            const { name, color, size, sku } = splitLabel(product.label);
+            const { name, color, size } = splitLabel(product.label);
             return (
               <>
                 <Separator.Root className='flex w-full h-px bg-primary/10 my-2' />
@@ -70,7 +66,6 @@ const ProductsList = ({ data, error, handleRemove }: ProductListType) => {
                   <div className='flex flex-col gap-1 flex-1'>
                     <div className='flex gap-1 items-center'>
                       <div>{name}</div>
-                      {/* <div className='text-sm text-[#868686]'>{sku}</div> */}
                     </div>
                     <div className='flex items-center gap-1 text-sm text-[#868686]'>
                       <div>{color}</div>
@@ -86,9 +81,9 @@ const ProductsList = ({ data, error, handleRemove }: ProductListType) => {
                     <div className='flex gap-1 items-center text-primary/60'>
                       <span >{quantity}</span>
                       <span>{`/`}</span>
-                      <span className='text-sm'>x100</span>
+                      <span className='text-sm'>{`x${product?.price}`}</span>
                       <span>{` = `}</span>
-                      <span className='text-sm'>{price * quantity}{` грн`}</span>
+                      <span className='text-sm'>{product?.price * quantity}{` грн`}</span>
                     </div>
                   </div>
                 </div>
@@ -107,8 +102,7 @@ const ProductsList = ({ data, error, handleRemove }: ProductListType) => {
 }
  
 const WorkPerformedForm: FunctionComponent<WorkPerformedFormProps> = ({ formId, defaultValues, actionSubmit }) => {
-  const [data, setData] = useState<Array<any>>([]);
-  const { loadOptions: loadProductsOptions } = useAsyncOptions(api.queries.products.getSearchProducts, 'materials')
+  const { loadOptions: loadProductsOptions } = useAsyncOptions(api.queries.products.getSearchProducts, 'products')
   const form = useAppForm({
     validationLogic: revalidateLogic(),
     validators: {
@@ -119,13 +113,13 @@ const WorkPerformedForm: FunctionComponent<WorkPerformedFormProps> = ({ formId, 
     },
     defaultValues: defaultValues || defaultFormValues,
     onSubmit: ({ value }) => {
-      console.log("🚀 ~ WorkPerformedForm ~ value:", value)
-      actionSubmit(value)
+      const allProductsQuantity = value.products.reduce((prev: number, curr: { quantity: number }) => prev + curr.quantity,0)
+      const income = value.products.reduce((prev: number, curr: { quantity: number, product: { price: number} }) => prev + (curr.quantity * curr.product.price), 0)
+      const clearProducts = value.products.map((el: any) => ({ id: el?.product.value, quantity: el?.quantity, price: el?.product.price }))
+      actionSubmit(omit(['product', 'quantity'], {...value, income, allProductsQuantity, products: clearProducts}))
     }
   });
 
-
-  console.log("🚀 ~ WorkPerformedForm ~ form:", form.state)
   return (
     <div>
       <form
@@ -136,7 +130,7 @@ const WorkPerformedForm: FunctionComponent<WorkPerformedFormProps> = ({ formId, 
         }}
         className="flex flex-col gap-3"
       >
-        <form.AppField name="date" children={(field) => (
+        <form.AppField name="timeStamp" children={(field) => (
           <field.InputDate />
         )}/>
         <form.Field name='products' mode='array'>

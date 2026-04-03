@@ -57,6 +57,7 @@ export const productsSpecification = {
   name: v.string(),
   category: v.string(),
   skuPrefix: v.string(),
+  productionPrice: v.optional(v.number()),
   materials: v.array(v.object({
     units: v.string(),
     quantity: v.number(),
@@ -83,13 +84,27 @@ export const productVariants = {
   }))),
 }
 
+export const shiftReports = {
+  income: v.number(),
+  userId: v.id('users'),
+  timeStamp: v.number(),
+  allProductsQuantity: v.number(),
+  products: v.array(v.object({
+    id: v.id('products'),
+    price: v.number(),
+    quantity: v.number(),
+  })),
+};
+
 const fabricsTable = defineTable(fabricsSchema)
 const proudctsTable = defineTable(productVariants);
+const shiftReportsTabel = defineTable(shiftReports)
 const materialsTable = defineTable(materialsSchema)
 const specifications = defineTable(productsSpecification)
 const icomingMaterialsTable = defineTable(storeMovementsSchema)
 
 export type Materials = Doc<'materials'>;
+export type ShiftReportsType = Doc<'shiftReports'>;
 export type Fabrics = Doc<'fabrics'>;
 export type Products = Doc<'products'>;
 export type Specifications = Doc<'specifications'>;
@@ -118,5 +133,7 @@ export default defineSchema({
       searchField: 'searchText'
     }),
   specifications: specifications,
+  shiftReports: shiftReportsTabel
+    .index('by_timeStamp', ['timeStamp']),
   storeMovements: icomingMaterialsTable,
 });

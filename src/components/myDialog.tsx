@@ -4,6 +4,38 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 
+type FooterProps = {
+  formId?: string,
+  isLoading: boolean,
+  actionSubmit?: (data: any) => void
+}
+
+const Footer = ({ actionSubmit, isLoading, formId }: FooterProps) => {
+  return (
+    <DialogFooter className="flex items-center justify-end gap-2 w-full">
+    {
+      actionSubmit
+      ? <>
+        <DialogClose asChild>
+          <Button id="dialog-cancel" type="button" variant="outline" className=" w-full md:w-auto flex-1">Відмінити</Button>
+        </DialogClose>
+        <Button id="dialog-save" type="button" disabled={isLoading} onClick={actionSubmit} className="w-full md:w-auto flex-1">
+          {isLoading ? <div className="flex items-center gap-2"> <Loader2 className="w-4 h-4 animate-spin" /> Підтвердження... </div> : 'Підтвердити'}
+        </Button>
+      </>
+      : <>
+        <DialogClose asChild>
+          <Button id="dialog-cancel" type="button" variant="outline" className="w-full md:w-auto flex-1">Відмінити</Button>
+        </DialogClose>
+        <Button id="dialog-save" type="submit" disabled={isLoading} form={formId} className="w-full md:w-auto flex-1">
+          {isLoading ? <div className="flex items-center gap-2"> <Loader2 className="w-4 h-4 animate-spin" /> Підтвердження... </div> : 'Підтвердити'}
+        </Button>
+      </>
+    }
+  </DialogFooter>
+  )
+}
+
 export default memo(function MyDialog({
   open,
   title,
@@ -11,6 +43,7 @@ export default memo(function MyDialog({
   trigger,
   content,
   setOpen,
+  withForm,
   className,
   description,
   actionSubmit,
@@ -59,27 +92,20 @@ export default memo(function MyDialog({
             <div className="text-sm text-primary">{description}</div>
           </DialogHeader>
           {content}
-          <DialogFooter className="flex items-center justify-end gap-2 w-full">
-            {
-              actionSubmit
-              ? <>
-                <DialogClose asChild>
-                  <Button id="dialog-cancel" type="button" variant="outline" className=" w-full md:w-auto flex-1">Відмінити</Button>
-                </DialogClose>
-                <Button id="dialog-save" type="button" disabled={isLoading} onClick={actionSubmit} className="w-full md:w-auto flex-1">
-                  {isLoading ? <div className="flex items-center gap-2"> <Loader2 className="w-4 h-4 animate-spin" /> Підтвердження... </div> : 'Підтвердити'}
-                </Button>
-              </>
-              : <>
-                <DialogClose asChild>
-                  <Button id="dialog-cancel" type="button" variant="outline" className="w-full md:w-auto flex-1">Відмінити</Button>
-                </DialogClose>
-                <Button id="dialog-save" type="submit" disabled={isLoading} form={formId} className="w-full md:w-auto flex-1">
-                  {isLoading ? <div className="flex items-center gap-2"> <Loader2 className="w-4 h-4 animate-spin" /> Підтвердження... </div> : 'Підтвердити'}
-                </Button>
-              </>
-            }
-          </DialogFooter>
+          {
+            withForm
+            ? (
+              <Footer
+                formId={formId}
+                isLoading={isLoading} 
+                actionSubmit={actionSubmit}/>
+            )
+            : (
+              <DialogClose asChild>
+                <Button id="dialog-cancel" type="button" variant="outline" className=" w-full md:w-auto flex-1">Закрити</Button>
+              </DialogClose>
+            )
+          }
         </DialogContent>
       </Dialog>
     </div>

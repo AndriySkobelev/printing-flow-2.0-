@@ -14,6 +14,7 @@ import "simple-table-core/styles.css";
 import { useAppForm } from "@/components/main-form";
 import { Search } from "lucide-react";
 import ChangeMaterials from "./forms/change-materials";
+import { Spinner } from "@/components/ui/spinner";
 const SimpleTable = lazy(() =>
   import('simple-table-core').then(m => ({ default: m.SimpleTable }))
 )
@@ -48,7 +49,7 @@ interface TableComponentProps {
 
 const TableComponent = memo(({ rows, searchText, isLoading, handleSelectRow }: TableComponentProps) => {
   return (
-    <Suspense fallback={<div className="text-red w-1 h-1">Loading..</div>}>
+    <Suspense fallback={<div className="flex items-center justify-center w-full h-125"><Spinner className="w-5 h-5" /></div>}>
       <SimpleTable
         editColumns
         height={500}
@@ -145,7 +146,12 @@ const Products: FunctionComponent<ProductsProps> = () => {
     <div className="flex flex-col gap-4 p-4">
       <div className="flex items-start justify-end w-fit gap-2">
         <Button type="button" onClick={handleOpenDialog}>Додати товари</Button>
-        <form>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault()
+            handleSearch()
+          }}
+        >
           <form.AppField
             name="search"
             children={(field) =>
@@ -155,7 +161,7 @@ const Products: FunctionComponent<ProductsProps> = () => {
             }
           />
         </form>
-        <Button type="button" variant='secondary' onClick={handleSearch}>
+        <Button type="button" variant='secondary'>
           <Search size={16} />
         </Button>
         <Button type="button" variant='secondary' disabled={selectedData?.length === 0} onClick={handleChangeMaterials}>

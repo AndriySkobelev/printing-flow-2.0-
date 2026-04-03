@@ -10,33 +10,43 @@ import {
 } from "@/components/ui/popover"
 import { format } from "date-fns"
 import { uk } from "date-fns/locale"
-import { ChevronDownIcon } from "lucide-react"
+import { ChevronDownIcon, CalendarDays } from "lucide-react"
 
-export function DatePicker({ onChange }: any) {
-  const [date, setDate] = React.useState<Date>()
+const representComponents = {
+  input: (date: number) => (
+    <div className="flex justify-between items-center border rounded-md py-1.25 px-4 text-primary/80 cursor-pointer">
+      {date ? format(date, "PPP", { locale: uk  }) : <span className="text-primary/60 text-md">Виберіть дату</span>}
+      <ChevronDownIcon size={22} />
+    </div>
+  ),
+  iconText: (date: number) => (
+    <div className="flex items-center gap-1 text-primary/80">
+      <span>{date ? format(date, "PPP", { locale: uk  }) : 'Дата не вибрана'}</span>
+      <CalendarDays size={22} className="text-primary/80" />
+    </div>
+  )
+}
+
+type DatePickerProps = {
+  onChange: (date: number) => void
+  triggerMode?: 'input' | 'iconText'
+}
+
+export function DatePicker({ onChange, triggerMode = 'input' }: DatePickerProps) {
+  const [date, setDate] = React.useState<Date>(new Date())
   const [open, setOpen] = React.useState<boolean>(false)
-  console.log("🚀 ~ DatePicker ~ date:", date)
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger>
-        {/* <Button
-          variant="outline"
-          data-empty={!date}
-          className="w-53 justify-between text-left font-normal data-[empty=true]:text-muted-foreground"
-        >
-        </Button> */}
-        <div className="flex justify-between items-center border rounded-md py-1.25 px-4 text-primary/80 cursor-pointer">
-          {date ? format(date, "PPP", { locale: uk  }) : <span className="text-primary/60 text-md">Виберіть дату</span>}
-          <ChevronDownIcon size={22} />
-        </div>
+        {representComponents[triggerMode](date as any | number)}
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0" align="start">
         <Calendar
           mode="single"
           selected={date}
           onSelect={(e) => {
-            setDate(e)
+            setDate(e as Date)
             onChange(new Date(e as any).valueOf())
             setOpen(false)
           }}
