@@ -20,7 +20,7 @@ const representComponents = {
     </div>
   ),
   iconText: (date: number) => (
-    <div className="flex items-center gap-1 text-primary/80">
+    <div className="flex items-center gap-1 text-primary/80 border rounded-xl px-2 py-1 cursor-pointer bg-primary/5">
       <span>{date ? format(date, "PPP", { locale: uk  }) : 'Дата не вибрана'}</span>
       <CalendarDays size={22} className="text-primary/80" />
     </div>

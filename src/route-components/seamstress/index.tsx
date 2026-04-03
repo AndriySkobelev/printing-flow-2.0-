@@ -127,8 +127,8 @@ const ListOfWeeks = ({ data, isLoading, openDialog, calendarDate }: ListOfWeeksP
                       className="flex gap-2 justify-between items-center px-2 w-full h-10 rounded-md bg-primary/5"
                     >
                       <span>{format(report.timeStamp, 'dd/MM/yyyy')}</span>
-                      <span>x{report.allProductsQuantity}</span>
-                      <span className="flex gap-2 items-center">
+                      <span className="text-black/70">x{report.allProductsQuantity}</span>
+                      <span className="flex gap-2 items-center text-black/70">
                         {report.income}грн
                         <InfoIcon size={20}/>
                       </span>
@@ -143,7 +143,7 @@ const ListOfWeeks = ({ data, isLoading, openDialog, calendarDate }: ListOfWeeksP
                       <Divider />
                       <div className="flex self-end gap-2">
                         <span>Загальна сумма:</span>
-                        <span className="text-md">{week.data.reduce((prev, curr) => prev + curr.income, 0)} грн</span>
+                        <span className="text-md text-black/70">{week.data.reduce((prev, curr) => prev + curr.income, 0)} грн</span>
                       </div>
                     </>
                   )
@@ -157,10 +157,16 @@ const ListOfWeeks = ({ data, isLoading, openDialog, calendarDate }: ListOfWeeksP
   )
 }
 
-const Statistic = () => {
-  return (
-    <div className="w-full h-30 rounded-md bg-primary/20">
+type StatisticPropsType = {
+  handleSetDate: (date: number) => void
+}
 
+const Statistic = ({ handleSetDate }: StatisticPropsType) => {
+  return (
+    <div className="w-full h-30 rounded-md bg-primary/3 p-2">
+      <div className="flex justify-end">
+        <DatePicker onChange={handleSetDate} triggerMode="iconText"/>
+      </div>
     </div>
   );
 }
@@ -207,10 +213,7 @@ export const Seamstress = () => {
   return (
     <div className="py-2 px-2">
       <Header/>
-      <Statistic/>
-      <div className="flex justify-end mt-4">
-        <DatePicker onChange={handleSetDate} triggerMode="iconText"/>
-      </div>
+      <Statistic handleSetDate={handleSetDate}/>
       <div>
         <ListOfWeeks
           data={data ?? []}
@@ -218,7 +221,7 @@ export const Seamstress = () => {
           openDialog={openDialog}
           calendarDate={calendarDate}/>
       </div>
-      <Button className="w-full" type="button" onClick={handleAddProducts}>Додати вироби</Button>
+      <Button className="w-[95vw] fixed bottom-2 left-1/2 -translate-x-1/2" type="button" onClick={handleAddProducts}>Додати вироби</Button>
     </div>
   );
 };
