@@ -78,7 +78,6 @@ const Fabrics: FunctionComponent<FabricsProps> = () => {
   const { openDialog, closeDialog } = useContext(DialogContext);
 
   const handleCreateFabrics = (data: any) => {
-    console.log("🚀 ~ handleSubmit ~ data:", data)
     createFabrics(data)
     closeDialog();
   }
@@ -102,12 +101,7 @@ const Fabrics: FunctionComponent<FabricsProps> = () => {
     const searchValue = form.state.values.search || '';
     setSearch(searchValue);
   }
-
-  const handleKeyPress = (event: any) => {
-    console.log("🚀 ~ handleKeyPress ~ event:", event)
-  }
   
-  console.log('render')
   return (
     <div className="flex flex-col gap-4 p-4">
       <div className="flex items-start justify-end w-fit gap-2">

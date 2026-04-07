@@ -93,6 +93,7 @@ export const shiftReports = {
     id: v.id('products'),
     price: v.number(),
     quantity: v.number(),
+    comment: v.optional(v.string()),
   })),
 };
 

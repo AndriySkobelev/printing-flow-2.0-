@@ -31,9 +31,7 @@ const processingIcoming = async ({ ctx, orderId, menegerId }:{ ctx: ActionCtx, o
   });
   
   const data = await getCrmOrder.json();
-  console.log("🚀 ~ processingIcoming ~ data:", data)
   const { products, manager, shipping, id } = data;
-  console.log("🚀 ~ processingIcoming ~ products:", products)
   const filterByShipment = products.filter((product: any) => product.shipment_type === 'manufacturing');
 
   const materials = await Promise.all(filterByShipment.map(async (product: any) => {
@@ -93,12 +91,11 @@ const processingIcoming = async ({ ctx, orderId, menegerId }:{ ctx: ActionCtx, o
   }));
   
   const flattenMaterials = flatten(materials);
-  console.log("🚀 ~ processingIcoming ~ flattenMaterials:", flattenMaterials)
   const makedMovements = makeMovemets(flattenMaterials);
   for (const movement in makedMovements) {
     await ctx.runMutation(internal.queries.movements.createIncomingInternal, makedMovements[movement] as StoreMovements);
   }
-  console.log("🚀 ~ processingIcoming ~ makedMovements:", makedMovements)
+
   return data;
 }
 

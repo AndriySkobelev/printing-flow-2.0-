@@ -2,8 +2,6 @@ import { createMiddleware } from '@tanstack/react-start'
 import { getSession, useSession } from '@tanstack/react-start/server';
 import { createLocalJWKSet, decodeJwt, jwtVerify } from 'jose';
 import { parseCookies, redirectTo } from '../utils'
-import { generateCookieToken } from './auth-server';
-import { auth } from './auth';
 import type { JWTPayload } from 'jose'
 
 type SessionData = {
@@ -28,16 +26,14 @@ export const useAppSession = () => {
 export const refreshAccessToken = async (refreshToken: string) => {
   try {
     const session = await useAppSession();
-    const sessionData = session.data;
-    console.log("🚀 ~ refreshAccessToken ~ refreshToken:", refreshToken)
-    const decodeToken: JWTPayload = await decodeJwt(refreshToken);
-    const accessToken = await generateCookieToken({ id: decodeToken.sub as string, time: 60, kid: 'access_LB'});
-    console.log("NEW ACCESS TOKEN:", accessToken)
+    // const sessionData = session.data;
+    // const decodeToken: JWTPayload = await decodeJwt(refreshToken);
+    // const accessToken = await generateCookieToken({ id: decodeToken.sub as string, time: 60, kid: 'access_LB'});
 
-    session.update({
-      ...sessionData,
-      accessToken
-    })
+    // session.update({
+    //   ...sessionData,
+    //   accessToken
+    // })
     return {
       status: 200,
       statusText: 'Access token was updated'
@@ -59,7 +55,7 @@ type VerifyResultType = {
 
 const verifyToken = async (token: string) => {
   try {
-    const keys = await auth.api.getJwks();
+    // const keys = await auth.api.getJwks();
     const localKeys = createLocalJWKSet(keys);
     const verify = await jwtVerify(token, localKeys);
     return {
@@ -78,11 +74,7 @@ const verifyToken = async (token: string) => {
 const authServeMiddleware = createMiddleware({ type: 'function' }).server(async ({ request, pathname, context, next }: any) => {
   const session = await useAppSession();
   const { accessToken, refreshToken }: any = await session.data;
-  console.log('       ')
-  console.log("🚀 ~ refreshToken:", refreshToken)
-  console.log('       ')
-  console.log("🚀 ~ accessToken:", accessToken)
-  console.log('       ')
+
   
   try {
     const verifyAccess: VerifyResultType = await verifyToken(accessToken);

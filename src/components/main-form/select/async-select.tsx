@@ -1,10 +1,12 @@
-import { type FunctionComponent, useMemo } from 'react';
+import { type FunctionComponent, ReactElement, useMemo } from 'react';
 import { DotIcon } from 'lucide-react';
-import { type SingleValue } from 'react-select';
+import { type SingleValue, components, ControlProps, GroupBase, MultiValue } from 'react-select';
 import AsyncSelect from 'react-select/async';
 import { PropsValue } from 'react-select';
 import { useFieldContext } from "@/components/main-form";
 import clsx from 'clsx';
+import { makeProductOptions } from './options';
+import Divider from '@/components/ui/divider';
 
 export type Option = {
   value: string | number | null | undefined;
@@ -18,6 +20,7 @@ interface FormAsyncSelectProps {
   label?: string;
   className?: string,
   modeOption?: keyof OptionTypes;
+  modeControl?: keyof ControlTypes;
   valueMode?: 'string' | 'object';
   asyncOptions: Array<{ value: string | number; label: string }> | any;
   defaultOptions?: Array<{ value: string | number; label: string }> | any;
@@ -121,7 +124,22 @@ const CustomProductOption: FunctionComponent<{ innerProps: any, innerRef: any, d
   );
 };
 
-const OptionModes = {
+const DefaultControl: FunctionComponent<ControlProps<Option, boolean, GroupBase<Option>>> = ({ children, ...props }) => {
+  return (
+    <components.Control {...props}>
+      {children}
+    </components.Control>
+  );
+}
+const CompactControl: FunctionComponent<ControlProps<Option, boolean, GroupBase<Option>>> = ({ children, ...props }) => {
+  return (
+    <components.Control {...props} className='text-xs wrap-break-word'>
+      {children}
+    </components.Control>
+  );
+}
+
+const optionModes = {
   fabric: CustomFabricOption,
   default: CustomDefaultOption,
   materials: CustomMaterialsOption,
@@ -129,7 +147,13 @@ const OptionModes = {
   smallFabric: CustomFabricSmallOption,
 };
 
-type OptionTypes = typeof OptionModes;
+const controlModes = {
+  compact: CompactControl,
+  default: DefaultControl,
+};
+
+type OptionTypes = typeof optionModes;
+type ControlTypes = typeof controlModes;
 type Primitive = string | number | unknown;
 
 type ValueObject = {
@@ -137,7 +161,7 @@ type ValueObject = {
   label: string;
 };
 
-type ValueType =  ValueObject;
+// type ValueType =  ValueObject;
  
 const FormAsyncSelect: FunctionComponent<FormAsyncSelectProps> = ({
   label,
@@ -145,7 +169,8 @@ const FormAsyncSelect: FunctionComponent<FormAsyncSelectProps> = ({
   asyncOptions,
   defaultOptions = [],
   valueMode = 'string',
-  modeOption = 'default'
+  modeOption = 'default',
+  modeControl = 'default',
 }) => {
   console.log('HERE')
   const field = useFieldContext();
@@ -154,7 +179,10 @@ const FormAsyncSelect: FunctionComponent<FormAsyncSelectProps> = ({
     return field.state.value as PropsValue<Option> | unknown
   }, [field.state.value]);
   console.log("🚀 ~ FormAsyncSelect ~ value:", value)
-  const fieldOnChange = useMemo(() => (value: SingleValue<Option>) => field.handleChange(valueMode === 'object' ? value : value?.value), [field.handleChange]);
+  const fieldOnChange = useMemo(() => (newValue: MultiValue<Option> | SingleValue<Option>, actionMeta: any) => {
+    const value = Array.isArray(newValue) ? newValue[0] : newValue;
+    field.handleChange(valueMode === 'object' ? value : value?.value);
+  }, [field.handleChange]);
   const errors = useMemo(() => field.state.meta.errors as Array<{ message: string }> | undefined, [field.state.meta.errors]);
   const isValid = useMemo(() => field.state.meta.isValid as boolean | undefined, [field.state.meta.isValid]);
   const valueByOptions = typeof value === 'string' ? valueToOption(value, defaultOptions) : value;
@@ -167,14 +195,15 @@ const FormAsyncSelect: FunctionComponent<FormAsyncSelectProps> = ({
         name={name}
         cacheOptions
         placeholder="Пошук..."
-        onChange={fieldOnChange}
         value={valueByOptions as PropsValue<Option> ?? null}
+        onChange={(newValue, actionMeta) => fieldOnChange(newValue, actionMeta)}
         defaultOptions={defaultOptions}
         className='hover:active:border-none'
         loadOptions={(inputValue) => asyncOptions({inputValue})}
         defaultValue={defaultOptions.length > 0 ? valueToOption(value, defaultOptions) as PropsValue<Option> : null}
         components={{
-          Option: OptionModes[modeOption || 'default'],
+          Control: controlModes[modeControl || 'default'],
+          Option: optionModes[modeOption || 'default'],
         }}
         styles={{
           control: (baseStyles, state) => ({

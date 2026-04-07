@@ -25,7 +25,6 @@ function RouteComponent() {
   const { mutate: logIn } = useMutation({
     mutationFn: (data: any) =>  loginSupabaseFn({ data }),
     onSuccess: (data) => {
-      console.log('HERE', data)
       queryClient.resetQueries()
       navigate({ to: "/" })
       if (data?.error) {

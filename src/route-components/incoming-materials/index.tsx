@@ -127,7 +127,6 @@ export type MaterialsOption = ReturnType<typeof generateOptions>;
 const InventoryMovement: FunctionComponent = () => {
   const { openDialog, closeDialog, setIsLoading } = useContext(DialogContext);
   const { data } = useQuery(convexQuery(api.queries.movements.getMovementsWithMaterials));
-  console.log("🚀 ~ InventoryMovement ~ data:", data)
   const incomingMutation = useCreateIncomingMutation();
   const someMutate = useMigrateMutation();
 
@@ -142,11 +141,9 @@ const InventoryMovement: FunctionComponent = () => {
       onSuccess: () => {
         closeDialog()
         setIsLoading(false)
-        console.log("🚀 ~ handleSubmit ~ Success")
       },
       onError: (error) => {
         setIsLoading(false)
-        console.error("🚀 ~ handleSubmit ~ error:", error)
       }
     });
 

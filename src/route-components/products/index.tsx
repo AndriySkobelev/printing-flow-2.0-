@@ -87,14 +87,11 @@ const Products: FunctionComponent<ProductsProps> = () => {
   const { openDialog, closeDialog } = useContext(DialogContext);
 
   const handleAddProducts = (data: any) => {
-    console.log("🚀 ~ handleSubmit ~ data:", data)
     createProduct.mutate(data);
     closeDialog();
   }
 
   const handleSubmitChangeMaterials = (data: any) => {
-    console.log("🚀 ~ handleSubmitChangeMaterials ~ data:", data)
-    console.log('selectedData', selectedData)
     const ids = selectedData.map((el) => el._id);
     updateProducts({ ...data, ids });
   }
@@ -120,7 +117,6 @@ const Products: FunctionComponent<ProductsProps> = () => {
   }
 
   const handleSelectRow = ({ row, isSelected, selectedRows }: any) => {
-    console.log({ row, isSelected, selectedRows })
     const arrSelected = Array.from(selectedRows.values()) as Array<string>;
     const splitId = arrSelected.map((el) => String(el).match(/-(\w+)$/)?.[1] || '');
     const getRowData = data ? splitId.map((rowIndex: string) => data.find(el => el._id === rowIndex)) : [];
@@ -128,7 +124,6 @@ const Products: FunctionComponent<ProductsProps> = () => {
   }
 
   const handleChangeMaterials = () => {
-    console.log('selectedData', selectedData)
     openDialog({
       title: 'Редагувати матеріали',
       content: <ChangeMaterials
@@ -141,7 +136,6 @@ const Products: FunctionComponent<ProductsProps> = () => {
     });
   }
   
-  console.log('render')
   return (
     <div className="flex flex-col gap-4 p-4">
       <div className="flex items-start justify-end w-fit gap-2">

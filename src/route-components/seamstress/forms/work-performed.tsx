@@ -5,11 +5,12 @@ import { Key, useState, type FunctionComponent } from 'react';
 import { revalidateLogic } from "@tanstack/react-form";
 import { useAppForm } from '@/components/main-form';
 import { Button } from '@/components/ui/button';
-import { Dot, Pencil, Trash2, PlusIcon } from 'lucide-react';
+import { Dot, Pencil, Trash2, PlusIcon, EditIcon } from 'lucide-react';
 import { useAsyncOptions } from '@/hooks';
 import { api } from 'convex/_generated/api';
 import { Separator } from 'radix-ui';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { UTCDate } from '@date-fns/utc';
 
 
 const regex4 = /^([^·]+) · ([^·]+) · ([^·]+) · ([^·]+)$/;
@@ -26,25 +27,29 @@ interface WorkPerformedFormProps {
 
 const formSchema = z.object({
   timeStamp: z.number({ error: 'Заповніть дату' }).nullable(),
+  comment: z.string().optional(),
   products: z.array(z.object(), { error: 'Додайте вироби' }).min(1, 'Додайте хочаб один виріб'),
   quantity: z.number().optional(),
 });
 
 const defaultFormValues = {
-  quantity: 1
+  quantity: 1,
+  comment: '',
+  timeStamp: new UTCDate().valueOf(),
 }
 
 type ProductListType = {
   error: any,
   handleRemove: (index: number) => void
+  handleEdit: (index: number) => void
   data: Array<{
+    comment?: string,
     product: { value: string, label: string, price: number },
     quantity: number,
   }>,
 }
 
-const ProductsList = ({ data, error, handleRemove }: ProductListType) => {
-  
+const ProductsList = ({ data, error, handleRemove, handleEdit }: ProductListType) => {
   const sumOfProducts = data.reduce((prev, curr) => prev + (curr.quantity * curr.product?.price), 0)
   return (
     <div className='mt-5'>
@@ -57,7 +62,7 @@ const ProductsList = ({ data, error, handleRemove }: ProductListType) => {
             </div>
           )
           : data.map((item: any, i: number) => {
-            const { quantity, product } = item;
+            const { quantity, product, comment } = item;
             const { name, color, size } = splitLabel(product.label);
             return (
               <>
@@ -72,10 +77,11 @@ const ProductsList = ({ data, error, handleRemove }: ProductListType) => {
                       <Dot color='#868686' style={{ margin: '0'}}/>
                       <div>{size}</div> 
                     </div>
+                    <div className='text-xs text-primary/30'>{comment}</div>
                   </div>
-                  <div>
+                  <div className='flex flex-col gap-1 self-start justify-end'>
                     <div className='flex gap-1 align-top justify-end'>
-                      <div className='p-1.5 rounded-md bg-primary/10'><Pencil size={12} /></div>
+                      <div className='p-1.5 rounded-md bg-primary/10' onClick={() => handleEdit(i)}><Pencil size={12} /></div>
                       <div className='p-1.5 rounded-md bg-primary/10' onClick={() => handleRemove(i)}><Trash2 size={12} /></div>
                     </div>
                     <div className='flex gap-1 items-center text-primary/60'>
@@ -102,13 +108,13 @@ const ProductsList = ({ data, error, handleRemove }: ProductListType) => {
 }
  
 const WorkPerformedForm: FunctionComponent<WorkPerformedFormProps> = ({ formId, defaultValues, actionSubmit }) => {
+  const [editIndex, setEditIndex] = useState<number | null>(null);
   const { loadOptions: loadProductsOptions } = useAsyncOptions(api.queries.products.getSearchProducts, 'products')
   const form = useAppForm({
     validationLogic: revalidateLogic(),
     validators: {
       onDynamic: formSchema,
       onSubmit: (some) => {
-        console.log('onSubmit validators', some)
       }
     },
     defaultValues: defaultValues || defaultFormValues,
@@ -116,9 +122,17 @@ const WorkPerformedForm: FunctionComponent<WorkPerformedFormProps> = ({ formId, 
       const allProductsQuantity = value.products.reduce((prev: number, curr: { quantity: number }) => prev + curr.quantity,0)
       const income = value.products.reduce((prev: number, curr: { quantity: number, product: { price: number} }) => prev + (curr.quantity * curr.product.price), 0)
       const clearProducts = value.products.map((el: any) => ({ id: el?.product.value, quantity: el?.quantity, price: el?.product.price }))
-      actionSubmit(omit(['product', 'quantity'], {...value, income, allProductsQuantity, products: clearProducts}))
+      actionSubmit(omit(['product', 'quantity', 'comment'], {...value, income, allProductsQuantity, products: clearProducts}))
     }
   });
+
+  const handleEdit = (index: number) => {
+    setEditIndex(index)
+    const product = form.getFieldValue(`products[${index}]`);
+    form.setFieldValue('product', product?.product);
+    form.setFieldValue('quantity', product?.quantity);
+    form.setFieldValue('comment', product?.comment);
+  }
 
   return (
     <div>
@@ -137,40 +151,63 @@ const WorkPerformedForm: FunctionComponent<WorkPerformedFormProps> = ({ formId, 
           {(field) => (
             <>
               <div className='flex flex-row gap-2 items-end'>
-                <form.AppField name="product" children={(field) => (
-                  <field.FormAsyncSelect
-                    label="Виріб"
-                    className='flex-3'
-                    valueMode='object'
-                    modeOption='product'
-                    asyncOptions={loadProductsOptions} />
-                )}/>
-                <form.AppField name="quantity" children={(field) => (
-                  <field.FormTextField
-                    label="Кількість"
-                    className='flex-2'
-                    type='number' />
-                )}/>
-                <form.Subscribe selector={(state) => [state.values.product, state.values.quantity]}>
-                  {([product, quantity]) => (
+                <div className='flex flex-col gap-2 w-full'>
+                  <div className='flex flex-row gap-2 items-end w-full'>
+                    <form.AppField name="product" children={(field) => (
+                      <field.FormAsyncSelect
+                        label="Виріб"
+                        className='flex-4'
+                        valueMode='object'
+                        modeOption='product'
+                        modeControl='compact'
+                        asyncOptions={loadProductsOptions} />
+                    )}/>
+                    <form.AppField name="quantity" children={(field) => (
+                      <field.FormTextField
+                        label="Кількість"
+                        className='flex-1'
+                        type='number' />
+                    )}/>
+                  </div>
+                  <form.AppField name="comment" children={(field) => (
+                      <field.TextAreaField />
+                    )}/>
+                </div>
+                <form.Subscribe selector={(state) => [state.values.product, state.values.quantity, state.values.comment]}>
+                  {([product, quantity, comment]) => (
                     <Button
                       type="button"
                       disabled={!product}
                       onClick={() => {
-                        field.pushValue({ product, quantity })
+                        if (editIndex !== null) {
+                          form.setFieldValue(`products[${editIndex}]`, { product, quantity, comment })
+                          setEditIndex(null)
+                        } else {
+                          field.pushValue({ product, quantity, comment })
+                        }
                         form.setFieldValue('product', null);
                         form.resetField('quantity');
+                        form.resetField('comment');
                       }}
                     >
-                      <PlusIcon size={17}/>
+                      {
+                        editIndex !== null
+                        ? <EditIcon size={17}/>
+                        : <PlusIcon size={17}/>
+                      }
                     </Button>
                   )}
                 </form.Subscribe>
               </div>
-              <ProductsList
-                error={field.state.meta.errors}
-                data={field.state.value ?? []}
-                handleRemove={field.removeValue} />
+              <form.Subscribe selector={(state) => state.values.products}>
+                {(products) => (
+                  <ProductsList
+                    error={field.state.meta.errors}
+                    data={products ?? []}
+                    handleEdit={handleEdit}
+                    handleRemove={field.removeValue} />
+                )}
+              </form.Subscribe>
             </>
           )}
         </form.Field>

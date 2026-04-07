@@ -1,8 +1,8 @@
 import { clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge';
-import { useSession } from '@tanstack/react-start/server';
 import type {ClassValue} from 'clsx';
-import { addDays, lastDayOfMonth, startOfMonth, isWithinInterval } from 'date-fns'
+import { addDays, lastDayOfMonth, startOfMonth, isWithinInterval, addHours } from 'date-fns'
+import { UTCDate } from '@date-fns/utc';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -48,7 +48,7 @@ export function parseCookies(cookieHeader?: string) {
 }
 
 export const startEndWeeksDate = (timeStamp: number) => {
-  const currDate = timeStamp ?? new Date();
+  const currDate = timeStamp ?? new UTCDate();
   const startDateOfMonth = startOfMonth(currDate);
   const endDateOfMonth = lastDayOfMonth(currDate);
 
@@ -56,7 +56,7 @@ export const startEndWeeksDate = (timeStamp: number) => {
   let current = startDateOfMonth;
 
   while (current <= endDateOfMonth) {
-    const chunkEnd = addDays(current, 7);
+    const chunkEnd = addHours(addDays(current, 7), 23);
     chunks.push({
       start: current,
       end: chunkEnd > endDateOfMonth ? endDateOfMonth : chunkEnd,
@@ -78,6 +78,7 @@ export const combineDataToWeek = <T,> (data: Array<T & { timeStamp: number }>, c
       data: filterDataToWeek
     }
   })
+  console.log("🚀 ~ combineDataToWeek ~ combine:", combine)
 
   return combine;
 }

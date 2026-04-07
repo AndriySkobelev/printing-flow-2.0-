@@ -1,7 +1,7 @@
-import { Suspense, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { Suspense, useContext, useEffect, useMemo, useState } from "react";
 import { combineDataToWeek } from "@/lib/utils";
-import { format, isWithinInterval, startOfMonth, endOfMonth } from "date-fns";
-import { DotIcon, InfoIcon } from "lucide-react";
+import { format, isWithinInterval, startOfMonth, endOfMonth, sub } from "date-fns";
+import { DotIcon, InfoIcon, StepForward } from "lucide-react";
 import clsx from "clsx";
 import {ShiftReportsType} from 'convex/schema'
 import { UTCDate } from '@date-fns/utc'
@@ -19,20 +19,21 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCreateReport } from "./queries";
 import { Spinner } from "@/components/ui/spinner";
 import { DatePicker } from "@/components/ui/data-picker";
-
+import { Id } from "convex/_generated/dataModel";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const Header = () => {
   const { user } = useAuth();
-  console.log('user.image', user?.image)
   return (
-    <div className="flex items-center gap-2 py-4">
+    <div className="flex items-start gap-2">
       <img src={`${user?.image}`} className="rounded-4xl" width={40} />
-      <span>{user?.name}</span>
+      <div className="flex flex-col text-sm">
+        <span className="text-md">{user?.name}</span>
+        <span className="text-primary/50">Admin</span>
+      </div>
     </div>
   );
 }
-
-
 
 type ProductsType = Pick<ShiftReportsType, 'products'>['products'][number] & {
   name: string,
@@ -117,24 +118,28 @@ const ListOfWeeks = ({ data, isLoading, openDialog, calendarDate }: ListOfWeeksP
               <div
                 className={clsx("flex flex-col gap-5 w-full", data.length === 0 ? 'flex justify-center items-center' : '')}
               >
-                {
-                  week.data.length === 0
-                  ? <span className="text-center">Ви ще нічого не додали на цей тиждень.</span>
-                  : week.data.map((report, i) => (
-                    <div
-                      key={i}
-                      onClick={() => handleOpenReport(report)}
-                      className="flex gap-2 justify-between items-center px-2 w-full h-10 rounded-md bg-primary/5"
-                    >
-                      <span>{format(report.timeStamp, 'dd/MM/yyyy')}</span>
-                      <span className="text-black/70">x{report.allProductsQuantity}</span>
-                      <span className="flex gap-2 items-center text-black/70">
-                        {report.income}грн
-                        <InfoIcon size={20}/>
-                      </span>
-                    </div>
-                  ))
-                }
+                <ScrollArea className="h-[60vh]">
+                  <div className="flex flex-col gap-2 w-full" >
+                    {
+                      week.data.length === 0
+                      ? <span className="text-center">Ви ще нічого не додали на цей тиждень.</span>
+                      : week.data.map((report, i) => (
+                        <div
+                          key={i}
+                          onClick={() => handleOpenReport(report)}
+                          className="flex gap-2 justify-between items-center px-2 w-full h-10 rounded-md bg-primary/5"
+                        >
+                          <span>{format(report.timeStamp, 'dd/MM/yyyy')}</span>
+                          <span className="text-black/70">x{report.allProductsQuantity}</span>
+                          <span className="flex gap-2 items-center text-black/70">
+                            {report.income}грн
+                            <InfoIcon size={20}/>
+                          </span>
+                        </div>
+                      ))
+                    }
+                  </div>
+                </ScrollArea>
                 {
                   week.data.length === 0
                   ? null
@@ -157,22 +162,104 @@ const ListOfWeeks = ({ data, isLoading, openDialog, calendarDate }: ListOfWeeksP
   )
 }
 
-type StatisticPropsType = {
-  handleSetDate: (date: number) => void
-}
+const maxIncome = 100000
+const toPercent = (value: number) => (value / maxIncome) * 100
 
-const Statistic = ({ handleSetDate }: StatisticPropsType) => {
+const ProgressBar = ({ prev, curr }: { prev: number | undefined, curr: number | undefined }) => {
+  const conditionCurrReverse = curr ? toPercent(curr) >= 79 : false;
+  const conditionPrevReverse = prev ? toPercent(prev) <= 10 : false;
+
   return (
-    <div className="w-full h-30 rounded-md bg-primary/3 p-2">
-      <div className="flex justify-end">
-        <DatePicker onChange={handleSetDate} triggerMode="iconText"/>
+    <div className="w-full h-2 bg-primary/10 rounded-full relative mb-4">
+      {
+        prev === 0
+        ? null
+        : (
+          <div className="h-full bg-primary/80 rounded-full absolute top-0 z-1" style={{ width: `${prev ? toPercent(prev) : 0}%` }}>
+            <div className={clsx("flex gap-1 justify-center items-center absolute -bottom-5 -right-1", conditionPrevReverse ? 'translate-x-full right-2' : 'translate-x-0 right-2')}>
+              {
+                conditionPrevReverse
+                ? <>
+                    <div className="-rotate-90 h-fit w-fit">
+                      <StepForward size={12} color="#002131"/>
+                    </div>
+                    <span className="text-xs text-primary/80 w-max">{`${prev} грн`}</span>
+                  </>
+                : (
+                  <>
+                    <span className="text-xs text-primary/80 w-max">{`${prev ? `${prev} грн`: ''}`}</span>
+                    <div className="-rotate-90 h-fit w-fit">
+                      <StepForward size={12} color="#002131"/>
+                    </div>
+                  </>
+                )
+              }
+            </div>
+          </div>
+        )
+      }
+      <div className="h-full bg-[#27e427] rounded-full absolute top-0 z-2 transition-all" style={{ width: `${curr ? toPercent(curr) : 0}%` }}>
+        <div className={clsx("flex gap-1 justify-center absolute items-center -top-5 ", conditionCurrReverse ? 'translate-x-0 -right-1' : 'translate-x-full right-2')}>
+          {
+            conditionCurrReverse
+            ? (
+              <>
+                <span className="text-xs text-[#3abf3a] w-max">{curr} грн</span>
+                <div className="rotate-90 h-fit w-fit">
+                  <StepForward size={12} color="#27e427"/>
+                </div>
+              </>
+            )
+            : (
+              curr != 0
+              ? <>
+                  <div className="rotate-90 h-fit w-fit">
+                    <StepForward size={12} color="#27e427"/>
+                  </div>
+                  <span className="text-xs text-[#3abf3a] w-max">{`${curr ? `${curr} грн`: ''}`}</span>
+                </>
+              : null
+            )
+          }
+        </div>
       </div>
     </div>
   );
 }
 
+type StatisticPropsType = {
+  userId: Id<'users'>,
+  calendarDate: number,
+  handleSetDate: (date: number) => void
+}
+
+const Statistic = ({ userId, handleSetDate, calendarDate }: StatisticPropsType) => {
+  const dates = {
+    prevStartMonth: sub(startOfMonth(new UTCDate(calendarDate)), { months: 1}).valueOf(),
+    prevEndMonth: sub(endOfMonth(new UTCDate(calendarDate)), { months: 1}).valueOf(),
+    startMonth: startOfMonth(new UTCDate(calendarDate)).valueOf(),
+    endMonth: endOfMonth(new UTCDate(calendarDate)).valueOf()
+  }
+  const { data } = useQuery({
+    ...convexQuery(api.queries.shift_reports.getShiftReportsMonthIncome, { ...dates, userId: userId }),
+    enabled: !!userId
+  })
+
+  return (
+    <div className="flex flex-col items-start justify-between w-full h-30 rounded-md bg-primary/3 p-2">
+      <div className="flex items-start justify-between w-full">
+        <Header/>
+        <div className="flex justify-end">
+          <DatePicker onChange={handleSetDate} triggerMode="iconText" position="end"/>
+        </div>
+      </div>
+      <ProgressBar curr={data?.currIncome} prev={data?.prevIncome} />
+    </div>
+  );
+}
+
 export const Seamstress = () => {
-  const [calendarDate, setCalendarDate] = useState<number>(new Date().valueOf());
+  const [calendarDate, setCalendarDate] = useState<number>(new UTCDate().valueOf());
   const { user, isLoading: isUserLoading } = useAuth();
   const { data, isLoading } = useQuery({
     ...convexQuery(
@@ -212,8 +299,10 @@ export const Seamstress = () => {
 
   return (
     <div className="py-2 px-2">
-      <Header/>
-      <Statistic handleSetDate={handleSetDate}/>
+      <Statistic
+        userId={user?._id ?? ''}
+        calendarDate={calendarDate}
+        handleSetDate={handleSetDate}/>
       <div>
         <ListOfWeeks
           data={data ?? []}
@@ -221,7 +310,9 @@ export const Seamstress = () => {
           openDialog={openDialog}
           calendarDate={calendarDate}/>
       </div>
-      <Button className="w-[95vw] fixed bottom-2 left-1/2 -translate-x-1/2" type="button" onClick={handleAddProducts}>Додати вироби</Button>
+      <Button className="w-[95vw] fixed bottom-2 left-1/2 -translate-x-1/2" type="button" onClick={handleAddProducts}>
+        Додати вироби
+      </Button>
     </div>
   );
 };

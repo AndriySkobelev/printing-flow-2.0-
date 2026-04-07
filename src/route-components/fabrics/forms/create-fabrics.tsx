@@ -32,7 +32,6 @@ const CreateFabricForm: FunctionComponent<CreateFabricFormProps> = ({
 }) => {
   const { data } = useQuery(convexQuery(api.queries.specifications.getSpecificationsWithMaterials));
   
-  console.log("🚀 ~ CreateProductForm ~ specifications:", data)
   
   const form = useAppForm({
     validationLogic: revalidateLogic(),

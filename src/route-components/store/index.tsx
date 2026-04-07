@@ -42,7 +42,6 @@ const Store: FunctionComponent<StoreProps> = ({
   const { data } = useQuery(convexQuery(api.queries.materials.getMaterials, {}));
 
   const handleCellClick = (row: any) => {
-    console.log("🚀 ~ handleCellClick ~ data:", row)
   }
   
   return (

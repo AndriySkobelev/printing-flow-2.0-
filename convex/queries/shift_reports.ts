@@ -96,14 +96,11 @@ export const getShiftReportsByUser = query({
   },
   handler: async (ctx, args) => {
     const { userId, endMonth, startMonth } = args
-    // if (!!userId) throw Error('User not found.')
-    console.log("🚀 ~ args.endMonth:", format(startMonth, 'dd/MMMM/yyyy'), format(endMonth, 'dd/MMMM/yyyy'))
-    console.log("🚀 ~ args.endMonth:", startMonth, endMonth)
 
     const reports = await ctx.db.query('shiftReports')
       .withIndex('by_timeStamp', (q) => q
-        .gt("timeStamp", startMonth)
-        .lt("timeStamp", endMonth),
+        .gte("timeStamp", startMonth)
+        .lte("timeStamp", endMonth),
       )
       .filter(q => q.eq(q.field('userId'), userId))
       .collect();
@@ -114,7 +111,42 @@ export const getShiftReportsByUser = query({
         products: productWithParent
       }
     }))
-    console.log('readyProducts', readyProducts)
+    
     return readyProducts;
+  },
+});
+
+export const getShiftReportsMonthIncome = query({
+  args: {
+    userId: v.id('users'),
+    endMonth: v.number(),
+    startMonth: v.number(),
+    prevEndMonth: v.number(),
+    prevStartMonth: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const { userId, endMonth, startMonth, prevEndMonth, prevStartMonth } = args
+
+    const [currReports, prevReports] = await Promise.all([
+        ctx.db.query('shiftReports')
+        .withIndex('by_timeStamp', (q) => q
+          .gte("timeStamp", startMonth)
+          .lte("timeStamp", endMonth),
+        )
+        .filter(q => q.eq(q.field('userId'), userId))
+        .collect(),
+        ctx.db.query('shiftReports')
+        .withIndex('by_timeStamp', (q) => q
+          .gte("timeStamp", prevStartMonth)
+          .lte("timeStamp", prevEndMonth),
+        )
+        .filter(q => q.eq(q.field('userId'), userId))
+        .collect(),
+    ])
+    
+    return {
+      currIncome: currReports.reduce((prev, curr) => prev + curr.income, 0),
+      prevIncome: prevReports.reduce((prev, curr) => prev + curr.income, 0),
+    };
   },
 });

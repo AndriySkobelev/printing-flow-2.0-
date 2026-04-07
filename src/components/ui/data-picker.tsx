@@ -1,7 +1,4 @@
-"use client"
-
 import * as React from "react"
-import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import {
   Popover,
@@ -11,6 +8,7 @@ import {
 import { format } from "date-fns"
 import { uk } from "date-fns/locale"
 import { ChevronDownIcon, CalendarDays } from "lucide-react"
+import { UTCDate } from "@date-fns/utc"
 
 const representComponents = {
   input: (date: number) => (
@@ -20,8 +18,10 @@ const representComponents = {
     </div>
   ),
   iconText: (date: number) => (
-    <div className="flex items-center gap-1 text-primary/80 border rounded-xl px-2 py-1 cursor-pointer bg-primary/5">
-      <span>{date ? format(date, "PPP", { locale: uk  }) : 'Дата не вибрана'}</span>
+    <div className="flex items-center gap-1 text-primary/80 rounded-xl px-2 py-1 cursor-pointer bg-primary/4">
+      <div className="flex flex-col items-end text-xs">
+        <span className="text-">{date ? format(date, "PPP", { locale: uk  }) : 'Дата не вибрана'}</span>
+      </div>
       <CalendarDays size={22} className="text-primary/80" />
     </div>
   )
@@ -29,11 +29,12 @@ const representComponents = {
 
 type DatePickerProps = {
   onChange: (date: number) => void
-  triggerMode?: 'input' | 'iconText'
+  triggerMode?: 'input' | 'iconText',
+  position?: "center" | "start" | "end" | undefined
 }
 
-export function DatePicker({ onChange, triggerMode = 'input' }: DatePickerProps) {
-  const [date, setDate] = React.useState<Date>(new Date())
+export function DatePicker({ onChange, triggerMode = 'input', position = 'start' }: DatePickerProps) {
+  const [date, setDate] = React.useState<Date>(new UTCDate())
   const [open, setOpen] = React.useState<boolean>(false)
 
   return (
@@ -41,11 +42,12 @@ export function DatePicker({ onChange, triggerMode = 'input' }: DatePickerProps)
       <PopoverTrigger>
         {representComponents[triggerMode](date as any | number)}
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0" align="start">
+      <PopoverContent className="w-auto p-0" align={position}>
         <Calendar
           mode="single"
           selected={date}
           onSelect={(e) => {
+            console.log("🚀 ~ DatePicker ~ e:", e?.valueOf())
             setDate(e as Date)
             onChange(new Date(e as any).valueOf())
             setOpen(false)

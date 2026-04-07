@@ -89,9 +89,7 @@ export const insertSpecification = mutation({
 export const updateSpecification = mutation({
   args: { id: v.id('specifications'), data: v.optional(v.object(productsSpecification)) },
   handler: async (ctx, args) => {
-    console.log('HERE')
     const { id, data } = args;
-    console.log("🚀 ~ data:", data)
     const req = await ctx.db.patch(id, data || {})
     return req;
   }
