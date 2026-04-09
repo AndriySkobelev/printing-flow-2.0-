@@ -134,6 +134,9 @@ const DefaultControl: FunctionComponent<ControlProps<Option, boolean, GroupBase<
 const CompactControl: FunctionComponent<ControlProps<Option, boolean, GroupBase<Option>>> = ({ children, ...props }) => {
   return (
     <components.Control {...props} className='text-xs wrap-break-word'>
+      {/* <div className='flex items-center gap-1 bg-white text-[#868686] absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none z-100'>
+        {props.hasValue ? props.getValue()[0].label : 'Пошук...'}
+      </div> */}
       {children}
     </components.Control>
   );

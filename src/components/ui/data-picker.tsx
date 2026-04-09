@@ -12,9 +12,9 @@ import { UTCDate } from "@date-fns/utc"
 
 const representComponents = {
   input: (date: number) => (
-    <div className="flex justify-between items-center border rounded-md py-1.25 px-4 text-primary/80 cursor-pointer">
+    <div className="flex justify-between items-center border h-9.5 rounded-md py-1.25 px-4 text-primary/80 cursor-pointer">
       {date ? format(date, "PPP", { locale: uk  }) : <span className="text-primary/60 text-md">Виберіть дату</span>}
-      <ChevronDownIcon size={22} />
+      <ChevronDownIcon size={22} color="#ccc"/>
     </div>
   ),
   iconText: (date: number) => (

@@ -173,32 +173,33 @@ const WorkPerformedForm: FunctionComponent<WorkPerformedFormProps> = ({ formId, 
                       <field.TextAreaField />
                     )}/>
                 </div>
-                <form.Subscribe selector={(state) => [state.values.product, state.values.quantity, state.values.comment]}>
-                  {([product, quantity, comment]) => (
-                    <Button
-                      type="button"
-                      disabled={!product}
-                      onClick={() => {
-                        if (editIndex !== null) {
-                          form.setFieldValue(`products[${editIndex}]`, { product, quantity, comment })
-                          setEditIndex(null)
-                        } else {
-                          field.pushValue({ product, quantity, comment })
-                        }
-                        form.setFieldValue('product', null);
-                        form.resetField('quantity');
-                        form.resetField('comment');
-                      }}
-                    >
-                      {
-                        editIndex !== null
-                        ? <EditIcon size={17}/>
-                        : <PlusIcon size={17}/>
-                      }
-                    </Button>
-                  )}
-                </form.Subscribe>
               </div>
+              <form.Subscribe selector={(state) => [state.values.product, state.values.quantity, state.values.comment]}>
+                {([product, quantity, comment]) => (
+                  <Button
+                    type="button"
+                    disabled={!product}
+                    variant='secondary'
+                    onClick={() => {
+                      if (editIndex !== null) {
+                        form.setFieldValue(`products[${editIndex}]`, { product, quantity, comment })
+                        setEditIndex(null)
+                      } else {
+                        field.pushValue({ product, quantity, comment })
+                      }
+                      form.setFieldValue('product', null);
+                      form.resetField('quantity');
+                      form.resetField('comment');
+                    }}
+                  >
+                    {
+                      editIndex !== null
+                      ? <EditIcon size={17}/>
+                      : <PlusIcon size={17}/>
+                    }
+                  </Button>
+                )}
+              </form.Subscribe>
               <form.Subscribe selector={(state) => state.values.products}>
                 {(products) => (
                   <ProductsList
