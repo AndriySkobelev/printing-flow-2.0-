@@ -27,8 +27,6 @@ export const authQuery = query({
     const currTimeStamp = new Date().valueOf();
     const identity = await ctx.auth.getUserIdentity();
     const user = await getAuthUserId(ctx);
-    console.log("🚀 ~ user:", user)
-    console.log("🚀 ~ identity:", identity)
     if (!identity) {
       console.log('Unauthorized')
       return null;

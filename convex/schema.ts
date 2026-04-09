@@ -57,14 +57,14 @@ export const productsSpecification = {
   name: v.string(),
   category: v.string(),
   skuPrefix: v.string(),
-  productionPrice: v.optional(v.number()),
+  productionPrice: v.optional(v.union(v.number(), v.string())),
   materials: v.array(v.object({
     units: v.string(),
-    quantity: v.number(),
+    quantity: v.union(v.number(), v.string()),
     materialName: v.optional(v.string()),
     fabricId: v.optional(v.id('fabrics')),
     materialId: v.optional(v.id('materials')),
-    type: v.optional(v.union(v.literal('base'), v.literal('additional'))),
+    type: v.optional(v.union(v.literal('fabric'), v.literal('material'), v.literal('base'))),
   })),
 }
 

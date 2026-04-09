@@ -37,7 +37,6 @@ export const redirectTo = ({
 }
 
 export function parseCookies(cookieHeader?: string) {
-  console.log("🚀 ~ parseCookies ~ cookieHeader:", cookieHeader)
   if (!cookieHeader) return {}
   return Object.fromEntries(
     cookieHeader.split(';').map(c => {
@@ -78,7 +77,6 @@ export const combineDataToWeek = <T,> (data: Array<T & { timeStamp: number }>, c
       data: filterDataToWeek
     }
   })
-  console.log("🚀 ~ combineDataToWeek ~ combine:", combine)
 
   return combine;
 }

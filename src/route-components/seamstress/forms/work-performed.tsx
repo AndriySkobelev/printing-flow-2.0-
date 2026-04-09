@@ -29,11 +29,11 @@ const formSchema = z.object({
   timeStamp: z.number({ error: 'Заповніть дату' }).nullable(),
   comment: z.string().optional(),
   products: z.array(z.object(), { error: 'Додайте вироби' }).min(1, 'Додайте хочаб один виріб'),
-  quantity: z.number().optional(),
+  quantity: z.number().optional().nullable(),
 });
 
 const defaultFormValues = {
-  quantity: 1,
+  quantity: null,
   comment: '',
   timeStamp: new UTCDate().valueOf(),
 }

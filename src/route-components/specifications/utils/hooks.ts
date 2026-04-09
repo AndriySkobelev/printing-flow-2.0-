@@ -27,27 +27,3 @@ export const useAsyncOptions = (apiPath: any, optionsMode: keyof DevelopOptionsT
 
   return { loadOptions };
 };
-
-export function useDeleteSpecification() {
-  const mutationFn = useConvexMutation(
-    api.queries.specifications.deleteSpecification,
-  )
-
-  return useMutation({ mutationFn })
-}
-
-export function useUpdateSpecification() {
-  const mutationFn = useConvexMutation(
-    api.queries.specifications.updateSpecification,
-  )
-
-  return useMutation({ mutationFn })
-}
-
-export function useDuplicateSpecification() {
-  const mutationFn = useConvexMutation(
-    api.queries.specifications.duplicateSpecification,
-  )
-
-  return useMutation({ mutationFn })
-}

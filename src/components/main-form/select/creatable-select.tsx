@@ -16,7 +16,6 @@ const regex3 = /^([^·]+) · ([^·]+) · ([^·]+)$/;
 
 const valueToOption = (value: string | number | null | undefined, options: Array<{ value: string, label: string}>) => {
   const findValue = options.find((o: { value: string, label: string}) => o.value === value);
-  console.log("🚀 ~ valueToOption ~ findValue:", findValue)
 
   return findValue;
 };

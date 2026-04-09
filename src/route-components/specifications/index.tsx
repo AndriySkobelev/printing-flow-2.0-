@@ -12,10 +12,10 @@ import "simple-table-core/styles.css";
 import { Ellipsis, Trash2, Copy, SquarePen, Shirt } from "lucide-react";
 import { MyPopover } from "@/components/my-popover";
 import clsx from "clsx";
-import { useDeleteSpecification, useDuplicateSpecification, useUpdateSpecification } from "./utils/hooks";
+import { useDeleteSpecification, useDuplicateSpecification, useUpdateSpecification } from "./utils/queries";
 import { Separator } from "radix-ui";
 import { EditSpecifications } from "./forms/edit-specifications";
-import { omit, pick } from "ramda";
+import { omit } from "ramda";
 import { Id } from "convex/_generated/dataModel";
 const SimpleTable = lazy(() => 
   import('simple-table-core').then(m => ({ default: m.SimpleTable }))
@@ -154,14 +154,19 @@ const Specifications: FunctionComponent<SpecificationsProps> = () => {
   }
 
   const handleSubmitEdit = (values: SpecificationFormType | (SpecificationFormType & { _id: Id<'specifications'>, _creationTime: string })) => {
-    console.log('values', values)
     if ('_id' in values && '_creationTime' in values) {
-      const newMaterials = values.materials.map((material) => pick(['fabricId', 'materialId', 'units', 'quantity'], material));
+      const newMaterials = values.materials.map((material) => ({
+        fabricId: 'fabricId' in material ? material.fabricId?.value as Id<'fabrics'> : undefined,
+        materialId: 'materialId' in material ? material.materialId?.value as Id<'materials'>: undefined,
+        units: material.units,
+        quantity: material.quantity,
+      }));
+
       const newData = {
         ...omit(['_id', '_creationTime', 'materials'], values),
         materials: newMaterials
       };
-      updateSpec({ id: values._id, data: newData as Specifications });
+      updateSpec({ id: values._id, data: newData });
     }
     closeDialog();
   }
@@ -183,7 +188,7 @@ const Specifications: FunctionComponent<SpecificationsProps> = () => {
       content: <EditSpecifications
         formId="edit-specification-form"
         actionSubmit={handleSubmitEdit}
-        specification={data}/>,
+        specification={data as any}/>,
       withForm: true,
       formId: 'edit-specification-form',
     });

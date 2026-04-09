@@ -61,7 +61,7 @@ const CustomFabricOption: FunctionComponent<{ innerProps: any, innerRef: any, da
 
 const CustomMaterialsOption: FunctionComponent<{ innerProps: any, innerRef: any, data: Option }> = ({ innerProps, innerRef, data }) => {
   const label = data.label as string;
-  const regLabel = label.match(regex3) || [];
+  const regLabel = label.match(regex4) || [];
   const [_, fabricName, size, color, sku] = regLabel || [];
   return (
     <div ref={innerRef} {...innerProps} className="px-2 py-1 hover:bg-primary/5 cursor-pointer">
@@ -172,22 +172,24 @@ const FormAsyncSelect: FunctionComponent<FormAsyncSelectProps> = ({
   modeOption = 'default',
   modeControl = 'default',
 }) => {
-  console.log('HERE')
   const field = useFieldContext();
   const name = useMemo(() => field.name, [field.name]);
   const value: PropsValue<Option> | unknown = useMemo(() => {
     return field.state.value as PropsValue<Option> | unknown
   }, [field.state.value]);
-  console.log("🚀 ~ FormAsyncSelect ~ value:", value)
   const fieldOnChange = useMemo(() => (newValue: MultiValue<Option> | SingleValue<Option>, actionMeta: any) => {
     const value = Array.isArray(newValue) ? newValue[0] : newValue;
     field.handleChange(valueMode === 'object' ? value : value?.value);
   }, [field.handleChange]);
   const errors = useMemo(() => field.state.meta.errors as Array<{ message: string }> | undefined, [field.state.meta.errors]);
   const isValid = useMemo(() => field.state.meta.isValid as boolean | undefined, [field.state.meta.isValid]);
-  const valueByOptions = typeof value === 'string' ? valueToOption(value, defaultOptions) : value;
-  console.log("🚀 ~ FormAsyncSelect ~ valueByOptions:", valueByOptions)
+  const valueByOptions = useMemo(() => typeof value === 'string' ? valueToOption(value, defaultOptions) : value, [value, defaultOptions]);
+  const defaultValue = useMemo(() => defaultOptions.length > 0 ? valueToOption(value, defaultOptions) as PropsValue<Option> : null, [value, defaultOptions]);
 
+  const handleAsyncOptions = ({ inputValue }: { inputValue: string }) => {
+    const options = asyncOptions({ inputValue });
+    return options;
+  }
   return (
     <div className={clsx('flex flex-col gap-1 w-full', className)}>
       <label className="text-sm ml-2 text-[#bbbfc7]">{label}</label>
@@ -195,12 +197,13 @@ const FormAsyncSelect: FunctionComponent<FormAsyncSelectProps> = ({
         name={name}
         cacheOptions
         placeholder="Пошук..."
-        value={valueByOptions as PropsValue<Option> ?? null}
-        onChange={(newValue, actionMeta) => fieldOnChange(newValue, actionMeta)}
         defaultOptions={defaultOptions}
         className='hover:active:border-none'
-        loadOptions={(inputValue) => asyncOptions({inputValue})}
-        defaultValue={defaultOptions.length > 0 ? valueToOption(value, defaultOptions) as PropsValue<Option> : null}
+        value={valueByOptions as PropsValue<Option> ?? null}
+        loadOptions={(inputValue) => handleAsyncOptions({inputValue})}
+        // loadOptions={(inputValue) => asyncOptions({inputValue})}
+        onChange={(newValue, actionMeta) => fieldOnChange(newValue, actionMeta)}
+        defaultValue={defaultValue}
         components={{
           Control: controlModes[modeControl || 'default'],
           Option: optionModes[modeOption || 'default'],

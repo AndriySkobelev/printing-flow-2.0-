@@ -112,7 +112,6 @@ const ChangeMaterials: FunctionComponent<ChangeMaterialsFormProps> = ({
       materials: []
     },
     onSubmit: ({ value }) => {
-      console.log("🚀 ~ ChangeMaterials ~ value:", value)
       actionSubmit(value as any)
     }
   })

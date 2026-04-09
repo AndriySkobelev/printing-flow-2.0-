@@ -18,8 +18,8 @@ export const makeEditFabricOptions =<T,> (data: Array<T & { color: string, name:
 }
 
 export const makeMaterialsOptions =<T,> (data: Array<T & { color?: string, size?: string, name?: string, sku?: string, _id: string}>): Array<Option> => {
-  const operationData = data || [];
   if (!data) return [];
+  const operationData = data || [];
   return operationData.map((item) => ({
     value: item._id,
     label: `${item.name} · ${item.size} · ${item.color} · ${item.sku}` as string,
@@ -28,7 +28,6 @@ export const makeMaterialsOptions =<T,> (data: Array<T & { color?: string, size?
 
 export const makeProductOptions =<T,> (data: Array<T & { color?: string, size?: string, price?: number, name?: string, sku?: string, _id: string}>): Array<Option> => {
   const operationData = data || [];
-  console.log('operationData', operationData)
   if (!data) return [];
   return operationData.map((item) => ({
     value: item._id,

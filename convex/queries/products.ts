@@ -140,7 +140,7 @@ export const createProductsBySpecification = mutation({
   handler: async (ctx, args) => {
     const spec = await getSpecWithMaterials(ctx, args.specification);
     const sizes = args.allSizes ? productSizes : args.sizes?.map(size => size.value);
-    const specFabric = spec?.materials.find(material => material.fabricId && material?.type === 'base');
+    const specFabric = spec?.materials.find(material => material.fabricId && material?.type === 'fabric');
     const fabricsByColors: Array<{ color: string, _id: string}> = args.allColors 
       ? await getFabricsByNameAndColors(ctx, args.fabricName)
       : await getFabricsByNameAndColors(ctx, args.fabricName, args.colors?.map(color => color.value) || []);
@@ -186,7 +186,6 @@ export const updateProducts = mutation({
   },
   handler: async (ctx, args) => {
     const { ids, materials } = args;
-    console.log("🚀 ~ materials:", materials)
     await Promise.all(ids.map(async (id) => {
       const product = await ctx.db.get('products', id);
       if (!product) {

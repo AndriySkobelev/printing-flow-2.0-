@@ -47,7 +47,6 @@ export function DatePicker({ onChange, triggerMode = 'input', position = 'start'
           mode="single"
           selected={date}
           onSelect={(e) => {
-            console.log("🚀 ~ DatePicker ~ e:", e?.valueOf())
             setDate(e as Date)
             onChange(new Date(e as any).valueOf())
             setOpen(false)

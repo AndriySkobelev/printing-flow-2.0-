@@ -42,7 +42,6 @@ const CreateFabricForm: FunctionComponent<CreateFabricFormProps> = ({
       colors: [],
     },
     onSubmit: ({ value }) => {
-      console.log("🚀 ~ CreateProductForm ~ value:", value)
       const clearColors = value.colors.map((color) => color.value);
       actionSubmit({ ...value, colors: clearColors })
     }

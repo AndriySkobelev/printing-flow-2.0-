@@ -53,18 +53,13 @@ const CreateProductForm: FunctionComponent<CreateProductFormProps> = ({
       const findSpec = data?.find(el => el._id === value.specification);
       const materials = findSpec?.materials || [];
       const fabric = materials[0] as any;
-      console.log("🚀 ~ CreateProductForm ~ fabricName:", fabric.fabricName)
       actionSubmit({ ...value, fabricName: fabric.fabricName })
     }
   })
-  console.log("🚀 ~ CreateProductForm ~ form:", form.state)
-  const specification = useStore(form.store, (state: any) => state.values.specification);
-  const values = useStore(form.store, (state: any) => {
-    return state.values;
-  });
-  console.log("🚀 ~ CreateProductForm ~ values:", values)
-  const colorsOptions = useAllColorsByFabric(specification, data);
 
+  const specification = useStore(form.store, (state: any) => state.values.specification);
+
+  const colorsOptions = useAllColorsByFabric(specification, data);
 
   return (
     <>

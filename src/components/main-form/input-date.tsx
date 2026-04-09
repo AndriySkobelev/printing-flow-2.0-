@@ -17,7 +17,6 @@ export const InputDate = ({ placeholder, label, className, onChange, otherValue 
   const value = useMemo(() => {
     return field.state.value as string | number | ReadonlyArray<string> | undefined;
   }, [field.state.value]);
-  console.log("🚀 ~ InputDate ~ value:", value)
   const fieldOnChange = useMemo(() => (value: any) => field.handleChange(value), [field.handleChange]
   );
   const errors = useMemo(() => field.state.meta.errors as Array<{ message: string }> | undefined, [field.state.meta.errors]);
