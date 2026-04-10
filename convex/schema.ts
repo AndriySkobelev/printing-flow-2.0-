@@ -91,7 +91,7 @@ export const shiftReports = {
   allProductsQuantity: v.number(),
   products: v.array(v.object({
     quantity: v.number(),
-    price: v.optional(v.number()),
+    price: v.optional(v.union(v.number(), v.string())),
     comment: v.optional(v.string()),
     id: v.union(v.id('products'), v.string()),
   })),
