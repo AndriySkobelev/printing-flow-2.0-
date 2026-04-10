@@ -28,7 +28,6 @@ interface WorkPerformedFormProps {
 const formSchema = z.object({
   timeStamp: z.number({ error: 'Заповніть дату' }).nullable(),
   comment: z.string().optional(),
-  product: z.object({ value: z.string(), label: z.string() }).optional(),
   products: z.array(z.object(), { error: 'Додайте вироби' }).min(1, 'Додайте хочаб один виріб'),
   quantity: z.number().min(1, 'Кількість має бути більше 0').optional(),
 });
