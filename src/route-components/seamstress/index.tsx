@@ -36,9 +36,9 @@ const Header = () => {
 }
 
 type ProductsType = Pick<ShiftReportsType, 'products'>['products'][number] & {
-  name: string,
-  color: string,
-  size: string
+  name?: string,
+  color?: string,
+  size?: string
   style?: string
 }
 type ProductsNewType = { products: ProductsType[]}
@@ -47,32 +47,46 @@ type ReportDetailProps = {
   data:ReportNewType
 }
 
+const ReportBaseInfo = ({ name = '?', color = '?', size = '?'}:{ name?: string, color?: string, size?: string}) => (
+  <div>
+    <span className="text-primary/80">{name}</span>
+    <div className="flex text-xs items-center">
+      <span>{color}</span>
+      <DotIcon size={12}/>
+      <span>{size}</span>
+    </div>
+  </div>
+)
+
+const ReportSideWorkInfo = ({ comment = ''}:{ comment?: string }) => (
+  <div className="flex flex-col">
+    <span className="text-primary/90">Каст</span>
+    <span className="text-primary/60">{comment}</span>
+  </div>
+)
+
 const ReportDetail = ({ data }: ReportDetailProps) => {
   return (
     <div className="text-primary/70">
       {data.products.map((product) => (
         <>
           <div className="flex justify-between items-center">
-            <div>
-              <span className="text-primary/80">{product?.name}</span>
-              <div className="flex text-xs items-center">
-                <span>{product?.color}</span>
-                <DotIcon size={12}/>
-                <span>{product?.size}</span>
-              </div>
-            </div>
+            {
+              'id' in product && product.id === 'sideWork'
+              ? <ReportSideWorkInfo comment={product?.comment}/>
+              : <ReportBaseInfo name={product.name} color={product.color} size={product.size} />
+            }
             <div className='flex gap-1 items-center text-primary/60'>
               <span >{`x${product.quantity}`}</span>
               <span>{`/`}</span>
-              <span className='text-sm'>{`${product?.price} грн`}</span>
+              <span className='text-sm'>{`${'price' in product ? product?.price : '?'} грн`}</span>
               <span>{` = `}</span>
-              <span className='text-sm'>{product?.price * product.quantity}{` грн`}</span>
+              <span className='text-sm'>{product?.price ? product?.price * product.quantity : '?'}{` грн`}</span>
             </div>
           </div>
           <Separator.Root className='w-full h-px bg-primary/10 my-4' />
         </>
       ))}
-
     </div>
   );
 }
@@ -89,11 +103,13 @@ type ListOfWeeksPropsType = {
   openDialog: (data: any) => void
 }
 
-const ListOfWeeks = ({ data, isLoading, openDialog, calendarDate }: ListOfWeeksPropsType) => {
+const ListOfWeeks = ({ data, openDialog, calendarDate }: ListOfWeeksPropsType) => {
   const [tab, setTab] = useState<string>('week-1');
   const combined = useMemo(() => combineDataToWeek(data, calendarDate ?? new UTCDate().valueOf()), [calendarDate, data])
   const weeksIds = combined.map(el => pick(['start', 'end', 'weekId', 'weekLabel'], el)) as Omit<ReturnType<typeof combineDataToWeek>, 'data'>
+
   useEffect(() => setTab(findWeek(weeksIds, calendarDate ?? Date.now()) as string), [calendarDate])
+
   const handleOpenReport = (report: ReportNewType) => {
     openDialog({
       title: `Звіт за ${format(report?.timeStamp, 'dd/MM/yyyy')}`,
@@ -103,6 +119,7 @@ const ListOfWeeks = ({ data, isLoading, openDialog, calendarDate }: ListOfWeeksP
       className: 'max-w-[600px]',
     });
   }
+
   const handleSetTab = (value: string) => setTab(value);
   return (
     <Suspense fallback={<div><Spinner/></div>}>
@@ -240,9 +257,8 @@ const Statistic = ({ userId, handleSetDate, calendarDate }: StatisticPropsType) 
     startMonth: startOfMonth(new UTCDate(calendarDate)).valueOf(),
     endMonth: endOfMonth(new UTCDate(calendarDate)).valueOf()
   }
-  const { data } = useQuery({
-    ...convexQuery(api.queries.shift_reports.getShiftReportsMonthIncome, { ...dates, userId: userId }),
-    enabled: !!userId
+  const reportsIncome = useQuery({
+    ...convexQuery(api.queries.shift_reports.getShiftReportsMonthIncome, userId ? { ...dates, userId: userId } : 'skip')
   })
 
   return (
@@ -253,30 +269,29 @@ const Statistic = ({ userId, handleSetDate, calendarDate }: StatisticPropsType) 
           <DatePicker onChange={handleSetDate} triggerMode="iconText" position="end"/>
         </div>
       </div>
-      <ProgressBar curr={data?.currIncome} prev={data?.prevIncome} />
+      <ProgressBar curr={reportsIncome?.data?.currIncome ?? 0} prev={reportsIncome?.data?.prevIncome ?? 0} />
     </div>
   );
 }
 
 export const Seamstress = () => {
   const [calendarDate, setCalendarDate] = useState<number>(new UTCDate().valueOf());
+  const { mutate: createReport } = useCreateReport();
+  const { openDialog, closeDialog } = useContext(DialogContext)
   const { user, isLoading: isUserLoading } = useAuth();
-  const { data, isLoading } = useQuery({
+  const reports = useQuery({
     ...convexQuery(
       api.queries.shift_reports.getShiftReportsByUser,
-      {
+      user?._id ? {
         userId: user?._id ?? '',
         startMonth: startOfMonth(new UTCDate(calendarDate)).valueOf(),
         endMonth: endOfMonth(new UTCDate(calendarDate)).valueOf()
-      }
-    ),
-    enabled: !!user?._id
+      } : 'skip'
+    )
   })
-  const { mutate: createReport } = useCreateReport();
-  const { openDialog, closeDialog } = useContext(DialogContext)
 
   const handleSubmit = (values: any) => {
-    createReport({ ...values, userId: user._id })
+    createReport({ ...values, userId: user?._id })
     closeDialog();
   }
 
@@ -305,10 +320,10 @@ export const Seamstress = () => {
         handleSetDate={handleSetDate}/>
       <div>
         <ListOfWeeks
-          data={data ?? []}
-          isLoading={isLoading}
+          data={reports?.data ?? []}
           openDialog={openDialog}
-          calendarDate={calendarDate}/>
+          calendarDate={calendarDate}
+          isLoading={reports?.isLoading ?? true} />
       </div>
       <Button className="w-[95vw] fixed bottom-2 left-1/2 -translate-x-1/2" type="button" onClick={handleAddProducts}>
         Додати вироби

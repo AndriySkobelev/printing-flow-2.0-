@@ -9,13 +9,17 @@ import { getAll } from 'convex-helpers/server/relationships';
 
 type PickDataType = keyof Specifications
 
+type ProductsType = {
+  id: Id<"products">;
+  quantity: number;
+  price: number,
+  comment?: string;
+}
+
 const cobineProducts = async (ctx: QueryCtx, {
   products,
 }:{
-  products: {
-  id: Id<"products">;
-  quantity: number;
-  price: number }[],
+  products: ProductsType[],
 }) => {
   const cobined = await Promise.all(products.map(async (product) => {
     const resProduct = await ctx.db.get(product.id);
@@ -96,7 +100,7 @@ export const getShiftReportsByUser = query({
   },
   handler: async (ctx, args) => {
     const { userId, endMonth, startMonth } = args
-
+    if (!userId) return null;
     const reports = await ctx.db.query('shiftReports')
       .withIndex('by_timeStamp', (q) => q
         .gte("timeStamp", startMonth)
@@ -105,10 +109,15 @@ export const getShiftReportsByUser = query({
       .filter(q => q.eq(q.field('userId'), userId))
       .collect();
     const readyProducts = await Promise.all(reports.map(async (report) => {
-      const productWithParent = await cobineProducts(ctx, { products: report?.products })
+      const filterProducts = report.products.filter(product => product.id !== 'sideWork') as any;
+      const filterSideWork = report.products.filter(product => product.id === 'sideWork');
+      const productWithParent = await cobineProducts(ctx, { products: filterProducts })
       return {
         ...report,
-        products: productWithParent
+        products: [
+          ...productWithParent,
+          ...filterSideWork
+        ]
       }
     }))
     
@@ -126,7 +135,7 @@ export const getShiftReportsMonthIncome = query({
   },
   handler: async (ctx, args) => {
     const { userId, endMonth, startMonth, prevEndMonth, prevStartMonth } = args
-
+    if (!userId) return null;
     const [currReports, prevReports] = await Promise.all([
         ctx.db.query('shiftReports')
         .withIndex('by_timeStamp', (q) => q

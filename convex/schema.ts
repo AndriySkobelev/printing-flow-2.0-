@@ -90,10 +90,10 @@ export const shiftReports = {
   timeStamp: v.number(),
   allProductsQuantity: v.number(),
   products: v.array(v.object({
-    id: v.id('products'),
-    price: v.number(),
     quantity: v.number(),
+    price: v.optional(v.number()),
     comment: v.optional(v.string()),
+    id: v.union(v.id('products'), v.string()),
   })),
 };
 

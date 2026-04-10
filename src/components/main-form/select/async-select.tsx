@@ -109,7 +109,15 @@ const CustomProductOption: FunctionComponent<{ innerProps: any, innerRef: any, d
   const label = data.label as string;
   const regLabel = label.match(regex4) || [];
   const [_, name, color, sku] = regLabel || [];
-
+  if (regLabel.length === 0) {
+    return (
+      <div ref={innerRef} {...innerProps} className="px-2 py-1 hover:bg-primary/5 cursor-pointer">
+        <div className='flex items-center text-m'>
+          {label}
+        </div>
+      </div>
+    )
+  }
   return (
     <div ref={innerRef} {...innerProps} className="px-2 py-1 hover:bg-primary/5 cursor-pointer">
       <div className='flex items-center text-m'>
@@ -134,9 +142,6 @@ const DefaultControl: FunctionComponent<ControlProps<Option, boolean, GroupBase<
 const CompactControl: FunctionComponent<ControlProps<Option, boolean, GroupBase<Option>>> = ({ children, ...props }) => {
   return (
     <components.Control {...props} className='text-xs wrap-break-word'>
-      {/* <div className='flex items-center gap-1 bg-white text-[#868686] absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none z-100'>
-        {props.hasValue ? props.getValue()[0].label : 'Пошук...'}
-      </div> */}
       {children}
     </components.Control>
   );

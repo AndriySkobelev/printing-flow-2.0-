@@ -1,7 +1,7 @@
 import z from 'zod';
 import clsx from 'clsx';
-import { pick, omit, remove } from 'ramda';
-import { Key, useState, type FunctionComponent } from 'react';
+import { omit } from 'ramda';
+import { useState, type FunctionComponent } from 'react';
 import { revalidateLogic } from "@tanstack/react-form";
 import { useAppForm } from '@/components/main-form';
 import { Button } from '@/components/ui/button';
@@ -28,12 +28,13 @@ interface WorkPerformedFormProps {
 const formSchema = z.object({
   timeStamp: z.number({ error: 'Заповніть дату' }).nullable(),
   comment: z.string().optional(),
+  product: z.object({ value: z.string(), label: z.string() }).optional(),
   products: z.array(z.object(), { error: 'Додайте вироби' }).min(1, 'Додайте хочаб один виріб'),
-  quantity: z.number().optional().nullable(),
+  quantity: z.number().min(1, 'Кількість має бути більше 0').optional(),
 });
 
 const defaultFormValues = {
-  quantity: null,
+  quantity: 1,
   comment: '',
   timeStamp: new UTCDate().valueOf(),
 }
@@ -50,7 +51,7 @@ type ProductListType = {
 }
 
 const ProductsList = ({ data, error, handleRemove, handleEdit }: ProductListType) => {
-  const sumOfProducts = data.reduce((prev, curr) => prev + (curr.quantity * curr.product?.price), 0)
+  const sumOfProducts = data.reduce((prev, curr) => prev + (curr.quantity * (curr.product?.price ? curr.product?.price : 0)), 0)
   return (
     <div className='mt-5'>
       <ScrollArea className='h-70'>
@@ -68,28 +69,41 @@ const ProductsList = ({ data, error, handleRemove, handleEdit }: ProductListType
               <>
                 <Separator.Root className='flex w-full h-px bg-primary/10 my-2' />
                 <div key={i} className={clsx('flex gap-2 w-full items-end')}>
-                  <div className='flex flex-col gap-1 flex-1'>
-                    <div className='flex gap-1 items-center'>
-                      <div>{name}</div>
-                    </div>
-                    <div className='flex items-center gap-1 text-sm text-[#868686]'>
-                      <div>{color}</div>
-                      <Dot color='#868686' style={{ margin: '0'}}/>
-                      <div>{size}</div> 
-                    </div>
-                    <div className='text-xs text-primary/30'>{comment}</div>
-                  </div>
+                  {
+                    product.value === 'sideWork'
+                    ? (
+                      <div className='flex flex-col gap-1 flex-1'>
+                        <div className='flex gap-1 items-center'>
+                          <div>{product.label}</div>
+                        </div>
+                        <div className='text-xs text-primary/30'>{comment}</div>
+                      </div>
+                    )
+                    : (
+                      <div className='flex flex-col gap-1 flex-1'>
+                        <div className='flex gap-1 items-center'>
+                          <div>{name}</div>
+                        </div>
+                        <div className='flex items-center gap-1 text-sm text-[#868686]'>
+                          <div>{color}</div>
+                          <Dot color='#868686' style={{ margin: '0'}}/>
+                          <div>{size}</div> 
+                        </div>
+                        <div className='text-xs text-primary/30'>{comment}</div>
+                      </div>
+                    )
+                  }
                   <div className='flex flex-col gap-1 self-start justify-end'>
                     <div className='flex gap-1 align-top justify-end'>
                       <div className='p-1.5 rounded-md bg-primary/10' onClick={() => handleEdit(i)}><Pencil size={12} /></div>
                       <div className='p-1.5 rounded-md bg-primary/10' onClick={() => handleRemove(i)}><Trash2 size={12} /></div>
                     </div>
                     <div className='flex gap-1 items-center text-primary/60'>
-                      <span >{quantity}</span>
+                      <span >{quantity ?? '?'}</span>
                       <span>{`/`}</span>
-                      <span className='text-sm'>{`x${product?.price}`}</span>
+                      <span className='text-sm'>{product?.price ? `x${product?.price}` : '?'}</span>
                       <span>{` = `}</span>
-                      <span className='text-sm'>{product?.price * quantity}{` грн`}</span>
+                      <span className='text-sm'>{product?.price ? product?.price * quantity : '?'}{` грн`}</span>
                     </div>
                   </div>
                 </div>
@@ -106,22 +120,25 @@ const ProductsList = ({ data, error, handleRemove, handleEdit }: ProductListType
     </div>
   );
 }
+
+const defaultProductOptions = [
+  { value: 'sideWork', label: 'Каст'}
+]
  
 const WorkPerformedForm: FunctionComponent<WorkPerformedFormProps> = ({ formId, defaultValues, actionSubmit }) => {
   const [editIndex, setEditIndex] = useState<number | null>(null);
   const { loadOptions: loadProductsOptions } = useAsyncOptions(api.queries.products.getSearchProducts, 'products')
+
   const form = useAppForm({
     validationLogic: revalidateLogic(),
     validators: {
       onDynamic: formSchema,
-      onSubmit: (some) => {
-      }
     },
     defaultValues: defaultValues || defaultFormValues,
     onSubmit: ({ value }) => {
       const allProductsQuantity = value.products.reduce((prev: number, curr: { quantity: number }) => prev + curr.quantity,0)
-      const income = value.products.reduce((prev: number, curr: { quantity: number, product: { price: number} }) => prev + (curr.quantity * curr.product.price), 0)
-      const clearProducts = value.products.map((el: any) => ({ id: el?.product.value, quantity: el?.quantity, price: el?.product.price }))
+      const income = value.products.reduce((prev: number, curr: { quantity: number, product: { price: number} }) => prev + (curr.quantity * (curr.product.price ? curr.product.price : 0)), 0)
+      const clearProducts = value.products.map((el: any) => ({ id: el?.product.value, quantity: el?.quantity, price: el?.product.price, comment: el?.comment }))
       actionSubmit(omit(['product', 'quantity', 'comment'], {...value, income, allProductsQuantity, products: clearProducts}))
     }
   });
@@ -160,7 +177,8 @@ const WorkPerformedForm: FunctionComponent<WorkPerformedFormProps> = ({ formId, 
                         valueMode='object'
                         modeOption='product'
                         modeControl='compact'
-                        asyncOptions={loadProductsOptions} />
+                        asyncOptions={loadProductsOptions}
+                        defaultOptions={defaultProductOptions} />
                     )}/>
                     <form.AppField name="quantity" children={(field) => (
                       <field.FormTextField
@@ -174,31 +192,32 @@ const WorkPerformedForm: FunctionComponent<WorkPerformedFormProps> = ({ formId, 
                     )}/>
                 </div>
               </div>
-              <form.Subscribe selector={(state) => [state.values.product, state.values.quantity, state.values.comment]}>
-                {([product, quantity, comment]) => (
-                  <Button
-                    type="button"
-                    disabled={!product}
-                    variant='secondary'
-                    onClick={() => {
-                      if (editIndex !== null) {
-                        form.setFieldValue(`products[${editIndex}]`, { product, quantity, comment })
-                        setEditIndex(null)
-                      } else {
-                        field.pushValue({ product, quantity, comment })
+              <form.Subscribe selector={(state) => [state.values.product, state.values.quantity, state.values.comment, state.errors]}>
+                {([product, quantity, comment, errors]) => {
+                  return (
+                    <Button
+                      type="button"
+                      disabled={errors.length > 0 || !product || !quantity}
+                      variant='secondary'
+                      onClick={() => {
+                        if (editIndex !== null) {
+                          form.setFieldValue(`products[${editIndex}]`, { product, quantity, comment })
+                          setEditIndex(null)
+                        } else {
+                          field.pushValue({ product, quantity, comment })
+                        }
+                        form.setFieldValue('product', null);
+                        form.resetField('quantity');
+                        form.resetField('comment');
+                      }}
+                    >
+                      {
+                        editIndex !== null
+                        ? <EditIcon size={17}/>
+                        : <PlusIcon size={17}/>
                       }
-                      form.setFieldValue('product', null);
-                      form.resetField('quantity');
-                      form.resetField('comment');
-                    }}
-                  >
-                    {
-                      editIndex !== null
-                      ? <EditIcon size={17}/>
-                      : <PlusIcon size={17}/>
-                    }
-                  </Button>
-                )}
+                    </Button>
+                )}}
               </form.Subscribe>
               <form.Subscribe selector={(state) => state.values.products}>
                 {(products) => (

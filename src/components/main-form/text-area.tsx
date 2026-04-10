@@ -27,7 +27,10 @@ export const FormTextAreaField = ({ placeholder, className, onChange, otherValue
         placeholder={placeholder}
         onChange={fieldOnChange}
         title={`${!isValid ? errors?.[0]?.message : ''}`}
-        className="placeholder:text-gray-300 h-9.5 shadow-none bg-white"
+        className={clsx(
+          "placeholder:text-gray-300 h-9.5 shadow-none bg-white [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [appearance:textfield]",
+          !isValid && 'border-red-500',
+        )}
       />
     </div>
   )
