@@ -3,13 +3,15 @@ import { useQuery } from '@tanstack/react-query'
 import { convexQuery } from '@convex-dev/react-query'
 import { api } from "convex/_generated/api";
 import { z } from 'zod';
-import { makeFabricOptions } from "@/components/main-form/select/options";
+import { makeFabricOptions, makeMaterialsOptions } from "@/components/main-form/select/options";
 import { revalidateLogic } from '@tanstack/react-form';
+
 import { useAppForm } from "@/components/main-form";
 
 const comingFormSchema = z.object({
   materialId: z.object({ value: z.string(), label: z.string() }),
-  quantity: z.number().min(0.1, { message: 'Quantity must be at least 0.1' }),
+  materialType: z.enum(['fabric', 'materials']),
+  quantity: z.string().min(0.1, { message: 'Quantity must be at least 0.1' }),
 });
 
 export type IncomingFormData = z.infer<typeof comingFormSchema>;
@@ -21,6 +23,11 @@ interface ComingMaterialFormProps {
   formId: 'incoming-material-form' | 'outgoing-material-form'
 }
  
+const materialTypeOptions = [
+  { value: 'fabric', label: 'Тканина' },
+  { value: 'materials', label: 'Матеріали' },
+];
+
 const ComingMaterialForm: FunctionComponent<ComingMaterialFormProps> = ({
   formId,
   type,
@@ -28,13 +35,14 @@ const ComingMaterialForm: FunctionComponent<ComingMaterialFormProps> = ({
   defaultValue,
 }) => {
   const { data: fabricsData } = useQuery(convexQuery(api.queries.fabrics.getFabrics));
+  const { data: materialsData } = useQuery(convexQuery(api.queries.materials.getMaterials));
 
   const form = useAppForm({
     validationLogic: revalidateLogic(),
     validators: {
       onDynamic: comingFormSchema,
     },
-    defaultValues: defaultValue || { materialId: {} } as IncomingFormData,
+    defaultValues: defaultValue || { materialId: {}, materialType: 'fabric' } as IncomingFormData,
     onSubmit: ({ value }: any) => {
       const findFabric = fabricsData?.find((fabric) => fabric._id === value.materialId.value);
       const submitData = {
@@ -45,14 +53,14 @@ const ComingMaterialForm: FunctionComponent<ComingMaterialFormProps> = ({
         units: findFabric?.units,
         name: findFabric?.fabricName,
       }
+
       return actionSubmit(submitData);
     },
   });
 
-  const optionsData = fabricsData || [];
-  const fabricsOptions = makeFabricOptions(optionsData);
+  const fabricsOptions = makeFabricOptions(fabricsData || []);
+  const materialsOptions = makeMaterialsOptions(materialsData || []);
   
-
   return (
     <div>
       <form
@@ -63,12 +71,30 @@ const ComingMaterialForm: FunctionComponent<ComingMaterialFormProps> = ({
         }}
         className="flex flex-col gap-3"
       >
-        <form.AppField
-          name="materialId"
-          children={(field) =>
-            <field.FormSelect label="Матеріал" modeOption="fabric" options={fabricsOptions} />
-          }
-        />
+        <div className="flex gap-2">
+          <form.Subscribe
+            selector={(state) => state.values.materialType}
+            children={(materialType) => (
+              <form.AppField
+                name="materialId"
+                children={(field) =>
+                  <field.FormSelect
+                    label="Матеріал"
+                    valueMode='object'
+                    modeOption={materialType === 'materials' ? 'materials' : 'fabric'}
+                    options={materialType === 'materials' ? materialsOptions : fabricsOptions}
+                  />
+                }
+              />
+            )}
+          />
+          <form.AppField
+            name="materialType"
+            children={(field) =>
+              <field.FormSelect label="Тип матеріалу" options={materialTypeOptions} />
+            }
+          />
+        </div>
         <form.AppField
           name="quantity"
           children={(field) =>

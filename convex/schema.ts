@@ -36,9 +36,9 @@ export const materialsSchema = {
 
 export const storeMovementsSchema = {
   units: v.string(),
-  quantity: v.number(),
-  fabricId: v.optional(v.id('fabrics')),
-  materialId: v.optional(v.id('materials')),
+  quantity: v.union(v.number(), v.string()),
+  matrialType: v.union(v.literal('fabrics'), v.literal('materials')),
+  materialId: v.optional(v.union(v.id('materials'), v.id('fabrics'))),
   type: v.union(
     v.literal(TRANSACTION_TYPES['INCOMING']),
     v.literal(TRANSACTION_TYPES['OUTGOING']),
@@ -48,9 +48,9 @@ export const storeMovementsSchema = {
   orderId: v.optional(v.number()),
   manager: v.optional(v.string()),
   description: v.optional(v.string()),
-  productQuantity: v.optional(v.number()),
   orderShippingDate: v.optional(v.string()),
   productInfo: v.optional(v.array(v.string())),
+  productQuantity: v.optional(v.union(v.number(), v.string())),
 }
 
 export const productsSpecification = {
@@ -90,7 +90,7 @@ export const shiftReports = {
   timeStamp: v.number(),
   allProductsQuantity: v.number(),
   products: v.array(v.object({
-    quantity: v.number(),
+    quantity: v.union(v.number(), v.string()),
     price: v.optional(v.union(v.number(), v.string())),
     comment: v.optional(v.string()),
     id: v.union(v.id('products'), v.string()),

@@ -14,7 +14,7 @@ export const getMovementsWithMaterials = query({
   handler: async (ctx) => {
     const movments = await ctx.db.query('storeMovements').collect();
     const movmentsWithMaterials = await Promise.all(movments.map(async (movement) => {
-      if (movement.materialId) {
+      if (movement.matrialType === 'materials' && movement.materialId) {
         const material = await ctx.db.get(movement.materialId);
         return {
           ...movement,
@@ -24,8 +24,8 @@ export const getMovementsWithMaterials = query({
           color: material?.color,
         }
       }
-      if (movement.fabricId) {
-        const fabric = await ctx.db.get(movement.fabricId);
+      if (movement?.materialId) {
+        const fabric = await ctx.db.query('fabrics', movement?.materialId).collect();
         return {
           ...movement,
           material: fabric,

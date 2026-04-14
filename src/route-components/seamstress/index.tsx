@@ -21,6 +21,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { DatePicker } from "@/components/ui/data-picker";
 import { Id } from "convex/_generated/dataModel";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import NewForm from "./forms/new-form";
 
 const Header = () => {
   const { user } = useAuth();
@@ -298,7 +299,7 @@ export const Seamstress = () => {
   const handleAddProducts = () => {
     openDialog({
       title: 'Додайте вироби',
-      content: <WorkPerformedForm
+      content: <NewForm
         actionSubmit={handleSubmit}
         formId="add-work-performed-form"/>,
       withForm: true,

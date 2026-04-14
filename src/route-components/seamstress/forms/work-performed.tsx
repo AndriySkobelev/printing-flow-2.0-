@@ -135,6 +135,7 @@ const WorkPerformedForm: FunctionComponent<WorkPerformedFormProps> = ({ formId, 
     },
     defaultValues: defaultValues || defaultFormValues,
     onSubmit: ({ value }) => {
+      console.log("🚀 ~ WorkPerformedForm ~ value:", value)
       const allProductsQuantity = value.products.reduce((prev: number, curr: { quantity: number }) => prev + curr.quantity,0)
       const income = value.products.reduce((prev: number, curr: { quantity: number, product: { price: number} }) => prev + (curr.quantity * (curr.product.price ? curr.product.price : 0)), 0)
       const clearProducts = value.products.map((el: any) => ({ id: el?.product.value, quantity: el?.quantity, price: el?.product.price, comment: el?.comment }))
