@@ -90,10 +90,12 @@ export const shiftReports = {
   timeStamp: v.number(),
   allProductsQuantity: v.number(),
   products: v.array(v.object({
-    quantity: v.union(v.number(), v.string()),
-    price: v.optional(v.union(v.number(), v.string())),
+    color: v.optional(v.string()),
     comment: v.optional(v.string()),
-    id: v.union(v.id('products'), v.string()),
+    isSideWork: v.optional(v.boolean()),
+    price: v.optional(v.union(v.number(), v.string())),
+    specification: v.nullable(v.union(v.id('products'), v.string())),
+    sizes: v.optional(v.array(v.object({ size: v.string(), quantity: v.union(v.number(), v.string()) }))),
   })),
 };
 

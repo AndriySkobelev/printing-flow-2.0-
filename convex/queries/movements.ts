@@ -14,26 +14,26 @@ export const getMovementsWithMaterials = query({
   handler: async (ctx) => {
     const movments = await ctx.db.query('storeMovements').collect();
     const movmentsWithMaterials = await Promise.all(movments.map(async (movement) => {
-      if (movement.matrialType === 'materials' && movement.materialId) {
-        const material = await ctx.db.get(movement.materialId);
-        return {
-          ...movement,
-          material,
-          sku: material?.sku,
-          name: material?.name,
-          color: material?.color,
-        }
-      }
-      if (movement?.materialId) {
-        const fabric = await ctx.db.query('fabrics', movement?.materialId).collect();
-        return {
-          ...movement,
-          material: fabric,
-          sku: fabric?.sku,
-          color: fabric?.color,
-          name: fabric?.fabricName,
-        }
-      }
+      // if (movement.matrialType === 'materials' && movement.materialId) {
+      //   const material = await ctx.db.get(movement.materialId);
+      //   return {
+      //     ...movement,
+      //     material,
+      //     sku: material?.sku,
+      //     name: material?.name,
+      //     color: material?.color,
+      //   }
+      // }
+      // if (movement?.materialId) {
+      //   const fabric = await ctx.db.query('fabrics', movement?.materialId).collect();
+      //   return {
+      //     ...movement,
+      //     material: fabric,
+      //     sku: fabric?.sku,
+      //     color: fabric?.color,
+      //     name: fabric?.fabricName,
+      //   }
+      // }
       return movement;
     }));
     return movmentsWithMaterials;

@@ -22,6 +22,7 @@ import { DatePicker } from "@/components/ui/data-picker";
 import { Id } from "convex/_generated/dataModel";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import NewForm from "./forms/new-form";
+import { ProductItem, ProductItemInfo } from "./components/products-list";
 
 const Header = () => {
   const { user } = useAuth();
@@ -45,7 +46,7 @@ type ProductsType = Pick<ShiftReportsType, 'products'>['products'][number] & {
 type ProductsNewType = { products: ProductsType[]}
 type ReportNewType = Omit<ShiftReportsType, 'products'> & ProductsNewType
 type ReportDetailProps = {
-  data:ReportNewType
+  data: ShiftReportsType
 }
 
 const ReportBaseInfo = ({ name = '?', color = '?', size = '?'}:{ name?: string, color?: string, size?: string}) => (
@@ -70,23 +71,7 @@ const ReportDetail = ({ data }: ReportDetailProps) => {
   return (
     <div className="text-primary/70">
       {data.products.map((product) => (
-        <>
-          <div className="flex justify-between items-center">
-            {
-              'id' in product && product.id === 'sideWork'
-              ? <ReportSideWorkInfo comment={product?.comment}/>
-              : <ReportBaseInfo name={product.name} color={product.color} size={product.size} />
-            }
-            <div className='flex gap-1 items-center text-primary/60'>
-              <span >{`x${product.quantity}`}</span>
-              <span>{`/`}</span>
-              <span className='text-sm'>{`${'price' in product ? product?.price : '?'} грн`}</span>
-              <span>{` = `}</span>
-              <span className='text-sm'>{product?.price ? product?.price * product.quantity : '?'}{` грн`}</span>
-            </div>
-          </div>
-          <Separator.Root className='w-full h-px bg-primary/10 my-4' />
-        </>
+        <ProductItem item={product} />
       ))}
     </div>
   );
@@ -292,6 +277,7 @@ export const Seamstress = () => {
   })
 
   const handleSubmit = (values: any) => {
+    console.log("🚀 ~ handleSubmit ~ values:", values)
     createReport({ ...values, userId: user?._id })
     closeDialog();
   }
@@ -312,7 +298,7 @@ export const Seamstress = () => {
   const handleSetDate = (date: number) => {
     setCalendarDate(date)
   }
-
+  console.log('reports', reports?.data)
   return (
     <div className="py-2 px-2">
       <Statistic
