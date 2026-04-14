@@ -10,6 +10,7 @@ import { Separator } from 'radix-ui';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useQuery } from '@tanstack/react-query';
 import { convexQuery } from '@convex-dev/react-query';
+import { TextField } from '@/components/main-form/text-field';
 
 // --- Types ---
 type SizeEntry = { size: string; quantity: number };
@@ -210,12 +211,12 @@ const NewForm: FunctionComponent<NewFormProps> = ({ formId, defaultValues, actio
                     {Object.entries(sizeQuantities).map(([size, qty]) => (
                       <div key={size} className='flex items-center gap-2 text-sm px-2 py-1 rounded bg-primary/5'>
                         <span className='w-10 font-medium'>{size}</span>
-                        <input
-                          type='number'
+                        <TextField
                           min={1}
-                          value={qty}
-                          onChange={(e) => setSizeQuantities(prev => ({ ...prev, [size]: Number(e.target.value) }))}
-                          className='w-10 border rounded-lg border-[#e7e3e4] px-2 py-1 text-sm bg-white'
+                          type='number'
+                          otherValue={qty}
+                          inputClassName='h-6'
+                          onChange={(e: any) => setSizeQuantities(prev => ({ ...prev, [size]: Number(e.target.value) }))}
                         />
                         <div
                           className='ml-auto p-1 rounded bg-primary/10 cursor-pointer'
