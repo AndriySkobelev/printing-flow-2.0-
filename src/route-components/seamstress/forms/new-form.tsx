@@ -44,7 +44,7 @@ const NewForm: FunctionComponent<NewFormProps> = ({ formId, defaultValues, actio
   const { data: productsData } = useQuery(convexQuery(api.queries.products.getProductsWithSpec));
 
   const specOptions = useMemo(
-    () => (specificationsData || []).map(spec => ({
+    () => (specificationsData?.filter(el => el.productionPrice) || []).map(spec => ({
       value: spec._id,
       label: spec.name,
       price: spec.productionPrice as number | undefined,

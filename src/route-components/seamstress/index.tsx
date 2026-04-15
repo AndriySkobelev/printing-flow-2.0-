@@ -1,7 +1,7 @@
 import { Suspense, useContext, useEffect, useMemo, useState } from "react";
 import { combineDataToWeek } from "@/lib/utils";
 import { format, isWithinInterval, startOfMonth, endOfMonth, sub } from "date-fns";
-import { DotIcon, InfoIcon, StepForward } from "lucide-react";
+import { InfoIcon, StepForward } from "lucide-react";
 import clsx from "clsx";
 import {ShiftReportsType} from 'convex/schema'
 import { UTCDate } from '@date-fns/utc'
@@ -9,9 +9,7 @@ import { useQuery } from "@tanstack/react-query";
 import { convexQuery } from "@convex-dev/react-query";
 import { api } from "convex/_generated/api";
 import { pick } from "ramda";
-import { Separator } from "radix-ui";
 import Divider from "@/components/ui/divider";
-import WorkPerformedForm from './forms/work-performed'
 import { DialogContext } from "@/contexts/dialog";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/auth-hooks";
@@ -22,7 +20,7 @@ import { DatePicker } from "@/components/ui/data-picker";
 import { Id } from "convex/_generated/dataModel";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import NewForm from "./forms/new-form";
-import { ProductItem, ProductItemInfo } from "./components/products-list";
+import { ProductEntry, ProductItem } from "./components/products-list";
 
 const Header = () => {
   const { user } = useAuth();
@@ -40,8 +38,13 @@ const Header = () => {
 type ProductsType = Pick<ShiftReportsType, 'products'>['products'][number] & {
   name?: string,
   color?: string,
-  size?: string
-  style?: string
+  size?: string,
+  style?: string,
+  specification?: {
+    label: string,
+    value: string,
+    price?: number
+  }
 }
 type ProductsNewType = { products: ProductsType[]}
 type ReportNewType = Omit<ShiftReportsType, 'products'> & ProductsNewType
@@ -49,29 +52,11 @@ type ReportDetailProps = {
   data: ShiftReportsType
 }
 
-const ReportBaseInfo = ({ name = '?', color = '?', size = '?'}:{ name?: string, color?: string, size?: string}) => (
-  <div>
-    <span className="text-primary/80">{name}</span>
-    <div className="flex text-xs items-center">
-      <span>{color}</span>
-      <DotIcon size={12}/>
-      <span>{size}</span>
-    </div>
-  </div>
-)
-
-const ReportSideWorkInfo = ({ comment = ''}:{ comment?: string }) => (
-  <div className="flex flex-col">
-    <span className="text-primary/90">Каст</span>
-    <span className="text-primary/60">{comment}</span>
-  </div>
-)
-
 const ReportDetail = ({ data }: ReportDetailProps) => {
   return (
     <div className="text-primary/70">
       {data.products.map((product) => (
-        <ProductItem item={product} />
+        <ProductItem item={product as ProductEntry} />
       ))}
     </div>
   );
@@ -107,6 +92,7 @@ const ListOfWeeks = ({ data, openDialog, calendarDate }: ListOfWeeksPropsType) =
   }
 
   const handleSetTab = (value: string) => setTab(value);
+
   return (
     <Suspense fallback={<div><Spinner/></div>}>
       <div className="flex justify-center mt-4 min-h-[62vh] text-primary/50">
@@ -121,7 +107,7 @@ const ListOfWeeks = ({ data, openDialog, calendarDate }: ListOfWeeksPropsType) =
               <div
                 className={clsx("flex flex-col gap-5 w-full", data.length === 0 ? 'flex justify-center items-center' : '')}
               >
-                <ScrollArea className="h-[60vh]">
+                <ScrollArea className="max-h-[70vh]">
                   <div className="flex flex-col gap-2 w-full" >
                     {
                       week.data.length === 0
@@ -202,7 +188,7 @@ const ProgressBar = ({ prev, curr }: { prev: number | undefined, curr: number | 
         )
       }
       <div className="h-full bg-[#27e427] rounded-full absolute top-0 z-2 transition-all" style={{ width: `${curr ? toPercent(curr) : 0}%` }}>
-        <div className={clsx("flex gap-1 justify-center absolute items-center -top-5 ", conditionCurrReverse ? 'translate-x-0 -right-1' : 'translate-x-full right-2')}>
+        <div className={clsx("flex gap-1 justify-center absolute items-center -top-5 ", conditionCurrReverse ? 'translate-x-0 -right-1' : 'translate-x-full right-1.5')}>
           {
             conditionCurrReverse
             ? (
@@ -298,7 +284,7 @@ export const Seamstress = () => {
   const handleSetDate = (date: number) => {
     setCalendarDate(date)
   }
-  console.log('reports', reports?.data)
+
   return (
     <div className="py-2 px-2">
       <Statistic
@@ -307,7 +293,7 @@ export const Seamstress = () => {
         handleSetDate={handleSetDate}/>
       <div>
         <ListOfWeeks
-          data={reports?.data ?? []}
+          data={(reports?.data ?? []) as ReportNewType[]}
           openDialog={openDialog}
           calendarDate={calendarDate}
           isLoading={reports?.isLoading ?? true} />
