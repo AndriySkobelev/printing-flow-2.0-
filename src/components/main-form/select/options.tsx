@@ -1,10 +1,10 @@
 import { type Option } from '@/components/main-form/select/form-select' 
 
-export const makeFabricOptions =<T,> (data: Array<T & { color: string, fabricName: string, sku: string, _id: string}>): Array<Option> => {
+export const makeFabricOptions =<T,> (data: Array<T & { color?: string, name?: string, sku?: string, _id: string}>): Array<Option> => {
   const operationData = data || [];
   return operationData.map((item) => ({
     value: item._id,
-    label: `${item.fabricName} · ${item.color} · ${item.sku}` as string,
+    label: `${item.name} · ${item.color} · ${item.sku}` as string,
   }))
 }
 

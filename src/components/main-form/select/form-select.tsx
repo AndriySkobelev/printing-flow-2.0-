@@ -92,19 +92,24 @@ interface FormSelectProps {
   isMulti?: boolean,
   disabled?: boolean;
   className?: string,
+  addOnChange?: () => void;
   modeOption?: keyof OptionTypes;
   valueMode?: 'value' | 'object';
   options: Array<{ value: string | number; label: string }> | any;
 }
 
-const FormSelect: FunctionComponent<FormSelectProps> = ({ options, label, disabled, isMulti = false, valueMode = 'value', className, modeOption = 'default' }) => {
+const FormSelect: FunctionComponent<FormSelectProps> = ({ options, label, disabled, isMulti = false, valueMode = 'value', className, modeOption = 'default', addOnChange }) => {
   const field = useFieldContext();
   const name = useMemo(() => field.name, [field.name]);
   const value = useMemo(() => field.state.value as string | number | undefined, [field.state.value]);
-  const fieldOnChange = useMemo(() => (newValue: SingleValue<Option>, actionMeta: any) => field.handleChange(
-    valueMode === 'object' ? newValue : newValue?.value
-  ), [field.handleChange]);
-  const fieldMultiOnChange = useMemo(() => (newValue: MultiValue<Option>, actionMeta: any) => field.handleChange(newValue), [field.handleChange]);
+  const fieldOnChange = useMemo(() => (newValue: SingleValue<Option>, actionMeta: any) => {
+    field.handleChange(valueMode === 'object' ? newValue : newValue?.value);
+    addOnChange && addOnChange()
+  }, [field.handleChange]);
+  const fieldMultiOnChange = useMemo(() => (newValue: MultiValue<Option>, actionMeta: any) => {
+    field.handleChange(newValue)
+    addOnChange && addOnChange()
+  }, [field.handleChange]);
   const errors = useMemo(() => field.state.meta.errors as Array<{ message: string }> | undefined, [field.state.meta.errors]);
   const isValid = useMemo(() => field.state.meta.isValid as boolean | undefined, [field.state.meta.isValid]);
   

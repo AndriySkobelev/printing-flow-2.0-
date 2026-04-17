@@ -1,11 +1,8 @@
 import clsx from "clsx";
 import z from 'zod'
-import { useState, type FunctionComponent } from "react";
+import { type FunctionComponent } from "react";
 import { api } from "convex/_generated/api";
-import { revalidateLogic } from "@tanstack/react-form";
-import { useStore } from "@tanstack/react-form";
-
-import { prepend, append, has } from "ramda";
+import { revalidateLogic, useStore } from "@tanstack/react-form";
 import { Trash2Icon } from "lucide-react";
 import { Id } from "convex/_generated/dataModel";
 import { useAppForm } from "@/components/main-form";
@@ -13,86 +10,75 @@ import { convexQuery } from "@convex-dev/react-query";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { useAsyncOptions } from "@/route-components/specifications/utils/hooks";
-import { unitsOptions } from "@/route-components/specifications/forms/create-specefication";
 
 const productSchema = z.object({
   materials: z.array(z.object({
-    fabricId: z.string().optional(),
-    materialId: z.string().optional(),
-    overwriteMaterialId: z.string().optional(),
-    multiplier: z.number().min(0.01, 'Must be an 0.01 min number'),
+    overwriteMaterialId: z.string(),
+    type: z.enum(['fabric', 'material']),
+    parentLabel: z.string(),
+    multiplier: z.number().min(0.01, 'Мінімум 0.01').optional(),
+    newMaterial: z.object({ value: z.string(), label: z.string() }).optional(),
   }))
 })
 
-const defaultMaterialValues = {
-  isNew: true,
-  units: '',
-  multiplier: 0,
-  materialId: '',
-}
-
-type FormValuesType = Omit<z.infer<typeof productSchema>, 'quantity'>;
+type FormValuesType = z.infer<typeof productSchema>;
 
 interface ChangeMaterialsFormProps {
   formId: string,
-  defaultValues?: FormValuesType,
+  defaultValues?: Partial<FormValuesType>,
   specificationIds: Array<Id<'specifications'>>,
-  actionSubmit: (values: FormValuesType & { fabricName: string }) => void
+  actionSubmit: (values: {
+    materials: Array<{
+      overwriteMaterialId: string,
+      fabricId?: string,
+      materialId?: string,
+      multiplier?: number,
+    }>
+  }) => void
 }
 
-const ChangedMaterials = ({
+const ParentMaterials = ({
   data,
-  handleChangeMaterial,
+  selected,
+  onToggle,
 }: {
   data: any,
-  handleChangeMaterial: (data: any) => void
+  selected: string[],
+  onToggle: (material: any) => void
 }) => {
-  const [checked, setChecked] = useState<Array<string>>([]);
-
-  const handleClickMaterial = (material: any, specId: string, materialIndex: number) => {
-    if (checked.includes(material?.materialId || material.fabricId)) {
-      setChecked((prev) => prev.filter((id) => id !== (material?.materialId || material.fabricId)));
-      handleChangeMaterial({ ...material, specId, materialIndex })
-      return;
-    }
-    handleChangeMaterial({ ...material, specId, materialIndex })
-    setChecked((prev) => [...prev, material?.materialId || material.fabricId]);
-  }
-  
+  if (!data) return null;
   return (
-    <div>
-    {
-      data 
-      ? data.map((spec: any, i: number) => (
-        <div key={`${spec?.name}-${i}`} className="mb-2">
-          <div className="font-medium">{spec?.name}</div>
-          <div className="flex gap-1 mt-1 justify-between">
-            {
-              spec?.materials.map((material: any, j: number) => (
+    <div className="flex flex-col gap-2">
+      {data.map((spec: any, i: number) => (
+        <div key={`${spec?.name}-${i}`}>
+          <div className="font-medium text-sm mb-1">{spec?.name}</div>
+          <div className="flex flex-wrap gap-1">
+            {spec?.materials.map((material: any, j: number) => {
+              const id = material.fabricId || material.materialId;
+              const isSelected = selected.includes(id);
+              return (
                 <div
                   key={`${material?.name}-${j}`}
                   className={clsx(
-                    "flex flex-col items-start gap-1 text-sm bg-primary/5 rounded-md px-2 py-1 cursor-pointer hover:bg-primary/10",
-                    checked.includes(material?.materialId || material.fabricId) && 'bg-green-100 border border-green-300'
+                    "flex flex-col items-start gap-0.5 text-sm bg-primary/5 rounded-md px-2 py-1 cursor-pointer hover:bg-primary/10 transition-colors",
+                    isSelected && 'bg-green-100 border border-green-300'
                   )}
-                  onClick={() => handleClickMaterial(material, spec._id, j)}
+                  onClick={() => onToggle(material)}
                 >
-                  <div>{material?.name}{material?.size ? `-${material?.size}` : ''}</div>
-                  <div className="flex items-start gap-0.5">
-                    <div className="text-[#868686]">{material?.color}</div>
-                    <div className="text-[#706f6f]">({material?.quantity}{material?.units})</div>
+                  <div className="text-xs">{material?.name}{material?.size ? `-${material?.size}` : ''}</div>
+                  <div className="flex items-center gap-0.5 text-xs">
+                    <span className="text-[#868686]">{material?.color}</span>
+                    <span className="text-[#706f6f]">({material?.quantity}{material?.units})</span>
                   </div>
                 </div>
-              ))
-            }
+              );
+            })}
           </div>
         </div>
-      ))
-      : null
-    }
-  </div>
-  )
-}
+      ))}
+    </div>
+  );
+};
 
 const ChangeMaterials: FunctionComponent<ChangeMaterialsFormProps> = ({
   formId,
@@ -101,102 +87,122 @@ const ChangeMaterials: FunctionComponent<ChangeMaterialsFormProps> = ({
   specificationIds,
 }) => {
   const { data } = useQuery(convexQuery(api.queries.specifications.getSpecsWithMaterials, { specs: specificationIds }));
-  const { loadOptions: fabricOptions } = useAsyncOptions(api.queries.fabrics.getFabricsOptionsByColor);
+  const { loadOptions: fabricOptions } = useAsyncOptions(api.queries.fabrics.getFabricsOptionsByColor, 'fabric');
   const { loadOptions: materialOptions } = useAsyncOptions(api.queries.materials.getMaterialOptions, 'materials');
+
   const form = useAppForm({
     validationLogic: revalidateLogic(),
-    validators: {
-      onDynamic: productSchema,
-    },
-    defaultValues: defaultValues || {
-      materials: []
-    },
+    validators: { onDynamic: productSchema },
+    defaultValues: defaultValues || { materials: [] },
     onSubmit: ({ value }) => {
-      actionSubmit(value as any)
+      const materials = value?.materials ? value?.materials.map((m) => ({
+        overwriteMaterialId: m.overwriteMaterialId,
+        multiplier: m.multiplier,
+        ...(m.type === 'fabric'
+          ? { fabricId: m.newMaterial?.value }
+          : { materialId: m.newMaterial?.value }
+        ),
+      })) : [];
+      actionSubmit({ materials });
     }
-  })
+  });
 
-  const handleChangeMaterial = (material: {
-    materialId?: string;
-    fabricId?: string;
-    units: string;
-    multiplayer: number;
-  }) => {
-    const materials = form.getFieldValue('materials');
-    
-    const { materialId, fabricId } = material;
-    const findMaterial = materials?.find((m: any) => fabricId ? m.overwriteMaterialId === fabricId : m.overwriteMaterialId === materialId);
+  const selectedIds = useStore(form.store, (state: any) =>
+    (state.values.materials as FormValuesType['materials']).map((m) => m.overwriteMaterialId)
+  );
 
-    if (findMaterial) {
-      // const filtered = materials.filter((m: any) => m.fabricId ? m.fabricId === fabricId ? false : true : m.materialId === materialId ? false : true);
-      form.removeFieldValue('materials', materials.indexOf(findMaterial));
-      // form.setFieldValue('materials', filtered);
-    } else {
-      const hasFabric = has('fabricId', material);
-      const addMaterial = hasFabric ? prepend({
-        fabricId: '',
-        multiplier: 0,
-        overwriteMaterialId: materialId || fabricId,
-      }, materials) : append({
-        materialId: '',
-        multiplier: 0,
-        overwriteMaterialId: materialId || fabricId,
-      }, materials);
-      form.setFieldValue('materials', addMaterial);
+  const handleToggleMaterial = (material: any) => {
+    const id = material.fabricId || material.materialId;
+    const materials = form.getFieldValue('materials') || [];
+    const existingIndex = materials && materials.findIndex((m: any) => m.overwriteMaterialId === id);
+
+    if (existingIndex !== -1) {
+      form.setFieldValue('materials', materials ? materials.filter((_: any, idx: number) => idx !== existingIndex) : []);
+      return;
     }
-  }
 
-  // const values = useStore(form.store, (state: any) => {
-  //   return state.values;
-  // });
-  // console.log("🚀 ~ ChangeMaterials ~ values:", values)
+    const isFabric = !!material.fabricId;
+    const label = `${material.name ?? ''}${material.size ? `-${material.size}` : ''} ${material.color ?? ''}`.trim();
+    form.setFieldValue('materials', [
+      ...materials,
+      {
+        overwriteMaterialId: id,
+        type: isFabric ? 'fabric' : 'material',
+        parentLabel: label,
+        multiplier: undefined,
+        newMaterial: undefined,
+      },
+    ]);
+  };
 
   return (
     <div>
-      <ChangedMaterials data={data} handleChangeMaterial={handleChangeMaterial} />
       <form
         id={formId}
         onSubmit={(e) => {
           e.preventDefault();
           form.handleSubmit();
         }}
-        className="flex flex-col gap-3"
+        className="flex flex-col gap-4"
       >
-        <form.Field
-          mode="array"
-          name='materials'
-          >
-            {(field) => (
-              <div className='flex flex-col gap-2 w-full'>
-                {field.state.value.map((value, i) => (
-                  <div key={i} className={clsx('flex gap-2 w-full items-end', has('fabricId', value) && 'bg-primary/5 border rounded-md p-2')}>
-                    <form.AppField key={`materialId-${i}`} name={!has('fabricId', value) ? `materials[${i}].materialId` : `materials[${i}].fabricId`}
-                      children={(subField) => (
+        <ParentMaterials
+          data={data}
+          selected={selectedIds}
+          onToggle={handleToggleMaterial}
+        />
+
+        <form.Field mode="array" name="materials">
+          {(field) => (
+            <div className="flex flex-col gap-2 w-full">
+              {field.state.value?.map((value, i) => (
+                <div
+                  key={i}
+                  className={clsx(
+                    'flex gap-2 w-full items-start rounded-md p-2 border',
+                    value.type === 'fabric' ? 'bg-primary/5' : 'bg-secondary/20'
+                  )}
+                >
+                  <form.AppField
+                    key={`newMaterial-${i}`}
+                    name={`materials[${i}].newMaterial`}
+                    children={(subField) => (
+                      <div className="flex flex-col gap-2 items-center w-full">
                         <subField.FormAsyncSelect
-                          className='flex-5'
-                          label={!has('fabricId', value) ? "Матеріал" : 'Тканина'}
-                          modeOption={!has('fabricId', value) ? 'materials' : 'fabric'}
-                          asyncOptions={!has('fabricId', value) ? materialOptions : fabricOptions}/>
-                      )}
-                    />
-                    <form.AppField key={`multiplier-${i}`} name={`materials[${i}].multiplier`}
-                      children={(subField) => (<subField.FormTextField className="flex-3" type='number' label="Множник"/>)}
-                    />
-                    {
-                      has('isNew', value)
-                      ? <Button type='button' disabled={i === 0} className="self-end" onClick={() => field.removeValue(i)}><Trash2Icon size={17}/></Button>
-                      : null
-                    }
-                    
-                  </div>
-                ))}
-                {/* <Button type="button" variant='secondary' onClick={() => field.pushValue(defaultMaterialValues)}>Додати матеріал</Button> */}
-              </div>
-            )}
-          </form.Field>
+                          className="flex-5"
+                          valueMode="object"
+                          label={value.type === 'fabric' ? 'Нова тканина' : 'Новий матеріал'}
+                          modeOption={value.type === 'fabric' ? 'fabric' : 'materials'}
+                          asyncOptions={value.type === 'fabric' ? fabricOptions : materialOptions}
+                        />
+                        <div className="flex-none self-start text-xs text-muted-foreground min-w-[80px]">
+                          {`Осн. матеріал: ${value.parentLabel}`}
+                        </div>
+                      </div>
+                    )}
+                  />
+                  <form.AppField
+                    key={`multiplier-${i}`}
+                    name={`materials[${i}].multiplier`}
+                    children={(subField) => (
+                      <subField.FormTextField className="flex-2" type="number" label="Множник" />
+                    )}
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="self-center"
+                    onClick={() => field.removeValue(i)}
+                  >
+                    <Trash2Icon size={17} />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </form.Field>
       </form>
     </div>
   );
-}
- 
+};
+
 export default ChangeMaterials;

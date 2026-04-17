@@ -21,6 +21,7 @@ export const useAsyncOptions = (apiPath: any, optionsMode: keyof DevelopOptionsT
       apiPath,
       data
     );
+    console.log("🚀 ~ loadOptions ~ optionsData:", optionsData)
 
     return developOptions[optionsMode](optionsData ?? []);
   };

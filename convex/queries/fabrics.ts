@@ -8,6 +8,7 @@ export const getFabrics = query({
   args: {},
   handler: async (ctx) => {
     const materials = await ctx.db.query("fabrics").collect();
+    if (!materials) return []; 
     return materials;
   }
 })
@@ -89,3 +90,16 @@ export const createFabrics = mutation({
   }
 })
 ///////// MUTATIONS //////////
+
+export const migrateFabricsAddName = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const fabrics = await ctx.db.query("fabrics").collect();
+    await Promise.all(fabrics.map(async (fabric) => {
+      if (fabric.fabricName) {
+        await ctx.db.patch(fabric._id, { name: fabric.fabricName });
+      }
+    }));
+    return { updated: fabrics.filter(f => f.fabricName).length };
+  }
+})

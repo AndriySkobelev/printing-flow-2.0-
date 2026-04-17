@@ -1,6 +1,5 @@
-import { lazy, Suspense, memo, useState } from "react";
-import z from "zod";
-import { uniq, remove } from "ramda";
+import { useState } from "react";
+import { uniq } from "ramda";
 import { type FunctionComponent, useContext } from "react";
 import { type HeaderObject } from "simple-table-core";
 import { useQuery } from '@tanstack/react-query'
@@ -10,24 +9,19 @@ import { DialogContext } from '@/contexts/dialog'
 import { useCreateProducts, useUpdateProducts } from "./queries";
 import { Button } from "@/components/ui/button";
 import CreateProductForm from "./forms/create-product";
-import "simple-table-core/styles.css";
 import { useAppForm } from "@/components/main-form";
-import { Search } from "lucide-react";
+import { Search, Shirt } from "lucide-react";
 import ChangeMaterials from "./forms/change-materials";
 import { Spinner } from "@/components/ui/spinner";
-const SimpleTable = lazy(() =>
-  import('simple-table-core').then(m => ({ default: m.SimpleTable }))
-)
-
-const searchSchema = z.object({
-  search: z.string(),
-});
+import AppTable from "@/components/ui/app-table";
+import { MaterialsCellComponent } from "../specifications";
+import { MyPopover } from "@/components/my-popover";
 interface ProductsProps {
 }
 
 const headers: Array<HeaderObject> = [
   {
-    accessor: "name",
+    accessor: "specName",
     label: "Назва",
     width: 80,
     // isSortable: true,
@@ -36,64 +30,48 @@ const headers: Array<HeaderObject> = [
   },
   { accessor: "size", label: "Розмір", width: 120, isSortable: true, type: "string" },
   { accessor: "color", label: "Колір", width: 120, isSortable: true, type: "string" },
-  { accessor: "style", label: "Стиль", width: 120, isSortable: true, type: "string" },
+  {
+    accessor: "style", label: "Матеріали", width: 120, isSortable: true, type: "string",
+    cellRenderer: ({ row }) => {
+      const materials: Array<any> = Array.isArray(row['resolvedMaterials']) ? row['resolvedMaterials'] : [];
+      if (!materials) return null;
+      return (
+        <MyPopover
+          trigger={<div className="flex items-center p-1 bg-primary/5 rounded cursor-pointer">
+            <Shirt className="cursor-pointer" size={14}/>
+            </div>}
+          content={<MaterialsCellComponent materials={materials} />}
+        />
+      );
+    }
+  },
   { accessor: "sku", label: "SKU", width: 150, isSortable: true, type: "string" },
 ];
 
-interface TableComponentProps {
-  rows: Array<any>;
-  searchText: string;
-  isLoading: boolean;
-  handleSelectRow: ({ row, isSelected, selectedRows }: any) => void;
-}
-
-const TableComponent = memo(({ rows, searchText, isLoading, handleSelectRow }: TableComponentProps) => {
-  return (
-    <Suspense fallback={<div className="flex items-center justify-center w-full h-125"><Spinner className="w-5 h-5" /></div>}>
-      <SimpleTable
-        editColumns
-        height={500}
-        selectableCells
-        rows={rows || []}
-        expandAll={false}
-        enableRowSelection
-        enableStickyParents
-        isLoading={isLoading}
-        theme={'modern-light'}
-        quickFilter={{
-          mode: 'smart',
-          text: searchText,
-          caseSensitive: false,
-        }}
-        onRowSelectionChange={handleSelectRow}
-        rowGrouping={['group', 'data']}
-        defaultHeaders={headers}
-        getRowId={(row) => row.row._id as string}
-        customTheme={{
-          rowHeight: 40,
-          headerHeight: 50,
-        }}
-      />
-    </Suspense>
-  );
-});
-
 const Products: FunctionComponent<ProductsProps> = () => {
-  const { data, isLoading } = useQuery(convexQuery(api.queries.products.getProductsWithSpec));
+  const { data: dataAllProducts, isLoading } = useQuery(convexQuery(api.queries.products.getProductsWithResolvedMaterials));
   const { mutate: updateProducts } = useUpdateProducts();
   const [search, setSearch] = useState('');
   const [selectedData, setSelectedData] = useState<Array<any>>([]);
   const createProduct = useCreateProducts();
-  const { openDialog, closeDialog } = useContext(DialogContext);
+  const { openDialog, closeDialog, setIsLoading } = useContext(DialogContext);
 
   const handleAddProducts = (data: any) => {
+    console.log('data', data)
     createProduct.mutate(data);
     closeDialog();
   }
 
   const handleSubmitChangeMaterials = (data: any) => {
+    setIsLoading(true);
     const ids = selectedData.map((el) => el._id);
-    updateProducts({ ...data, ids });
+    
+    updateProducts({ ...data, ids }, {
+      onSuccess: () => {
+        closeDialog();
+        setIsLoading(false);
+      }
+    });
   }
 
   const handleOpenDialog = () => {
@@ -116,10 +94,10 @@ const Products: FunctionComponent<ProductsProps> = () => {
     setSearch(searchValue);
   }
 
-  const handleSelectRow = ({ row, isSelected, selectedRows }: any) => {
+  const handleSelectRow = ({ selectedRows }: any) => {
     const arrSelected = Array.from(selectedRows.values()) as Array<string>;
     const splitId = arrSelected.map((el) => String(el).match(/-(\w+)$/)?.[1] || '');
-    const getRowData = data ? splitId.map((rowIndex: string) => data.find(el => el._id === rowIndex)) : [];
+    const getRowData = dataAllProducts ? splitId.map((rowIndex: string) => dataAllProducts.find(el => el._id === rowIndex)) : [];
     setSelectedData(getRowData)
   }
 
@@ -131,7 +109,7 @@ const Products: FunctionComponent<ProductsProps> = () => {
         actionSubmit={handleSubmitChangeMaterials}
         specificationIds={uniq(selectedData.map((el) => el.parentId))}/>,
       withForm: true,
-      className: 'max-w-[600px]',
+      className: 'min-w-150',
       formId: 'change-materials-form',
     });
   }
@@ -162,7 +140,19 @@ const Products: FunctionComponent<ProductsProps> = () => {
           Редагувати матеріали
         </Button>
       </div>
-      <TableComponent rows={data || []} searchText={search} isLoading={isLoading} handleSelectRow={handleSelectRow} />
+      <AppTable
+        height={500}
+        enableRowSelection
+        enableStickyParents
+        isLoading={isLoading}
+        defaultHeaders={headers}
+        rows={dataAllProducts || []}
+        rowGrouping={['group', 'data']}
+        onRowSelectionChange={handleSelectRow}
+        getRowId={(row) => row.row._id as string}
+        quickFilter={{ mode: 'smart', text: search, caseSensitive: false }}
+        fallback={<div className="flex items-center justify-center w-full h-125"><Spinner className="w-5 h-5" /></div>}
+      />
     </div>
   );
 }

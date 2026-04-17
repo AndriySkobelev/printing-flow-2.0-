@@ -94,4 +94,29 @@ export const makeMigrateData = mutation({
     return null;
   }
 })
+
+export const updateMaterial = mutation({
+  args: {
+    id: v.id('materials'),
+    data: v.object({
+      name: v.optional(v.string()),
+      color: v.optional(v.string()),
+      units: v.optional(v.string()),
+      category: v.optional(v.string()),
+      size: v.optional(v.string()),
+      code: v.optional(v.string()),
+      material: v.optional(v.string()),
+    }),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.id, args.data);
+  },
+})
+
+export const deleteMaterial = mutation({
+  args: { id: v.id('materials') },
+  handler: async (ctx, args) => {
+    await ctx.db.delete(args.id);
+  },
+})
 ///////// MUTATIONS //////////

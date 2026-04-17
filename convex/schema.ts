@@ -10,12 +10,13 @@ export const fabricsSchema = {
   sku: v.string(),
   color: v.string(),
   skuNumber: v.number(),
-  thredsSku: v.optional(v.string()),
-  createdAt: v.optional(v.string()),
-  updatedAt: v.optional(v.string()),
-  id: v.optional(v.string()),
   skuPrefix: v.string(),
-  fabricName: v.string(),
+  id: v.optional(v.string()),
+  name: v.optional(v.string()),
+  updatedAt: v.optional(v.string()),
+  createdAt: v.optional(v.string()),
+  thredsSku: v.optional(v.string()),
+  fabricName: v.optional(v.string()),
   units: v.union(v.literal('кг'), v.literal('м')),
   threds: v.optional(v.union(v.string(), v.number())),
 };
@@ -35,10 +36,9 @@ export const materialsSchema = {
 };
 
 export const storeMovementsSchema = {
-  units: v.string(),
   quantity: v.union(v.number(), v.string()),
-  matrialType: v.union(v.literal('fabrics'), v.literal('materials')),
-  materialId: v.optional(v.union(v.id('materials'), v.id('fabrics'))),
+  materialType: v.union(v.literal('fabrics'), v.literal('materials')),
+  materialId: v.union(v.id('materials'), v.id('fabrics')),
   type: v.union(
     v.literal(TRANSACTION_TYPES['INCOMING']),
     v.literal(TRANSACTION_TYPES['OUTGOING']),

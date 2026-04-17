@@ -4,7 +4,7 @@ import { path, flatten } from 'ramda';
 import { keyRequest } from '../../src/utils/index';
 import type { StoreMovements } from "../schema";
 
-const makeMovemets = <T extends { fabricId: string, materialId: string, itemsQuantity: number, quantity: number, productInfo: Array<string> },> (data: Array<T>) => {
+const makeMovemets = <T extends { fabricId?: string, materialId?: string, quantity: number, productInfo: Array<string> },> (data: Array<T>) => {
   const dataStored = new Map();
   const combineData = data.map((item: T) => {
     const id = item.fabricId || item.materialId;
@@ -29,8 +29,8 @@ const processingIcoming = async ({ ctx, orderId, menegerId }:{ ctx: ActionCtx, o
   const getCrmOrder = await keyRequest(`/order/${orderId}`, 'get', {
     include: "products.offer,manager,tags,shipping,custom_fields",
   });
-  
   const data = await getCrmOrder.json();
+
   const { products, manager, shipping, id } = data;
   const filterByShipment = products.filter((product: any) => product.shipment_type === 'manufacturing');
 
@@ -90,10 +90,22 @@ const processingIcoming = async ({ ctx, orderId, menegerId }:{ ctx: ActionCtx, o
     return finalMaterilas;
   }));
   
-  const flattenMaterials = flatten(materials);
+  const flattenMaterials = flatten(materials).filter(Boolean);
   const makedMovements = makeMovemets(flattenMaterials);
-  for (const movement in makedMovements) {
-    await ctx.runMutation(internal.queries.movements.createIncomingInternal, makedMovements[movement] as StoreMovements);
+  for (const movement of makedMovements) {
+    const materialType = movement.fabricId ? 'fabrics' : 'materials';
+    const materialId = (movement.fabricId || movement.materialId) as StoreMovements['materialId'];
+    await ctx.runMutation(internal.queries.movements.createIncomingInternal, {
+      quantity: movement.quantity,
+      materialType,
+      materialId,
+      type: movement.type,
+      orderId: movement.orderId,
+      manager: movement.manager,
+      orderShippingDate: movement.orderShippingDate,
+      productInfo: movement.productInfo,
+      productQuantity: movement.productQuantity,
+    });
   }
 
   return data;

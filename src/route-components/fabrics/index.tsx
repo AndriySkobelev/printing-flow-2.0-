@@ -1,5 +1,4 @@
-import { lazy, Suspense, memo, useState } from "react";
-import z from "zod";
+import { useState } from "react";
 import { type FunctionComponent, useContext } from "react";
 import { type HeaderObject } from "simple-table-core";
 import { useQuery } from '@tanstack/react-query'
@@ -9,12 +8,9 @@ import { DialogContext } from '@/contexts/dialog'
 import { useCreateFabrics } from "./queries";
 import { Button } from "@/components/ui/button";
 import CreateFabrics from "./forms/create-fabrics";
-import "simple-table-core/styles.css";
 import { useAppForm } from "@/components/main-form";
 import { Search } from "lucide-react";
-const SimpleTable = lazy(() =>
-  import('simple-table-core').then(m => ({ default: m.SimpleTable }))
-)
+import AppTable from "@/components/ui/app-table";
 
 interface FabricsProps {
 }
@@ -33,43 +29,6 @@ const headers: Array<HeaderObject> = [
   { accessor: "threds", label: "Номера ниток", width: 200, isSortable: true, type: "string" },
 ];
 
-interface TableComponentProps {
-  rows: Array<any>;
-  searchText?: string;
-  isLoading?: boolean;
-  handleSelectRow?: ({ row, isSelected, selectedRows }: any) => void;
-}
-
-const TableComponent = memo(({ rows, searchText = '', isLoading, handleSelectRow }: TableComponentProps) => {
-  return (
-    <Suspense fallback={<div className="text-red w-1 h-1">Loading..</div>}>
-      <SimpleTable
-        editColumns
-        height={500}
-        selectableCells
-        rows={rows || []}
-        expandAll={false}
-        enableRowSelection
-        enableStickyParents
-        isLoading={isLoading}
-        theme={'modern-light'}
-        quickFilter={{
-          mode: 'smart',
-          text: searchText,
-          caseSensitive: false,
-        }}
-        onRowSelectionChange={handleSelectRow}
-        rowGrouping={['group', 'data']}
-        defaultHeaders={headers}
-        getRowId={(row) => row.row._id as string}
-        customTheme={{
-          rowHeight: 40,
-          headerHeight: 50,
-        }}
-      />
-    </Suspense>
-  );
-});
 
 const Fabrics: FunctionComponent<FabricsProps> = () => {
   const { data, isLoading } = useQuery(convexQuery(api.queries.fabrics.getFabrics));
@@ -125,7 +84,20 @@ const Fabrics: FunctionComponent<FabricsProps> = () => {
           <Search size={16} />
         </Button>
       </div>
-      <TableComponent rows={data || []} searchText={search} isLoading={isLoading} />
+      <AppTable
+        editColumns
+        height={500}
+        selectableCells
+        rows={data || []}
+        expandAll={false}
+        enableRowSelection
+        enableStickyParents
+        isLoading={isLoading}
+        quickFilter={{ mode: 'smart', text: search, caseSensitive: false }}
+        rowGrouping={['group', 'data']}
+        defaultHeaders={headers}
+        getRowId={(row) => row.row._id as string}
+      />
     </div>
   );
 }

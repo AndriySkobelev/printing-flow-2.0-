@@ -16,10 +16,10 @@ const sizesOptions = productSizes.map((size) => ({
 }));
 
 const productSchema = z.object({
-  allSizes: z.boolean(),
-  allColors: z.boolean(),
+  allSizes: z.boolean().optional(),
+  allColors: z.boolean().optional(),
   specification: z.string(),
-  sizes: z.array(z.object(sizesOptions)),
+  sizes: z.array(z.object({ value: z.string(), label: z.string() })),
   colors: z.array(z.object({ value: z.string(), label: z.string() })),
 })
 
@@ -27,7 +27,7 @@ type FormValuesType = z.infer<typeof productSchema>;
 interface CreateProductFormProps {
   formId: string,
   defaultValues?: FormValuesType,
-  actionSubmit: (values: FormValuesType & { fabricName: string }) => void
+  actionSubmit: (values: FormValuesType & { name: string }) => void
 }
  
 const CreateProductForm: FunctionComponent<CreateProductFormProps> = ({
@@ -53,12 +53,13 @@ const CreateProductForm: FunctionComponent<CreateProductFormProps> = ({
       const findSpec = data?.find(el => el._id === value.specification);
       const materials = findSpec?.materials || [];
       const fabric = materials[0] as any;
-      actionSubmit({ ...value, fabricName: fabric.fabricName })
+      actionSubmit({ ...value, name: fabric.name })
     }
   })
 
   const specification = useStore(form.store, (state: any) => state.values.specification);
-
+  const values = useStore(form.store, (state: any) => state);
+  console.log("🚀 ~ CreateProductForm ~ values:", values)
   const colorsOptions = useAllColorsByFabric(specification, data);
 
   return (

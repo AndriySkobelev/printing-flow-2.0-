@@ -1,5 +1,5 @@
 import { query, mutation, QueryCtx, internalQuery } from "../_generated/server";
-import { groupBy, prop, keys, find, propEq, pick } from 'ramda';
+import { groupBy, prop, keys, pick } from 'ramda';
 import { getAll } from 'convex-helpers/server/relationships'
 import { Fabrics, Materials, materialsSchema,   } from "../schema";
 import { v } from "convex/values";
@@ -17,7 +17,6 @@ const addToAll = (value: any, data: Array<any>) => {
   const mapData = data.map(el => ({ ...el, ...value}));
   return mapData;
 }
-
 
 export const getFabricsByNameAndColors = async (ctx: QueryCtx, fabricName: string, colors?: Array<string>) => {
   const getFabric = await ctx.db.query('fabrics').filter(q => q.eq(q.field('fabricName'), fabricName)).collect();
@@ -82,7 +81,7 @@ export const getProductsWithSpec = query({
     const gproupedByParentId = groupBy(prop('parentId'), products);
     const specIds = keys(gproupedByParentId);
     const specs = await getAll(ctx.db, specIds) || [];
-    const combineProducs = specs.flatMap((spec) => addToAll({ name: spec?.name }, gproupedByParentId[spec?._id as any] as unknown as Array<any> ));
+    const combineProducs = specs.flatMap((spec) => addToAll({ name: spec?.name, parentMaterials: spec?.materials }, gproupedByParentId[spec?._id as any] as unknown as Array<any> ));
 
     return combineProducs;
   }
@@ -99,7 +98,10 @@ export const getSearchProducts = query({
     const gproupedByParentId = groupBy(prop('parentId'), products);
     const specIds = keys(gproupedByParentId);
     const specs = await getAll(ctx.db, specIds) || [];
-    const combineProducs = specs.flatMap((spec) => addToAll({ name: spec?.name, price: spec?.productionPrice }, gproupedByParentId[spec?._id as any] as unknown as Array<any> ));
+    const combineProducs = specs.flatMap((spec) => addToAll(
+      { name: spec?.name, price: spec?.productionPrice },
+      gproupedByParentId[spec?._id as any] as unknown as Array<any>
+    ));
 
     return combineProducs;
   }
@@ -130,7 +132,7 @@ export const getProductsBySku = internalQuery({
 
 export const createProductsBySpecification = mutation({
   args: {
-    fabricName: v.string(),
+    name: v.string(), // fabricName
     allSizes: v.optional(v.boolean()),
     allColors: v.optional(v.boolean()),
     specification: v.id('specifications'),
@@ -139,31 +141,33 @@ export const createProductsBySpecification = mutation({
   },
   handler: async (ctx, args) => {
     const spec = await getSpecWithMaterials(ctx, args.specification);
+    console.log("🚀 ~ spec:", spec)
     const sizes = args.allSizes ? productSizes : args.sizes?.map(size => size.value);
     const specFabric = spec?.materials.find(material => material.fabricId && material?.type === 'fabric');
     const fabricsByColors: Array<{ color: string, _id: string}> = args.allColors 
-      ? await getFabricsByNameAndColors(ctx, args.fabricName)
-      : await getFabricsByNameAndColors(ctx, args.fabricName, args.colors?.map(color => color.value) || []);
+      ? await getFabricsByNameAndColors(ctx, args.name)
+      : await getFabricsByNameAndColors(ctx, args.name, args.colors?.map(color => color.value) || []);
     if (!spec) {
       throw new Error(`Specification with id ${args.specification} not found`);
     }
   
     let skuNumber = 1;
-    const combineProducts = fabricsByColors?.flatMap((color, colIndex) => sizes?.map((size, sIndex) => {
+    const combineProducts = fabricsByColors?.flatMap((fabric, colIndex) => sizes?.map((size, sIndex) => {
       const numberSku = skuNumber++
       const data = {
         size,
-        color: color?.color,
+        color: fabric?.color,
         parentId: spec?._id,
         skuNumber: numberSku,
-        searchText: `${spec?.name}.${size}.${color?.color}`,
+        searchText: `${spec?.name}.${size}.${fabric?.color}`,
         materials: [
-          { fabricId: color._id, multiplier: 1, overwriteMaterialId: specFabric?.fabricId },
+          { fabricId: fabric._id, multiplier: 1, overwriteMaterialId: specFabric?.fabricId },
         ],
         sku: `${spec?.skuPrefix}-${String(numberSku).padStart(5, '0')}`,
       }
       return data;
     }))
+    console.log("🚀 ~ combineProducts:", combineProducts)
     const addedData = combineProducts || [];
     await Promise.all(addedData?.map(async (value) => { await ctx.db.insert('products', value as any) }))
 
@@ -171,17 +175,71 @@ export const createProductsBySpecification = mutation({
   }
 })
 
+export const getProductsWithResolvedMaterials = query({
+  handler: async (ctx) => {
+    const products = await ctx.db.query('products').collect();
+
+    return Promise.all(products.map(async (product) => {
+      const spec = await ctx.db.get('specifications', product.parentId);
+      if (!spec) return { ...product, resolvedMaterials: [] };
+
+      const productOverrides = product.materials || [];
+
+      // Start from spec parent materials, apply product overrides by overwriteMaterialId
+      const effectiveMaterials = spec.materials.map((specMaterial) => {
+        const override = productOverrides.find(
+          (m) => m.overwriteMaterialId === (specMaterial.fabricId ?? specMaterial.materialId)
+        );
+        if (!override) return specMaterial;
+        return {
+          ...specMaterial,
+          fabricId: override.fabricId ?? specMaterial.fabricId,
+          materialId: override.materialId ?? specMaterial.materialId,
+          multiplier: override.multiplier ?? '1',
+        };
+      });
+
+      // Resolve each effective material to its full data
+      const resolvedMaterials = await Promise.all(effectiveMaterials.map(async (material) => {
+        if (material.fabricId) {
+          const fabric = await ctx.db.get(material.fabricId) as Fabrics | null;
+          return {
+            ...material,
+            name: fabric?.fabricName,
+            color: fabric?.color,
+            units: fabric?.units,
+          };
+        }
+        if (material.materialId) {
+          const mat = await ctx.db.get(material.materialId) as Materials | null;
+          return {
+            ...material,
+            name: mat?.name,
+            size: mat?.size,
+            color: mat?.color,
+            units: mat?.units,
+          };
+        }
+        return material;
+      }));
+
+      return {
+        ...product,
+        specName: spec.name,
+        resolvedMaterials,
+      };
+    }));
+  },
+});
+
 export const updateProducts = mutation({
   args: {
     ids: v.array(v.id('products')),
     materials: v.array(v.object({
+      overwriteMaterialId: v.union(v.id('materials'), v.id('fabrics')),
       multiplier: v.optional(v.number()),
       fabricId: v.optional(v.id('fabrics')),
       materialId: v.optional(v.id('materials')),
-      overwriteMaterialId: v.optional(v.union(
-        v.id('materials'),
-        v.id('fabrics')
-      )),
     }))
   },
   handler: async (ctx, args) => {
@@ -192,14 +250,24 @@ export const updateProducts = mutation({
         throw new Error(`Product with id ${id} not found`);
       }
       const currentMaterials = product.materials || [];
-      const findNewMaterial = currentMaterials.map((material) => {
-        const findMaterial = find(propEq(material.overwriteMaterialId, 'overwriteMaterialId'))(materials as []);
-        if (findMaterial) return findMaterial;
-        return material;
-      });
-
-      const updatedMaterials = findNewMaterial;
-      await ctx.db.patch('products', id, { materials: updatedMaterials });
+      const updatedMaterials = [
+        // overwrite matching parents, keep non-matching parents as-is
+        ...currentMaterials.flatMap((parent) => {
+          const incoming = materials.find((m) => m.overwriteMaterialId === parent.overwriteMaterialId);
+          if (!incoming) return [parent];
+          return [{
+            overwriteMaterialId: parent.overwriteMaterialId,
+            multiplier: incoming.multiplier,
+            ...(incoming.fabricId ? { fabricId: incoming.fabricId } : {}),
+            ...(incoming.materialId ? { materialId: incoming.materialId } : {}),
+          }];
+        }),
+        // add incoming entries that have no matching parent
+        ...materials.filter((incoming) =>
+          !currentMaterials.some((parent) => parent.overwriteMaterialId === incoming.overwriteMaterialId)
+        ),
+      ];
+      await ctx.db.patch(id, { materials: updatedMaterials });
     }))
   }
 })

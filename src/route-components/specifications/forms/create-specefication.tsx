@@ -92,8 +92,7 @@ const SpecificationForm: FunctionComponent<SpecificationFormProps> = ({
       ]
     },
     onSubmit: (value) => {
-      console.log("🚀 ~ SpecificationForm ~ value:", value)
-      actionSubmit(value.value)
+      actionSubmit(value.value);
     },
   });
 
@@ -110,12 +109,14 @@ const SpecificationForm: FunctionComponent<SpecificationFormProps> = ({
         }}
         className="flex flex-col gap-3"
       >
-        <form.AppField
-          name='name'
-          children={(field) => <field.FormTextField type="text" label='Назва'/>} />
-        <form.AppField
-          name='category'
-          children={(field) => <field.FormTextField type="text" label='Категорія'/>} />
+        <div className='flex gap-2'>
+          <form.AppField
+            name='name'
+            children={(field) => <field.FormTextField type="text" label='Назва'/>} />
+          <form.AppField
+            name='category'
+            children={(field) => <field.FormTextField type="text" label='Категорія'/>} />
+        </div>
         <div className="flex gap-2">
           <form.AppField
             name='skuPrefix'

@@ -1,4 +1,4 @@
-import { type FunctionComponent, lazy, useContext, Suspense } from "react";
+import { type FunctionComponent, memo, useContext } from "react";
 import { useQuery } from '@tanstack/react-query'
 import { convexQuery } from '@convex-dev/react-query'
 import { api } from "convex/_generated/api";
@@ -8,8 +8,8 @@ import { useCreateSpecification } from "./utils/queries";
 import { Button } from "@/components/ui/button";
 import { type Specifications } from 'convex/schema'
 import SpecificationForm, { type SpecificationFormType } from './forms/create-specefication';
-import "simple-table-core/styles.css";
 import { Ellipsis, Trash2, Copy, SquarePen, Shirt } from "lucide-react";
+import AppTable from "@/components/ui/app-table";
 import { MyPopover } from "@/components/my-popover";
 import clsx from "clsx";
 import { useDeleteSpecification, useDuplicateSpecification, useUpdateSpecification } from "./utils/queries";
@@ -17,9 +17,6 @@ import { Separator } from "radix-ui";
 import { EditSpecifications } from "./forms/edit-specifications";
 import { omit } from "ramda";
 import { Id } from "convex/_generated/dataModel";
-const SimpleTable = lazy(() => 
-  import('simple-table-core').then(m => ({ default: m.SimpleTable }))
-)
 interface SpecificationsProps {
 }
 
@@ -63,7 +60,8 @@ const ActionsListComponent = ({ row, handleEditSpec }: { row: any, handleEditSpe
   )
 };
 
-const MaterialsCellComponent = ({ materials }: { materials: any }) => {
+export const MaterialsCellComponent = memo(({ materials }: { materials: any }) => {
+  console.log('materials', materials)
   return (
     <div className="flex flex-col gap-1">
       {materials?.map((material: any, i: number) => (
@@ -83,7 +81,7 @@ const MaterialsCellComponent = ({ materials }: { materials: any }) => {
       ))}
     </div>
   );
-}
+});
 
 type HeaderProps = {
   handleEditSpec: (data: any) => void
@@ -149,7 +147,13 @@ const Specifications: FunctionComponent<SpecificationsProps> = () => {
   const { openDialog, closeDialog } = useContext(DialogContext);
 
   const handleSubmitAdd = (values: SpecificationFormType) => {
-    createSpec(values as Specifications);
+    const newMaterials = values.materials.map((material) => ({
+      fabricId: 'fabricId' in material ? material.fabricId?.value as Id<'fabrics'> : undefined,
+      materialId: 'materialId' in material ? material.materialId?.value as Id<'materials'>: undefined,
+      units: material.units,
+      quantity: material.quantity,
+    }));
+    createSpec({...values, materials: newMaterials} as Specifications);
     closeDialog();
   }
 
@@ -199,24 +203,12 @@ const Specifications: FunctionComponent<SpecificationsProps> = () => {
       <div className="w-fit">
         <Button className="w-full" onClick={handleAddSpec}>Додати специфікацію</Button>
       </div>
-      <Suspense fallback={<div>Loading...</div>}>
-        <SimpleTable
-          height={600}
-          rows={data || []}
-          enableStickyParents
-          enableRowSelection
-          theme={'modern-light'}
-          // onRowSelectionChange={({ row, isSelected, selectedRows }) => {
-          //   console.log('Row selection changed:', { row, isSelected, selectedRows });
-          // }}
-          defaultHeaders={headers({ handleEditSpec })}
-          customTheme={{
-            rowHeight: 40,
-            headerHeight: 50,
-          }}
-          getRowId={({ row }) => row.id as string}
-        />
-      </Suspense>
+      <AppTable
+        height={600}
+        rows={data || []}
+        defaultHeaders={headers({ handleEditSpec })}
+        getRowId={({ row }: any) => row.id as string}
+      />
     </div>
   );
 }
