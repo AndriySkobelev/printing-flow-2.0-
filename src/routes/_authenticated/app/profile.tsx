@@ -1,9 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
+import ProfileCard from '@/route-components/profile'
 
 export const Route = createFileRoute('/_authenticated/app/profile')({
-  component: RouteComponent,
+  component: ProfileCard,
 })
-
-function RouteComponent() {
-  return <div>Hello "/_authenticated/app/profile"!</div>
-}

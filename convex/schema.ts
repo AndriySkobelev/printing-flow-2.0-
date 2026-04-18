@@ -99,7 +99,30 @@ export const shiftReports = {
   })),
 };
 
+export const users = {
+  name: v.optional(v.string()),
+  lastName: v.optional(v.string()),
+  image: v.optional(v.string()),
+  email: v.optional(v.string()),
+  emailVerificationTime: v.optional(v.number()),
+  phone: v.optional(v.string()),
+  phoneVerificationTime: v.optional(v.number()),
+  isAnonymous: v.optional(v.boolean()),
+  birthday: v.optional(v.string()),
+  workHours: v.optional(v.number()),
+  startDate: v.optional(v.string()),
+  role: v.optional(v.union(
+    v.literal('super_admin'),
+    v.literal('admin'),
+    v.literal('manager'),
+    v.literal('seamstress'),
+    v.literal('tailor'),
+    v.literal('brander'),
+  ))
+}
+
 const fabricsTable = defineTable(fabricsSchema)
+const usersTable = defineTable(users)
 const proudctsTable = defineTable(productVariants);
 const shiftReportsTabel = defineTable(shiftReports)
 const materialsTable = defineTable(materialsSchema)
@@ -107,6 +130,7 @@ const specifications = defineTable(productsSpecification)
 const icomingMaterialsTable = defineTable(storeMovementsSchema)
 
 export type Materials = Doc<'materials'>;
+export type Users = Doc<'users'>;
 export type ShiftReportsType = Doc<'shiftReports'>;
 export type Fabrics = Doc<'fabrics'>;
 export type Products = Doc<'products'>;
@@ -115,6 +139,7 @@ export type StoreMovements = Doc<'storeMovements'>;
 
 export default defineSchema({
   ...authTables,
+  users: usersTable.index("email", ["email"]),
   fabrics: fabricsTable
     .searchIndex('search_name', {
       searchField: 'fabricName',

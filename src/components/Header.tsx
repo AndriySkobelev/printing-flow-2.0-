@@ -10,8 +10,11 @@ import {
   Scissors,
   Settings,
   ShoppingBag,
+  Warehouse,
 } from 'lucide-react'
 import { useAuth } from '@/hooks/auth-hooks'
+import { SUPER_ADMIN, type UserRole } from '@/constants/roles'
+import UserAvatar from '@/components/UserAvatar'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,13 +30,13 @@ type NavChildLink = {
   label: string
   to: string
   icon?: LucideIcon
-  role?: string
+  roles?: UserRole[]   // undefined = public; super_admin always passes
 }
 
 type NavSubGroup = {
   type: 'subgroup'
   label: string
-  role?: string
+  roles?: UserRole[]
   children: NavChildLink[]
 }
 
@@ -44,13 +47,14 @@ type NavLink = {
   label: string
   to: string
   icon?: LucideIcon
-  role?: string
+  roles?: UserRole[]
 }
 
 type NavGroup = {
   type: 'group'
   label: string
-  role?: string
+  icon?: LucideIcon
+  roles?: UserRole[]
   children: NavGroupEntry[]
 }
 
@@ -60,6 +64,7 @@ const navConfig: NavItem[] = [
   {
     type: 'group',
     label: 'Склад',
+    icon: Warehouse,
     children: [
       { to: '/app/inventory-movement', label: 'Рух матеріалів', icon: ArrowLeftRight },
       {
@@ -91,7 +96,7 @@ const navConfig: NavItem[] = [
     label: 'Адмін',
     to: '/app/admin',
     icon: Settings,
-    role: 'admin',
+    roles: ['admin'],
   },
 ]
 
@@ -144,6 +149,7 @@ function NavGroupItem({ item }: { item: NavGroup }) {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button className={linkCls(active) + ' outline-none'}>
+          {item.icon && <item.icon className="size-3.5" />}
           {item.label}
           <ChevronDown className="size-3.5 transition-transform duration-200 [[data-state=open]_&]:rotate-180" />
         </button>
@@ -191,37 +197,14 @@ function NavGroupItem({ item }: { item: NavGroup }) {
   )
 }
 
-function UserAvatar({ name, image }: { name?: string; image?: string }) {
-  if (image) {
-    return (
-      <img
-        src={image}
-        alt={name}
-        className="size-8 rounded-full object-cover ring-2 ring-white/20"
-      />
-    )
-  }
-  const initials = name
-    ?.split(' ')
-    .map(w => w[0])
-    .slice(0, 2)
-    .join('')
-    .toUpperCase() ?? '?'
-
-  return (
-    <span className="size-8 rounded-full bg-white/20 ring-2 ring-white/10 flex items-center justify-center text-xs font-semibold text-white select-none">
-      {initials}
-    </span>
-  )
-}
-
 // --- Header ---------------------------------------------------------------
 
 export default function Header() {
   const { user } = useAuth()
-  const userRole: string | undefined = user?.role
+  const userRole: UserRole | undefined = user?.role
 
-  const canSee = (role?: string) => !role || role === userRole
+  const canSee = (roles?: UserRole[]) =>
+    !roles || userRole === SUPER_ADMIN || roles.includes(userRole!)
 
   return (
     <nav className="w-full max-w-screen bg-[#002131] text-white px-6 py-3 flex items-center justify-between gap-4">
@@ -236,13 +219,13 @@ export default function Header() {
       {/* Nav */}
       <div className="flex items-center gap-1">
         {navConfig.map(item => {
-          if (!canSee(item.role)) return null
+          if (!canSee(item.roles)) return null
 
           if (item.type === 'link') {
             return <NavLinkItem key={item.to} item={item} />
           }
 
-          const visibleChildren = item.children.filter(c => canSee(c.role))
+          const visibleChildren = item.children.filter(c => canSee(c.roles))
           if (!visibleChildren.length) return null
 
           return <NavGroupItem key={item.label} item={{ ...item, children: visibleChildren }} />
@@ -255,12 +238,12 @@ export default function Header() {
           to={'/app/profile' as any}
           className="flex items-center gap-2.5 px-2 py-1 rounded-md hover:bg-white/10 transition-colors shrink-0"
         >
-          <UserAvatar name={user?.name} image={user?.image} />
-          <div className="flex flex-col leading-tight text-right">
+          <UserAvatar name={user?.name} image={user?.image} size="sm" />
+          <div className="flex flex-col leading-tight text-left">
             <span className="text-sm font-medium text-white truncate max-w-[120px]">
               {user.name}
             </span>
-            <span className="text-xs text-white/50 capitalize">{user.role}</span>
+            <span className="text-xs text-[#e4fffa] capitalize px-1.5 py-0,75 bg-[#006b89] rounded-md w-fit">{user.role}</span>
           </div>
         </Link>
       )}
