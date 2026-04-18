@@ -17,6 +17,7 @@ import { Route as AuthenticatedAppRouteRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedAppStoreRouteImport } from './routes/_authenticated/app/store'
 import { Route as AuthenticatedAppSpecificationsRouteImport } from './routes/_authenticated/app/specifications'
 import { Route as AuthenticatedAppRegisterRouteImport } from './routes/_authenticated/app/register'
+import { Route as AuthenticatedAppProfileRouteImport } from './routes/_authenticated/app/profile'
 import { Route as AuthenticatedAppProductsRouteImport } from './routes/_authenticated/app/products'
 import { Route as AuthenticatedAppMaterialsRouteImport } from './routes/_authenticated/app/materials'
 import { Route as AuthenticatedAppLoginRouteImport } from './routes/_authenticated/app/login'
@@ -64,6 +65,11 @@ const AuthenticatedAppRegisterRoute =
     path: '/register',
     getParentRoute: () => AuthenticatedAppRouteRoute,
   } as any)
+const AuthenticatedAppProfileRoute = AuthenticatedAppProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => AuthenticatedAppRouteRoute,
+} as any)
 const AuthenticatedAppProductsRoute =
   AuthenticatedAppProductsRouteImport.update({
     id: '/products',
@@ -103,6 +109,7 @@ export interface FileRoutesByFullPath {
   '/app/login': typeof AuthenticatedAppLoginRoute
   '/app/materials': typeof AuthenticatedAppMaterialsRoute
   '/app/products': typeof AuthenticatedAppProductsRoute
+  '/app/profile': typeof AuthenticatedAppProfileRoute
   '/app/register': typeof AuthenticatedAppRegisterRoute
   '/app/specifications': typeof AuthenticatedAppSpecificationsRoute
   '/app/store': typeof AuthenticatedAppStoreRoute
@@ -117,6 +124,7 @@ export interface FileRoutesByTo {
   '/app/login': typeof AuthenticatedAppLoginRoute
   '/app/materials': typeof AuthenticatedAppMaterialsRoute
   '/app/products': typeof AuthenticatedAppProductsRoute
+  '/app/profile': typeof AuthenticatedAppProfileRoute
   '/app/register': typeof AuthenticatedAppRegisterRoute
   '/app/specifications': typeof AuthenticatedAppSpecificationsRoute
   '/app/store': typeof AuthenticatedAppStoreRoute
@@ -133,6 +141,7 @@ export interface FileRoutesById {
   '/_authenticated/app/login': typeof AuthenticatedAppLoginRoute
   '/_authenticated/app/materials': typeof AuthenticatedAppMaterialsRoute
   '/_authenticated/app/products': typeof AuthenticatedAppProductsRoute
+  '/_authenticated/app/profile': typeof AuthenticatedAppProfileRoute
   '/_authenticated/app/register': typeof AuthenticatedAppRegisterRoute
   '/_authenticated/app/specifications': typeof AuthenticatedAppSpecificationsRoute
   '/_authenticated/app/store': typeof AuthenticatedAppStoreRoute
@@ -149,6 +158,7 @@ export interface FileRouteTypes {
     | '/app/login'
     | '/app/materials'
     | '/app/products'
+    | '/app/profile'
     | '/app/register'
     | '/app/specifications'
     | '/app/store'
@@ -163,6 +173,7 @@ export interface FileRouteTypes {
     | '/app/login'
     | '/app/materials'
     | '/app/products'
+    | '/app/profile'
     | '/app/register'
     | '/app/specifications'
     | '/app/store'
@@ -178,6 +189,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/login'
     | '/_authenticated/app/materials'
     | '/_authenticated/app/products'
+    | '/_authenticated/app/profile'
     | '/_authenticated/app/register'
     | '/_authenticated/app/specifications'
     | '/_authenticated/app/store'
@@ -247,6 +259,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppRegisterRouteImport
       parentRoute: typeof AuthenticatedAppRouteRoute
     }
+    '/_authenticated/app/profile': {
+      id: '/_authenticated/app/profile'
+      path: '/profile'
+      fullPath: '/app/profile'
+      preLoaderRoute: typeof AuthenticatedAppProfileRouteImport
+      parentRoute: typeof AuthenticatedAppRouteRoute
+    }
     '/_authenticated/app/products': {
       id: '/_authenticated/app/products'
       path: '/products'
@@ -291,6 +310,7 @@ interface AuthenticatedAppRouteRouteChildren {
   AuthenticatedAppLoginRoute: typeof AuthenticatedAppLoginRoute
   AuthenticatedAppMaterialsRoute: typeof AuthenticatedAppMaterialsRoute
   AuthenticatedAppProductsRoute: typeof AuthenticatedAppProductsRoute
+  AuthenticatedAppProfileRoute: typeof AuthenticatedAppProfileRoute
   AuthenticatedAppRegisterRoute: typeof AuthenticatedAppRegisterRoute
   AuthenticatedAppSpecificationsRoute: typeof AuthenticatedAppSpecificationsRoute
   AuthenticatedAppStoreRoute: typeof AuthenticatedAppStoreRoute
@@ -303,6 +323,7 @@ const AuthenticatedAppRouteRouteChildren: AuthenticatedAppRouteRouteChildren = {
   AuthenticatedAppLoginRoute: AuthenticatedAppLoginRoute,
   AuthenticatedAppMaterialsRoute: AuthenticatedAppMaterialsRoute,
   AuthenticatedAppProductsRoute: AuthenticatedAppProductsRoute,
+  AuthenticatedAppProfileRoute: AuthenticatedAppProfileRoute,
   AuthenticatedAppRegisterRoute: AuthenticatedAppRegisterRoute,
   AuthenticatedAppSpecificationsRoute: AuthenticatedAppSpecificationsRoute,
   AuthenticatedAppStoreRoute: AuthenticatedAppStoreRoute,
