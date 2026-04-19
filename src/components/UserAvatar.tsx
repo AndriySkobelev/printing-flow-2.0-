@@ -12,27 +12,31 @@ type UserAvatarProps = {
   name?: string
   image?: string
   role?: string
+  lastName?: string
   size?: AvatarSize
   showName?: boolean
   showRole?: boolean
+  nameColor?: 'white' | 'black'
 }
 
 export default function UserAvatar({
   name,
+  lastName,
   image,
   role,
   size = 'md',
+  nameColor,
   showName = false,
   showRole = false,
 }: UserAvatarProps) {
   const { wrap, text, ring } = sizeMap[size]
-
-  const initials = name
-    ?.split(' ')
-    .map(w => w[0])
+  const fullName = [name, lastName].filter(Boolean).join(' ')
+  const initials = [name, lastName]
+    .filter(Boolean)
+    .map(w => w![0])
     .slice(0, 2)
     .join('')
-    .toUpperCase() ?? '?'
+    .toUpperCase() || '?'
 
   const roleLabel = role ? (ROLE_LABELS[role as UserRole] ?? role) : null
 
@@ -55,11 +59,11 @@ export default function UserAvatar({
       <div className="flex items-center gap-3 min-w-0">
         {avatar}
         <div className="flex flex-col gap-0.5 min-w-0">
-          <span className="text-white font-semibold text-base leading-tight truncate">
-            {name ?? '—'}
+          <span className={`text-${nameColor} font-light text-base leading-tight truncate`}>
+            {fullName || '—'}
           </span>
           {showRole && roleLabel && (
-            <span className="text-xs text-white/60">{roleLabel}</span>
+            <span className="text-xs text-[#e4fffa] capitalize px-1.5 py-0,75 bg-[#006b89] rounded-md w-fit">{roleLabel}</span>
           )}
         </div>
       </div>
@@ -70,7 +74,7 @@ export default function UserAvatar({
     <div className="flex flex-col items-center gap-1.5">
       {avatar}
       {showRole && roleLabel && (
-        <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-white/10 text-white/70 capitalize leading-none">
+        <span className="text-xs text-[#e4fffa] capitalize px-1.5 py-0,75 bg-[#006b89] rounded-md w-fit">
           {roleLabel}
         </span>
       )}

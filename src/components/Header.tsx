@@ -8,8 +8,11 @@ import {
   Layers,
   Printer,
   Scissors,
+  Waypoints,
   Settings,
+  CalendarRange,
   ShoppingBag,
+  Users,
   Warehouse,
 } from 'lucide-react'
 import { useAuth } from '@/hooks/auth-hooks'
@@ -86,24 +89,34 @@ const navConfig: NavItem[] = [
     ],
   },
   {
-    type: 'link',
-    label: 'Планер',
-    to: '/app/planner',
+    type: 'group',
+    label: 'Виробництво',
     icon: CalendarDays,
+    children: [
+      { to: '/app/planner', label: 'Планер', icon: Waypoints },
+      { to: '/app/production-calendar', label: 'Виробничий календар', icon: CalendarRange },
+    ],
+  },
+  {
+    type: 'link',
+    label: 'Користувачі',
+    to: '/app/users',
+    icon: Users,
+    roles: ['admin', 'super_admin'],
   },
   {
     type: 'link',
     label: 'Адмін',
     to: '/app/admin',
     icon: Settings,
-    roles: ['admin'],
+    roles: ['admin', 'super_admin'],
   },
 ]
 
 // --- styles ---------------------------------------------------------------
 
 const linkCls = (active: boolean) =>
-  `px-3 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center gap-1.5 ${
+  `px-2 py-1 rounded-md text-sm font-light transition-colors flex items-center gap-1.5 ${
     active
       ? 'bg-white/20 text-white'
       : 'text-white/70 hover:text-white hover:bg-white/10'
@@ -156,7 +169,7 @@ function NavGroupItem({ item }: { item: NavGroup }) {
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="start"
-        className="bg-[#0a3347] border-white/10 text-white min-w-[13rem] p-1"
+        className="bg-primary border-white/10 text-white min-w-[13rem] p-1"
       >
         {item.children.map((entry, i) => (
           <span key={isSubGroup(entry) ? entry.label : entry.to}>
@@ -207,7 +220,7 @@ export default function Header() {
     !roles || userRole === SUPER_ADMIN || roles.includes(userRole!)
 
   return (
-    <nav className="w-full max-w-screen bg-[#002131] text-white px-6 py-3 flex items-center justify-between gap-4">
+    <nav className="w-[98vw] mx-auto my-2 bg-primary rounded-xl text-white px-6 py-3 flex items-center justify-between gap-4">
       {/* Logo */}
       <Link to="/app" className="flex items-center gap-2 shrink-0 mr-2">
         <Printer className="size-5 text-white/90" />
@@ -217,7 +230,7 @@ export default function Header() {
       </Link>
 
       {/* Nav */}
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-1 bg-primary px-4 py-2 rounded-xl">
         {navConfig.map(item => {
           if (!canSee(item.roles)) return null
 
@@ -238,13 +251,11 @@ export default function Header() {
           to={'/app/profile' as any}
           className="flex items-center gap-2.5 px-2 py-1 rounded-md hover:bg-white/10 transition-colors shrink-0"
         >
-          <UserAvatar name={user?.name} image={user?.image} size="sm" />
-          <div className="flex flex-col leading-tight text-left">
-            <span className="text-sm font-medium text-white truncate max-w-[120px]">
-              {user.name}
-            </span>
-            <span className="text-xs text-[#e4fffa] capitalize px-1.5 py-0,75 bg-[#006b89] rounded-md w-fit">{user.role}</span>
-          </div>
+          <UserAvatar
+            name={user?.name}
+            role={user?.role}
+            lastName={user?.lastName}
+            image={user?.image} size="sm" showName showRole />
         </Link>
       )}
     </nav>

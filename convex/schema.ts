@@ -111,6 +111,10 @@ export const users = {
   birthday: v.optional(v.string()),
   workHours: v.optional(v.number()),
   startDate: v.optional(v.string()),
+  developingSpecification: v.optional(v.array(v.object({
+    specificationId: v.id('specifications'),
+    developingTime:  v.number(),
+  }))),
   role: v.optional(v.union(
     v.literal('super_admin'),
     v.literal('admin'),
@@ -128,6 +132,20 @@ const shiftReportsTabel = defineTable(shiftReports)
 const materialsTable = defineTable(materialsSchema)
 const specifications = defineTable(productsSpecification)
 const icomingMaterialsTable = defineTable(storeMovementsSchema)
+
+export const plannerEventsSchema = {
+  orderId: v.string(),
+  orderNumber: v.string(),
+  sewerId: v.string(),
+  date: v.string(),       // yyyy-mm-dd
+  startH: v.number(),
+  startM: v.number(),
+  duration: v.number(),   // minutes
+}
+
+const plannerEventsTable = defineTable(plannerEventsSchema)
+  .index('by_date', ['date'])
+  .index('by_sewer_date', ['sewerId', 'date'])
 
 export type Materials = Doc<'materials'>;
 export type Users = Doc<'users'>;
@@ -164,4 +182,5 @@ export default defineSchema({
   shiftReports: shiftReportsTabel
     .index('by_timeStamp', ['timeStamp']),
   storeMovements: icomingMaterialsTable,
+  plannerEvents: plannerEventsTable,
 });

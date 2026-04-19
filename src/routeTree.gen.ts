@@ -14,11 +14,14 @@ import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedSeamstressRouteImport } from './routes/_authenticated/seamstress'
 import { Route as AuthenticatedAppRouteRouteImport } from './routes/_authenticated/app/route'
+import { Route as AuthenticatedAppUsersRouteImport } from './routes/_authenticated/app/users'
 import { Route as AuthenticatedAppStoreRouteImport } from './routes/_authenticated/app/store'
 import { Route as AuthenticatedAppSpecificationsRouteImport } from './routes/_authenticated/app/specifications'
 import { Route as AuthenticatedAppRegisterRouteImport } from './routes/_authenticated/app/register'
 import { Route as AuthenticatedAppProfileRouteImport } from './routes/_authenticated/app/profile'
 import { Route as AuthenticatedAppProductsRouteImport } from './routes/_authenticated/app/products'
+import { Route as AuthenticatedAppProductionCalendarRouteImport } from './routes/_authenticated/app/production-calendar'
+import { Route as AuthenticatedAppPlannerRouteImport } from './routes/_authenticated/app/planner'
 import { Route as AuthenticatedAppMaterialsRouteImport } from './routes/_authenticated/app/materials'
 import { Route as AuthenticatedAppLoginRouteImport } from './routes/_authenticated/app/login'
 import { Route as AuthenticatedAppInventoryMovementRouteImport } from './routes/_authenticated/app/inventory-movement'
@@ -48,6 +51,11 @@ const AuthenticatedAppRouteRoute = AuthenticatedAppRouteRouteImport.update({
   path: '/app',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedAppUsersRoute = AuthenticatedAppUsersRouteImport.update({
+  id: '/users',
+  path: '/users',
+  getParentRoute: () => AuthenticatedAppRouteRoute,
+} as any)
 const AuthenticatedAppStoreRoute = AuthenticatedAppStoreRouteImport.update({
   id: '/store',
   path: '/store',
@@ -76,6 +84,17 @@ const AuthenticatedAppProductsRoute =
     path: '/products',
     getParentRoute: () => AuthenticatedAppRouteRoute,
   } as any)
+const AuthenticatedAppProductionCalendarRoute =
+  AuthenticatedAppProductionCalendarRouteImport.update({
+    id: '/production-calendar',
+    path: '/production-calendar',
+    getParentRoute: () => AuthenticatedAppRouteRoute,
+  } as any)
+const AuthenticatedAppPlannerRoute = AuthenticatedAppPlannerRouteImport.update({
+  id: '/planner',
+  path: '/planner',
+  getParentRoute: () => AuthenticatedAppRouteRoute,
+} as any)
 const AuthenticatedAppMaterialsRoute =
   AuthenticatedAppMaterialsRouteImport.update({
     id: '/materials',
@@ -108,11 +127,14 @@ export interface FileRoutesByFullPath {
   '/app/inventory-movement': typeof AuthenticatedAppInventoryMovementRoute
   '/app/login': typeof AuthenticatedAppLoginRoute
   '/app/materials': typeof AuthenticatedAppMaterialsRoute
+  '/app/planner': typeof AuthenticatedAppPlannerRoute
+  '/app/production-calendar': typeof AuthenticatedAppProductionCalendarRoute
   '/app/products': typeof AuthenticatedAppProductsRoute
   '/app/profile': typeof AuthenticatedAppProfileRoute
   '/app/register': typeof AuthenticatedAppRegisterRoute
   '/app/specifications': typeof AuthenticatedAppSpecificationsRoute
   '/app/store': typeof AuthenticatedAppStoreRoute
+  '/app/users': typeof AuthenticatedAppUsersRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -123,11 +145,14 @@ export interface FileRoutesByTo {
   '/app/inventory-movement': typeof AuthenticatedAppInventoryMovementRoute
   '/app/login': typeof AuthenticatedAppLoginRoute
   '/app/materials': typeof AuthenticatedAppMaterialsRoute
+  '/app/planner': typeof AuthenticatedAppPlannerRoute
+  '/app/production-calendar': typeof AuthenticatedAppProductionCalendarRoute
   '/app/products': typeof AuthenticatedAppProductsRoute
   '/app/profile': typeof AuthenticatedAppProfileRoute
   '/app/register': typeof AuthenticatedAppRegisterRoute
   '/app/specifications': typeof AuthenticatedAppSpecificationsRoute
   '/app/store': typeof AuthenticatedAppStoreRoute
+  '/app/users': typeof AuthenticatedAppUsersRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -140,11 +165,14 @@ export interface FileRoutesById {
   '/_authenticated/app/inventory-movement': typeof AuthenticatedAppInventoryMovementRoute
   '/_authenticated/app/login': typeof AuthenticatedAppLoginRoute
   '/_authenticated/app/materials': typeof AuthenticatedAppMaterialsRoute
+  '/_authenticated/app/planner': typeof AuthenticatedAppPlannerRoute
+  '/_authenticated/app/production-calendar': typeof AuthenticatedAppProductionCalendarRoute
   '/_authenticated/app/products': typeof AuthenticatedAppProductsRoute
   '/_authenticated/app/profile': typeof AuthenticatedAppProfileRoute
   '/_authenticated/app/register': typeof AuthenticatedAppRegisterRoute
   '/_authenticated/app/specifications': typeof AuthenticatedAppSpecificationsRoute
   '/_authenticated/app/store': typeof AuthenticatedAppStoreRoute
+  '/_authenticated/app/users': typeof AuthenticatedAppUsersRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -157,11 +185,14 @@ export interface FileRouteTypes {
     | '/app/inventory-movement'
     | '/app/login'
     | '/app/materials'
+    | '/app/planner'
+    | '/app/production-calendar'
     | '/app/products'
     | '/app/profile'
     | '/app/register'
     | '/app/specifications'
     | '/app/store'
+    | '/app/users'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -172,11 +203,14 @@ export interface FileRouteTypes {
     | '/app/inventory-movement'
     | '/app/login'
     | '/app/materials'
+    | '/app/planner'
+    | '/app/production-calendar'
     | '/app/products'
     | '/app/profile'
     | '/app/register'
     | '/app/specifications'
     | '/app/store'
+    | '/app/users'
   id:
     | '__root__'
     | '/'
@@ -188,11 +222,14 @@ export interface FileRouteTypes {
     | '/_authenticated/app/inventory-movement'
     | '/_authenticated/app/login'
     | '/_authenticated/app/materials'
+    | '/_authenticated/app/planner'
+    | '/_authenticated/app/production-calendar'
     | '/_authenticated/app/products'
     | '/_authenticated/app/profile'
     | '/_authenticated/app/register'
     | '/_authenticated/app/specifications'
     | '/_authenticated/app/store'
+    | '/_authenticated/app/users'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -238,6 +275,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppRouteRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/app/users': {
+      id: '/_authenticated/app/users'
+      path: '/users'
+      fullPath: '/app/users'
+      preLoaderRoute: typeof AuthenticatedAppUsersRouteImport
+      parentRoute: typeof AuthenticatedAppRouteRoute
+    }
     '/_authenticated/app/store': {
       id: '/_authenticated/app/store'
       path: '/store'
@@ -271,6 +315,20 @@ declare module '@tanstack/react-router' {
       path: '/products'
       fullPath: '/app/products'
       preLoaderRoute: typeof AuthenticatedAppProductsRouteImport
+      parentRoute: typeof AuthenticatedAppRouteRoute
+    }
+    '/_authenticated/app/production-calendar': {
+      id: '/_authenticated/app/production-calendar'
+      path: '/production-calendar'
+      fullPath: '/app/production-calendar'
+      preLoaderRoute: typeof AuthenticatedAppProductionCalendarRouteImport
+      parentRoute: typeof AuthenticatedAppRouteRoute
+    }
+    '/_authenticated/app/planner': {
+      id: '/_authenticated/app/planner'
+      path: '/planner'
+      fullPath: '/app/planner'
+      preLoaderRoute: typeof AuthenticatedAppPlannerRouteImport
       parentRoute: typeof AuthenticatedAppRouteRoute
     }
     '/_authenticated/app/materials': {
@@ -309,11 +367,14 @@ interface AuthenticatedAppRouteRouteChildren {
   AuthenticatedAppInventoryMovementRoute: typeof AuthenticatedAppInventoryMovementRoute
   AuthenticatedAppLoginRoute: typeof AuthenticatedAppLoginRoute
   AuthenticatedAppMaterialsRoute: typeof AuthenticatedAppMaterialsRoute
+  AuthenticatedAppPlannerRoute: typeof AuthenticatedAppPlannerRoute
+  AuthenticatedAppProductionCalendarRoute: typeof AuthenticatedAppProductionCalendarRoute
   AuthenticatedAppProductsRoute: typeof AuthenticatedAppProductsRoute
   AuthenticatedAppProfileRoute: typeof AuthenticatedAppProfileRoute
   AuthenticatedAppRegisterRoute: typeof AuthenticatedAppRegisterRoute
   AuthenticatedAppSpecificationsRoute: typeof AuthenticatedAppSpecificationsRoute
   AuthenticatedAppStoreRoute: typeof AuthenticatedAppStoreRoute
+  AuthenticatedAppUsersRoute: typeof AuthenticatedAppUsersRoute
 }
 
 const AuthenticatedAppRouteRouteChildren: AuthenticatedAppRouteRouteChildren = {
@@ -322,11 +383,15 @@ const AuthenticatedAppRouteRouteChildren: AuthenticatedAppRouteRouteChildren = {
     AuthenticatedAppInventoryMovementRoute,
   AuthenticatedAppLoginRoute: AuthenticatedAppLoginRoute,
   AuthenticatedAppMaterialsRoute: AuthenticatedAppMaterialsRoute,
+  AuthenticatedAppPlannerRoute: AuthenticatedAppPlannerRoute,
+  AuthenticatedAppProductionCalendarRoute:
+    AuthenticatedAppProductionCalendarRoute,
   AuthenticatedAppProductsRoute: AuthenticatedAppProductsRoute,
   AuthenticatedAppProfileRoute: AuthenticatedAppProfileRoute,
   AuthenticatedAppRegisterRoute: AuthenticatedAppRegisterRoute,
   AuthenticatedAppSpecificationsRoute: AuthenticatedAppSpecificationsRoute,
   AuthenticatedAppStoreRoute: AuthenticatedAppStoreRoute,
+  AuthenticatedAppUsersRoute: AuthenticatedAppUsersRoute,
 }
 
 const AuthenticatedAppRouteRouteWithChildren =
