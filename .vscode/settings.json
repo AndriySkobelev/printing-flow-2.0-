@@ -8,5 +8,5 @@
   "files.readonlyInclude": {
     "**/routeTree.gen.ts": true
   },
-  "claudeCode.useTerminal": false
+  "claudeCode.useTerminal": true
 }
