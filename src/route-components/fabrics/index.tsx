@@ -66,7 +66,7 @@ const Fabrics: FunctionComponent<FabricsProps> = () => {
     <div className="flex flex-col gap-4 p-4">
       <div className="flex items-start justify-end w-fit gap-2">
         <Button type="button" onClick={handleOpenDialog}>Додати тканину</Button>
-        <Button type="button" onClick={() => migrateFabricsAddName}>Додати name</Button>
+        <Button type="button" onClick={() => migrateFabricsAddName({})}>Додати name</Button>
         <form
           onSubmit={(e) => {
             e.preventDefault();
