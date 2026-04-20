@@ -92,7 +92,6 @@ export const createFabrics = mutation({
 ///////// MUTATIONS //////////
 
 export const migrateFabricsAddName = mutation({
-  args: {},
   handler: async (ctx) => {
     const fabrics = await ctx.db.query("fabrics").collect();
     await Promise.all(fabrics.map(async (fabric) => {

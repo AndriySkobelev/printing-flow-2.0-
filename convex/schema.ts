@@ -125,8 +125,15 @@ export const users = {
   ))
 }
 
+export const orders = {
+  orderId: v.string(),
+  externalData: v.object({}),
+  externalProducts: v.array(v.object({})),
+}
+
 const fabricsTable = defineTable(fabricsSchema)
 const usersTable = defineTable(users)
+const ordersTable = defineTable(orders)
 const proudctsTable = defineTable(productVariants);
 const shiftReportsTabel = defineTable(shiftReports)
 const materialsTable = defineTable(materialsSchema)
@@ -151,6 +158,7 @@ export type Materials = Doc<'materials'>;
 export type Users = Doc<'users'>;
 export type ShiftReportsType = Doc<'shiftReports'>;
 export type Fabrics = Doc<'fabrics'>;
+export type Orders = Doc<'oreders'>;
 export type Products = Doc<'products'>;
 export type Specifications = Doc<'specifications'>;
 export type StoreMovements = Doc<'storeMovements'>;
@@ -158,6 +166,7 @@ export type StoreMovements = Doc<'storeMovements'>;
 export default defineSchema({
   ...authTables,
   users: usersTable.index("email", ["email"]),
+  oreders: ordersTable.index("orderId", ["orderId"]),
   fabrics: fabricsTable
     .searchIndex('search_name', {
       searchField: 'fabricName',

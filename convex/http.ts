@@ -1,6 +1,6 @@
 import { httpRouter } from "convex/server";
 import { auth } from "./auth";
-import { checkIncomnigVerify } from './htttp_actions/iventory_movements';
+import { checkIncomnigVerify } from './http_actions/iventory_movements';
 
 const http = httpRouter();
 

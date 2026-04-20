@@ -277,12 +277,12 @@ function DayView({ date, events, onSlotClick, onEdit, onDrop }: {
         <div className="flex flex-col gap-px mt-1">
           {SEWERS.map(sewer => (
             <SewerRow
-              key={sewer.id}
-              sewer={sewer}
-              events={dayEvents.filter(e => e.sewerId === sewer.id)}
               date={date}
-              onSlotClick={onSlotClick}
+              sewer={sewer}
+              key={sewer.id}
               onEdit={onEdit}
+              onSlotClick={onSlotClick}
+              events={dayEvents.filter(e => e.sewerId === sewer.id)}
             />
           ))}
         </div>
