@@ -20,6 +20,7 @@ import { Route as AuthenticatedAppSpecificationsRouteImport } from './routes/_au
 import { Route as AuthenticatedAppRegisterRouteImport } from './routes/_authenticated/app/register'
 import { Route as AuthenticatedAppProfileRouteImport } from './routes/_authenticated/app/profile'
 import { Route as AuthenticatedAppProductsRouteImport } from './routes/_authenticated/app/products'
+import { Route as AuthenticatedAppProductionCutRouteImport } from './routes/_authenticated/app/production-cut'
 import { Route as AuthenticatedAppProductionCalendarRouteImport } from './routes/_authenticated/app/production-calendar'
 import { Route as AuthenticatedAppPlannerRouteImport } from './routes/_authenticated/app/planner'
 import { Route as AuthenticatedAppMaterialsRouteImport } from './routes/_authenticated/app/materials'
@@ -84,6 +85,12 @@ const AuthenticatedAppProductsRoute =
     path: '/products',
     getParentRoute: () => AuthenticatedAppRouteRoute,
   } as any)
+const AuthenticatedAppProductionCutRoute =
+  AuthenticatedAppProductionCutRouteImport.update({
+    id: '/production-cut',
+    path: '/production-cut',
+    getParentRoute: () => AuthenticatedAppRouteRoute,
+  } as any)
 const AuthenticatedAppProductionCalendarRoute =
   AuthenticatedAppProductionCalendarRouteImport.update({
     id: '/production-calendar',
@@ -129,6 +136,7 @@ export interface FileRoutesByFullPath {
   '/app/materials': typeof AuthenticatedAppMaterialsRoute
   '/app/planner': typeof AuthenticatedAppPlannerRoute
   '/app/production-calendar': typeof AuthenticatedAppProductionCalendarRoute
+  '/app/production-cut': typeof AuthenticatedAppProductionCutRoute
   '/app/products': typeof AuthenticatedAppProductsRoute
   '/app/profile': typeof AuthenticatedAppProfileRoute
   '/app/register': typeof AuthenticatedAppRegisterRoute
@@ -147,6 +155,7 @@ export interface FileRoutesByTo {
   '/app/materials': typeof AuthenticatedAppMaterialsRoute
   '/app/planner': typeof AuthenticatedAppPlannerRoute
   '/app/production-calendar': typeof AuthenticatedAppProductionCalendarRoute
+  '/app/production-cut': typeof AuthenticatedAppProductionCutRoute
   '/app/products': typeof AuthenticatedAppProductsRoute
   '/app/profile': typeof AuthenticatedAppProfileRoute
   '/app/register': typeof AuthenticatedAppRegisterRoute
@@ -167,6 +176,7 @@ export interface FileRoutesById {
   '/_authenticated/app/materials': typeof AuthenticatedAppMaterialsRoute
   '/_authenticated/app/planner': typeof AuthenticatedAppPlannerRoute
   '/_authenticated/app/production-calendar': typeof AuthenticatedAppProductionCalendarRoute
+  '/_authenticated/app/production-cut': typeof AuthenticatedAppProductionCutRoute
   '/_authenticated/app/products': typeof AuthenticatedAppProductsRoute
   '/_authenticated/app/profile': typeof AuthenticatedAppProfileRoute
   '/_authenticated/app/register': typeof AuthenticatedAppRegisterRoute
@@ -187,6 +197,7 @@ export interface FileRouteTypes {
     | '/app/materials'
     | '/app/planner'
     | '/app/production-calendar'
+    | '/app/production-cut'
     | '/app/products'
     | '/app/profile'
     | '/app/register'
@@ -205,6 +216,7 @@ export interface FileRouteTypes {
     | '/app/materials'
     | '/app/planner'
     | '/app/production-calendar'
+    | '/app/production-cut'
     | '/app/products'
     | '/app/profile'
     | '/app/register'
@@ -224,6 +236,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/materials'
     | '/_authenticated/app/planner'
     | '/_authenticated/app/production-calendar'
+    | '/_authenticated/app/production-cut'
     | '/_authenticated/app/products'
     | '/_authenticated/app/profile'
     | '/_authenticated/app/register'
@@ -317,6 +330,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppProductsRouteImport
       parentRoute: typeof AuthenticatedAppRouteRoute
     }
+    '/_authenticated/app/production-cut': {
+      id: '/_authenticated/app/production-cut'
+      path: '/production-cut'
+      fullPath: '/app/production-cut'
+      preLoaderRoute: typeof AuthenticatedAppProductionCutRouteImport
+      parentRoute: typeof AuthenticatedAppRouteRoute
+    }
     '/_authenticated/app/production-calendar': {
       id: '/_authenticated/app/production-calendar'
       path: '/production-calendar'
@@ -369,6 +389,7 @@ interface AuthenticatedAppRouteRouteChildren {
   AuthenticatedAppMaterialsRoute: typeof AuthenticatedAppMaterialsRoute
   AuthenticatedAppPlannerRoute: typeof AuthenticatedAppPlannerRoute
   AuthenticatedAppProductionCalendarRoute: typeof AuthenticatedAppProductionCalendarRoute
+  AuthenticatedAppProductionCutRoute: typeof AuthenticatedAppProductionCutRoute
   AuthenticatedAppProductsRoute: typeof AuthenticatedAppProductsRoute
   AuthenticatedAppProfileRoute: typeof AuthenticatedAppProfileRoute
   AuthenticatedAppRegisterRoute: typeof AuthenticatedAppRegisterRoute
@@ -386,6 +407,7 @@ const AuthenticatedAppRouteRouteChildren: AuthenticatedAppRouteRouteChildren = {
   AuthenticatedAppPlannerRoute: AuthenticatedAppPlannerRoute,
   AuthenticatedAppProductionCalendarRoute:
     AuthenticatedAppProductionCalendarRoute,
+  AuthenticatedAppProductionCutRoute: AuthenticatedAppProductionCutRoute,
   AuthenticatedAppProductsRoute: AuthenticatedAppProductsRoute,
   AuthenticatedAppProfileRoute: AuthenticatedAppProfileRoute,
   AuthenticatedAppRegisterRoute: AuthenticatedAppRegisterRoute,
