@@ -11,4 +11,12 @@ export function useCreateFabrics() {
   return useMutation({ mutationFn })
 }
 
+export function useCreateFabricsName() {
+  const mutationFn = useConvexMutation(
+    api.queries.fabrics.migrateFabricsAddName,
+  )
+
+  return useMutation({ mutationFn })
+}
+
 

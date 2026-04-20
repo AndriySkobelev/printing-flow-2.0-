@@ -6,6 +6,10 @@ import clsx from 'clsx'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import AppTable from '@/components/ui/app-table'
+import { useQuery } from '@tanstack/react-query'
+import { convexQuery, useConvexQuery } from '@convex-dev/react-query'
+import { api } from 'convex/_generated/api'
+import { useAction } from 'convex/react'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -143,6 +147,10 @@ const makeHeaders = (onSchedule: (row: OrderRow) => void): Array<HeaderObject> =
 type TypeFilter = 'all' | OrderType
 
 export default function ProductionCut() {
+  const some = useAction(api.http_actions.orders.getOrdersKeyCrm)
+  console.log("🚀 ~ ProductionCut ~ someAction:", some)
+  const { data } = useQuery(convexQuery(api.queries.orders.getCRMOrders))
+  console.log("🚀 ~ ProductionCut ~ data:", data)
   const navigate = useNavigate()
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all')

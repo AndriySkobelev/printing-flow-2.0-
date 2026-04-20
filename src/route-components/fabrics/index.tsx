@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query'
 import { convexQuery } from '@convex-dev/react-query'
 import { api } from "convex/_generated/api";
 import { DialogContext } from '@/contexts/dialog'
-import { useCreateFabrics } from "./queries";
+import { useCreateFabrics, useCreateFabricsName } from "./queries";
 import { Button } from "@/components/ui/button";
 import CreateFabrics from "./forms/create-fabrics";
 import { useAppForm } from "@/components/main-form";
@@ -32,6 +32,7 @@ const headers: Array<HeaderObject> = [
 
 const Fabrics: FunctionComponent<FabricsProps> = () => {
   const { data, isLoading } = useQuery(convexQuery(api.queries.fabrics.getFabrics));
+  const { mutate: migrateFabricsAddName } = useCreateFabricsName();
   const { mutate: createFabrics } = useCreateFabrics();
   const [search, setSearch] = useState('');
   const { openDialog, closeDialog } = useContext(DialogContext);
@@ -65,6 +66,7 @@ const Fabrics: FunctionComponent<FabricsProps> = () => {
     <div className="flex flex-col gap-4 p-4">
       <div className="flex items-start justify-end w-fit gap-2">
         <Button type="button" onClick={handleOpenDialog}>Додати тканину</Button>
+        <Button type="button" onClick={() => migrateFabricsAddName}>Додати name</Button>
         <form
           onSubmit={(e) => {
             e.preventDefault();

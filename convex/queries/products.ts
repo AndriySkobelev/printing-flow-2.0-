@@ -141,7 +141,8 @@ export const createProductsBySpecification = mutation({
   },
   handler: async (ctx, args) => {
     const spec = await getSpecWithMaterials(ctx, args.specification);
-    console.log("🚀 ~ spec:", spec)
+    const checkSpectCreated = await ctx.db.query('products').filter(q => q.eq(q.field('parentId'), args.specification)).first();
+    if (checkSpectCreated) throw new Error(`Products for specification with id ${args.specification} already created`);
     const sizes = args.allSizes ? productSizes : args.sizes?.map(size => size.value);
     const specFabric = spec?.materials.find(material => material.fabricId && material?.type === 'fabric');
     const fabricsByColors: Array<{ color: string, _id: string}> = args.allColors 
@@ -167,7 +168,6 @@ export const createProductsBySpecification = mutation({
       }
       return data;
     }))
-    console.log("🚀 ~ combineProducts:", combineProducts)
     const addedData = combineProducts || [];
     await Promise.all(addedData?.map(async (value) => { await ctx.db.insert('products', value as any) }))
 

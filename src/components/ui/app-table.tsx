@@ -13,6 +13,9 @@ interface AppTableProps {
   rowGrouping?: string[];
   height?: number | string;
   fallback?: React.ReactNode;
+  editColumns?: boolean;
+  selectableCells?: boolean;
+  expandAll?: boolean;
   enableRowSelection?: boolean;
   enableStickyParents?: boolean;
   defaultHeaders: HeaderObject[];
