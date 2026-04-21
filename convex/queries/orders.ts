@@ -18,10 +18,19 @@ export const getCRMOrders = mutation({
       'custom_fields',
       'manager_comment'
     ], externalData);
+    const products = pickData.products?.map((product: any) => pick([
+      'id',
+      'sku',
+      'comment',
+      'quantity',
+      'shipment_type',
+      'product_status_id',
+    ], product));
     console.log("🚀 ~ getCRMOrders args:", args)
     await _ctx.db.insert('orders', {
       orderId: String(externalData?.id),
-      externalData: pickData
+      externalData: pickData,
+      products
     })
     return args.externalData;
   }

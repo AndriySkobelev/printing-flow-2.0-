@@ -128,6 +128,14 @@ export const users = {
 export const orders = {
   orderId: v.optional(v.union(v.string(), v.number())),
   externalData: v.any(),
+  products: v.optional(v.array(v.object({
+    sku: v.string(),
+    quantity: v.union(v.number(), v.string()),
+    id: v.optional(v.union(v.string(), v.number())),
+    comment: v.optional(v.union(v.string(), v.null())),
+    shipment_type: v.optional(v.union(v.string(), v.null())),
+    product_status_id: v.optional(v.union(v.string(), v.null())),
+  }))),
 }
 
 const fabricsTable = defineTable(fabricsSchema)
