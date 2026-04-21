@@ -94,10 +94,10 @@ const Fabrics: FunctionComponent<FabricsProps> = () => {
         enableRowSelection
         enableStickyParents
         isLoading={isLoading}
-        quickFilter={{ mode: 'smart', text: search, caseSensitive: false }}
-        rowGrouping={['group', 'data']}
         defaultHeaders={headers}
+        rowGrouping={['group', 'data']}
         getRowId={(row) => row.row._id as string}
+        quickFilter={{ mode: 'smart', text: search, caseSensitive: false }}
       />
     </div>
   );

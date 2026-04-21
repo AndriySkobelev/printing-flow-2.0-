@@ -147,10 +147,8 @@ const makeHeaders = (onSchedule: (row: OrderRow) => void): Array<HeaderObject> =
 type TypeFilter = 'all' | OrderType
 
 export default function ProductionCut() {
-  const some = useAction(api.http_actions.orders.getOrdersKeyCrm)
-  console.log("🚀 ~ ProductionCut ~ someAction:", some)
-  const { data } = useQuery(convexQuery(api.queries.orders.getCRMOrders))
-  console.log("🚀 ~ ProductionCut ~ data:", data)
+  // const { data } = useQuery(convexQuery(api.queries.orders.getCRMOrders))
+  // console.log("🚀 ~ ProductionCut ~ data:", data)
   const navigate = useNavigate()
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all')
@@ -217,9 +215,9 @@ export default function ProductionCut() {
       {/* Table */}
       <AppTable
         rows={rows}
+        height={600}
         defaultHeaders={headers}
         getRowId={({ row }) => (row as OrderRow).id}
-        height={600}
       />
     </div>
   )
