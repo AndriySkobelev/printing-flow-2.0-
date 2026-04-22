@@ -12,6 +12,7 @@ import type * as auth from "../auth.js";
 import type * as http from "../http.js";
 import type * as http_actions_iventory_movements from "../http_actions/iventory_movements.js";
 import type * as http_actions_orders from "../http_actions/orders.js";
+import type * as queries_cutting from "../queries/cutting.js";
 import type * as queries_fabrics from "../queries/fabrics.js";
 import type * as queries_manipulations from "../queries/manipulations.js";
 import type * as queries_materials from "../queries/materials.js";
@@ -34,6 +35,7 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   "http_actions/iventory_movements": typeof http_actions_iventory_movements;
   "http_actions/orders": typeof http_actions_orders;
+  "queries/cutting": typeof queries_cutting;
   "queries/fabrics": typeof queries_fabrics;
   "queries/manipulations": typeof queries_manipulations;
   "queries/materials": typeof queries_materials;

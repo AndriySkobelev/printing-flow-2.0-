@@ -138,6 +138,285 @@ export const orders = {
   }))),
 }
 
+// ─── МАППІНГ СТАТУСІВ З KEYCRM ──────────────────────────────────────────────
+ 
+export const productStatusMappings = {
+  keycrmStatusId: v.number(),
+  label: v.string(),
+  processingType: v.union(
+    v.literal("branding"),
+    v.literal("embroidery"),
+    v.literal("silkscreen"),
+    v.literal("none")
+  ),
+};
+
+// ─── ВИРОБНИЧІ ЗАМОВЛЕННЯ ───────────────────────────────────────────────────
+ 
+export const productionOrders = {
+  keycrmOrderId: v.string(),
+  startDate: v.number(),
+  plannedShipDate: v.number(),
+  status: v.union(
+    v.literal("active"),
+    v.literal("done"),
+    v.literal("cancelled")
+  ),
+};
+
+// ─── ТОВАРИ ЗАМОВЛЕННЯ ──────────────────────────────────────────────────────
+ 
+export const productionOrderItems = {
+  productionOrderId: v.id("productionOrders"),
+  keycrmOrderId: v.string(),
+  keycrmProductId: v.number(),
+  name: v.string(),
+  sku: v.string(),
+  color: v.string(),
+  size: v.string(),
+  quantity: v.number(),
+  shipmentType: v.union(
+    v.literal("manufacturing"),
+    v.literal("warehouse"),
+    v.null()
+  ),
+  keycrmProductStatusId: v.union(v.number(), v.null()),
+  processingType: v.optional(v.union(
+    v.literal("branding"),
+    v.literal("embroidery"),
+    v.literal("silkscreen"),
+    v.literal("none")
+  )),
+  needsCutting: v.optional(v.boolean()),
+  needsSewing: v.optional(v.boolean()),
+  needsBranding: v.optional(v.boolean()),
+  needsSubcontractor: v.optional(v.boolean()),
+  needsPackaging: v.optional(v.boolean()),
+};
+
+// ─── РОЗКРІЙ ────────────────────────────────────────────────────────────────
+ 
+export const cuttingTasks = {
+  productionOrderId: v.id("productionOrders"),
+  keycrmOrderId: v.string(),
+  specName: v.string(),
+  fabric: v.string(),
+  color: v.string(),
+  startDate: v.optional(v.number()),
+  endDate: v.optional(v.number()),
+  status: v.union(
+    v.literal("new"),
+    v.literal("in_progress"),
+    v.literal("done"),
+    v.literal("delayed")
+  ),
+  assignedTo: v.optional(v.id("users")),
+  note: v.optional(v.string()),
+};
+
+export const cuttingTaskSizes = {
+  cuttingTaskId: v.id("cuttingTasks"),
+  productionOrderItemId: v.id("productionOrderItems"),
+  size: v.string(),
+  quantity: v.number(),
+  completedQty: v.number(),
+  comment: v.optional(v.string()),
+  logs: v.optional(v.array(v.object({
+    quantity: v.number(),
+    timestamp: v.number(),
+    userId: v.id("users"),
+    comment: v.optional(v.string()),
+  }))),
+};
+
+// ─── ПОШИВ ──────────────────────────────────────────────────────────────────
+ 
+export const sewingTasks = {
+  productionOrderId: v.id("productionOrders"),
+  keycrmOrderId: v.string(),
+  specName: v.string(),
+  totalQuantity: v.number(),
+  startDate: v.number(),
+  endDate: v.number(),
+  status: v.union(
+    v.literal("new"),
+    v.literal("in_progress"),
+    v.literal("done"),
+    v.literal("delayed")
+  ),
+  note: v.optional(v.string()),
+};
+
+export const sewingSubTasks = {
+  sewingTaskId: v.id("sewingTasks"),
+  assignedTo: v.id("users"),
+  quantity: v.number(),
+  startDate: v.number(),
+  endDate: v.number(),
+  status: v.union(
+    v.literal("new"),
+    v.literal("in_progress"),
+    v.literal("done"),
+    v.literal("paused")
+  ),
+  note: v.optional(v.string()),
+};
+
+export const sewingLogs = {
+  sewingSubTaskId: v.id("sewingSubTasks"),
+  type: v.union(
+    v.literal("completed"),
+    v.literal("defect_fabric"),
+    v.literal("defect_sewing")
+  ),
+  quantity: v.number(),
+  timestamp: v.number(),
+  note: v.optional(v.string()),
+};
+ 
+// ─── БРЕНДУВАННЯ ────────────────────────────────────────────────────────────
+ 
+export const brandingTasks = {
+  productionOrderId: v.id("productionOrders"),
+  keycrmOrderId: v.string(),
+  startDate: v.number(),
+  endDate: v.number(),
+  status: v.union(
+    v.literal("new"),
+    v.literal("in_progress"),
+    v.literal("done"),
+    v.literal("paused"),
+    v.literal("waiting")
+  ),
+  note: v.optional(v.string()),
+};
+ 
+export const brandingLogs = {
+  brandingTaskId: v.id("brandingTasks"),
+  productionOrderItemId: v.id("productionOrderItems"),
+  userId: v.id("users"),
+  type: v.union(
+    v.literal("completed"),
+    v.literal("defect_fabric"),
+    v.literal("defect_print")
+  ),
+  quantity: v.number(),
+  timestamp: v.number(),
+  comment: v.optional(v.string()),
+};
+ 
+// ─── ПАКУВАННЯ ──────────────────────────────────────────────────────────────
+ 
+export const packagingTasks = {
+  productionOrderId: v.id("productionOrders"),
+  keycrmOrderId: v.string(),
+  startDate: v.number(),
+  endDate: v.number(),
+  status: v.union(
+    v.literal("new"),
+    v.literal("in_progress"),
+    v.literal("done"),
+    v.literal("paused"),
+    v.literal("waiting")
+  ),
+  note: v.optional(v.string()),
+};
+
+export const packagingLogs = {
+  packagingTaskId: v.id("packagingTasks"),
+  productionOrderItemId: v.id("productionOrderItems"),
+  userId: v.id("users"),
+  type: v.union(
+    v.literal("completed"),
+    v.literal("defect_fabric"),
+    v.literal("defect_print"),
+    v.literal("defect_sewing")
+  ),
+  quantity: v.number(),
+  timestamp: v.number(),
+  comment: v.optional(v.string()),
+};
+ 
+// ─── ПІДРЯДНИКИ ─────────────────────────────────────────────────────────────
+ 
+export const subcontractors = {
+  name: v.string(),
+  type: v.union(
+    v.literal("embroidery"),
+    v.literal("silkscreen"),
+    v.literal("other")
+  ),
+  leadTimeDays: v.number(),
+};
+
+export const subcontractorTasks = {
+  productionOrderId: v.id("productionOrders"),
+  keycrmOrderId: v.string(),
+  subcontractorId: v.id("subcontractors"),
+  type: v.union(
+    v.literal("embroidery"),
+    v.literal("silkscreen")
+  ),
+  quantity: v.number(),
+  sentDate: v.number(),
+  expectedReturnDate: v.number(),
+  actualReturnDate: v.optional(v.number()),
+  status: v.union(
+    v.literal("sent"),
+    v.literal("in_progress"),
+    v.literal("returned"),
+    v.literal("delayed")
+  ),
+  note: v.optional(v.string()),
+};
+
+
+const productStatusMappingsTable = defineTable(productStatusMappings)
+  .index("by_keycrmStatusId", ["keycrmStatusId"]);
+const productionOrdersTable = defineTable(productionOrders)
+  .index("by_keycrmOrderId", ["keycrmOrderId"])
+  .index("by_status", ["status"]);
+const productionOrderItemsTable = defineTable(productionOrderItems)
+  .index("by_productionOrder", ["productionOrderId"])
+  .index("by_keycrmOrderId", ["keycrmOrderId"])
+  .index("by_sku", ["sku"]);
+const cuttingTasksTable = defineTable(cuttingTasks)
+  .index("by_productionOrder", ["productionOrderId"])
+  .index("by_status", ["status"])
+  .index("by_assignedTo", ["assignedTo"]);
+const cuttingTaskSizesTable = defineTable(cuttingTaskSizes)
+  .index("by_cuttingTask", ["cuttingTaskId"])
+  .index("by_productionOrderItem", ["productionOrderItemId"]);
+const subcontractorTasksTable = defineTable(subcontractorTasks)
+  .index("by_productionOrder", ["productionOrderId"])
+  .index("by_subcontractor", ["subcontractorId"])
+  .index("by_status", ["status"]);
+const subcontractorsTable = defineTable(subcontractors);
+const packagingLogsTable = defineTable(packagingLogs)
+  .index("by_packagingTask", ["packagingTaskId"])
+  .index("by_productionOrderItem", ["productionOrderItemId"])
+  .index("by_type", ["type"]);
+const packagingTasksTable = defineTable(packagingTasks)
+  .index("by_productionOrder", ["productionOrderId"])
+  .index("by_status", ["status"]);
+const brandingLogsTable = defineTable(brandingLogs)
+  .index("by_brandingTask", ["brandingTaskId"])
+  .index("by_productionOrderItem", ["productionOrderItemId"])
+  .index("by_type", ["type"]);
+const brandingTasksTable = defineTable(brandingTasks)
+  .index("by_productionOrder", ["productionOrderId"])
+  .index("by_status", ["status"]);
+const sewingLogsTable = defineTable(sewingLogs)
+  .index("by_sewingSubTask", ["sewingSubTaskId"])
+  .index("by_type", ["type"]);
+const sewingSubTasksTable = defineTable(sewingSubTasks)
+  .index("by_sewingTask", ["sewingTaskId"])
+  .index("by_assignedTo", ["assignedTo"]);
+const sewingTasksTable = defineTable(sewingTasks)
+  .index("by_productionOrder", ["productionOrderId"])
+  .index("by_status", ["status"]);
+
+
 const fabricsTable = defineTable(fabricsSchema)
 const usersTable = defineTable(users)
 const ordersTable = defineTable(orders)
@@ -172,6 +451,20 @@ export type StoreMovements = Doc<'storeMovements'>;
 
 export default defineSchema({
   ...authTables,
+  productStatusMappings: productStatusMappingsTable,
+  productionOrders: productionOrdersTable,
+  productionOrderItems: productionOrderItemsTable,
+  cuttingTasks: cuttingTasksTable,
+  cuttingTaskSizes: cuttingTaskSizesTable,
+  sewingTasks: sewingTasksTable,
+  sewingSubTasks: sewingSubTasksTable,
+  sewingLogs: sewingLogsTable,
+  brandingTasks: brandingTasksTable,
+  brandingLogs: brandingLogsTable,
+  packagingTasks: packagingTasksTable,
+  packagingLogs: packagingLogsTable,
+  subcontractors: subcontractorsTable,
+  subcontractorTasks: subcontractorTasksTable,
   users: usersTable.index("email", ["email"]),
   orders: ordersTable.index("orderId", ["orderId"]),
   fabrics: fabricsTable
