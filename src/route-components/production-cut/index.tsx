@@ -13,7 +13,7 @@ import { useAction } from 'convex/react'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-const SIZES = ['4XS', '3XS', 'XXS', 'XS', 'S', 'M', 'L', 'XL', '2XL'] as const
+const SIZES = ['4XS', '3XS', 'XXS', 'XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', '4XL'] as const
 type Size = typeof SIZES[number]
 
 const ORDER_TYPES = {
@@ -92,9 +92,9 @@ const makeHeaders = (onSchedule: (row: OrderRow) => void): Array<HeaderObject> =
     isSortable: true,
     type: 'number',
     cellRenderer: ({ row }) => {
+      // console.log('row', row)
       const n = (row as OrderRow)[`sz_${s}`] as number | null
       if (!n) return <span className="text-muted-foreground text-xs">—</span>
-      const dot = n <= 10 ? 'bg-green-500' : n <= 40 ? 'bg-yellow-400' : 'bg-red-500'
       return (
         <span className="flex items-center gap-1">
           <span className={`flex items-center justify-center text-sm text-center p-1.5 bg-primary/20 rounded-md w-9 h-9`}>{n}</span>
@@ -147,10 +147,6 @@ const makeHeaders = (onSchedule: (row: OrderRow) => void): Array<HeaderObject> =
 type TypeFilter = 'all' | OrderType
 
 export default function ProductionCut() {
-  const some = useAction(api.http_actions.orders.getOrdersKeyCrm)
-  console.log("🚀 ~ ProductionCut ~ someAction:", some)
-  const { data } = useQuery(convexQuery(api.queries.orders.getCRMOrders))
-  console.log("🚀 ~ ProductionCut ~ data:", data)
   const navigate = useNavigate()
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all')
@@ -160,6 +156,7 @@ export default function ProductionCut() {
   }
 
   const headers = useMemo(() => makeHeaders(handleSchedule), [])
+  console.log('headers', headers)
 
   const rows = useMemo(() => {
     const q = search.toLowerCase()
@@ -171,7 +168,7 @@ export default function ProductionCut() {
       })
       .map(toRow)
   }, [search, typeFilter])
-
+  console.log('rows', rows)
   const stats = useMemo(() => ({
     total: ORDERS.length,
     qty: ORDERS.reduce((s, o) => s + totalQty(o.sizes), 0),
