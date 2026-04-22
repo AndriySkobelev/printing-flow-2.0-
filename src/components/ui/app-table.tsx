@@ -28,7 +28,7 @@ const AppTable = ({ fallback, defaultHeaders, height, rows, isLoading, getRowId,
   <Suspense fallback={fallback ?? <div className="flex items-center justify-center w-full h-32"><Spinner className="w-5 h-5" /></div>}>
     <SimpleTable
       rows={rows}
-      height={650}
+      height={height || 650}
       defaultHeaders={defaultHeaders}
       getRowId={getRowId}
       isLoading={isLoading}

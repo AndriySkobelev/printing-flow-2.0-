@@ -214,9 +214,9 @@ export default function ProductionCut() {
       {/* Table */}
       <AppTable
         rows={rows}
+        height={600}
         defaultHeaders={headers}
         getRowId={({ row }) => (row as OrderRow).id}
-        height={600}
       />
     </div>
   )
