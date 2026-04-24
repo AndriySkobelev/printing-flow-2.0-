@@ -1,157 +1,221 @@
-import { useCallback, useMemo, useState } from 'react';
-import { find, prop, propEq } from 'ramda'
-import {DndContext, useDraggable, useDroppable} from '@dnd-kit/core';
-import {CSS} from '@dnd-kit/utilities';
+import { useCallback, useMemo, useState, lazy, Suspense } from 'react'
+import {
+  dateFnsLocalizer,
+  type SlotInfo,
+  type View,
+} from 'react-big-calendar'
+import { format, getDay, parse, startOfWeek } from 'date-fns'
+import { uk } from 'date-fns/locale'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 
-function Draggable(props: any) {
-  const {attributes, listeners, setNodeRef, transform} = useDraggable({
-    id: props.id,
-    data: {
-      ...props.data,
-    },
-  });
-  const style = useMemo(() => ({
-    // Outputs `translate3d(x, y, 0)`
-    transform: CSS.Translate.toString(transform),
-    backgroundColor: 'red',
-    transition: 'width 0.2s ease-in-out',
-    width: props.plusWidth && props.id ? `${props.plusWidth + 100}px` : '100px',
-    height: '100px',
-  }), [props.plusWidth, transform]);
+const Calendar = lazy(() =>
+  import('react-big-calendar').then(m => ({ default: m.Calendar }))
+)
 
-  return (
-    <button ref={setNodeRef} style={style} {...listeners} {...attributes}>
-      {props.children}
-    </button>
-  );
+const localizer = dateFnsLocalizer({
+  format,
+  parse,
+  startOfWeek: (d: Date) => startOfWeek(d, { locale: uk }),
+  getDay,
+  locales: { uk },
+})
+
+export type CalendarEventType =
+  | 'cutting'
+  | 'sewing'
+  | 'branding'
+  | 'packaging'
+  | 'subcontractor'
+
+export type CalendarEvent = {
+  id: string
+  title: string
+  start: Date
+  end: Date
+  type?: CalendarEventType
+  status?: string
+  allDay?: boolean
+  resource?: unknown
 }
 
-function Droppable(props: any) {
-  const {isOver, setNodeRef} = useDroppable({
-    id: props.id,
-    data: {
-      containerId: props.id,
-      plusWidth: props.plusWidth,
-    },
-  });
-  const style = {
-    opacity: isOver ? 1 : 0.5,
-    backgroundColor: 'blue',
-    width: '300px',
-    height: '300px',
-  };
-
-  return (
-    <div ref={setNodeRef} style={style}>
-      {props.children}
-    </div>
-  );
+const EVENT_COLORS: Record<CalendarEventType, { bg: string; border: string; text: string }> = {
+  cutting:       { bg: '#dbeafe', border: '#3b82f6', text: '#1d4ed8' },
+  sewing:        { bg: '#ede9fe', border: '#8b5cf6', text: '#6d28d9' },
+  branding:      { bg: '#ffedd5', border: '#f97316', text: '#c2410c' },
+  packaging:     { bg: '#d1fae5', border: '#10b981', text: '#065f46' },
+  subcontractor: { bg: '#fce7f3', border: '#ec4899', text: '#9d174d' },
 }
 
-const ListItems = ({
-  items = [],
-  containerData = null,
-  activeItems = [],
-  type,
-  plusWidth
-}:{
-  items?: Array<any>,
-  containerId?: string,
-  activeItems?: Array<any>,
-  type:'current' | 'active',
-  plusWidth?: number | null,
-  containerData?: any | null
-}) => {
-  const filetedItems = useMemo(() => {
-    return items.filter((item) => {
-      const draggedItem = find(propEq(item.draggedId, 'draggedId'))(activeItems);
-      if (containerData?.containerId) {
-        return item.containerId === containerData.containerId;
-      }
-      return !draggedItem;
-    });
-  }, [items, activeItems]);
-  const filterActiveItems = useMemo(() => {
-    return activeItems.filter((item) => {
-      if (containerData?.containerId) {
-        return item.containerId === containerData.containerId;
-      }
-      return true;
-    });
-  }, [activeItems, containerData]);
-  const typeItems = type === 'current' ? filetedItems : filterActiveItems;
-  return (
-    <div className="flex gap-2">
-      {typeItems.map((item) => (
-        <Draggable id={item.draggedId} key={`${item.draggedId}-${containerData?.containerId}`} data={item} plusWidth={containerData?.plusWidth}>
-          {item?.draggedId}
-        </Draggable>
-      ))}
-    </div>
-  );
+export const EVENT_TYPE_LABELS: Record<CalendarEventType, string> = {
+  cutting:       'Розкрій',
+  sewing:        'Пошив',
+  branding:      'Брендування',
+  packaging:     'Пакування',
+  subcontractor: 'Підрядник',
 }
-const arr = [{draggedId: 1, name: '1', plusWidth: 0}, {draggedId: 2, name: '2', plusWidth: 0}, {draggedId: 3, name: '3', plusWidth: 0}, {draggedId: 4, name: '4', plusWidth: 0}, {draggedId: 5, name: '5', plusWidth: 0}];
 
-function Example() {
-  const containers = [{containerId: 'A', name: 'A', plusWidth: 40}, {containerId: 'B', name: 'B', plusWidth: 80}, {containerId: 'C', name: 'C', plusWidth: 120}];
-  const [plusWidth, setPlusWidth] = useState<number | null>(null);
-  const [activeItems, setActiveItems] = useState<Array<any>>([]);
-  // console.log("🚀 ~ Example ~ activeItems:", activeItems)
+const VIEWS: { key: View; label: string }[] = [
+  { key: 'month',  label: 'Місяць'  },
+  { key: 'week',   label: 'Тиждень' },
+  { key: 'day',    label: 'День'    },
+  { key: 'agenda', label: 'Список'  },
+]
 
-  // console.log("🚀 ~ Example ~ filetedItems:", filetedItems)
-  return (
-    <DndContext onDragEnd={handleDragEnd} onDragOver={handleDragOver}>
-      {<ListItems type='current' items={arr} activeItems={activeItems} />}
+const RBC_MESSAGES = {
+  allDay:          'Весь день',
+  previous:        '',
+  next:            '',
+  today:           'Сьогодні',
+  month:           'Місяць',
+  week:            'Тиждень',
+  day:             'День',
+  agenda:          'Список',
+  date:            'Дата',
+  time:            'Час',
+  event:           'Подія',
+  noEventsInRange: 'Немає подій у цьому діапазоні',
+  showMore:        (n: number) => `+${n} ще`,
+}
 
-      {containers.map((container) => (
-        <Droppable key={container.containerId} id={container.containerId} plusWidth={container.plusWidth}>
-          <ListItems
-          type='active'
-          containerData={container}
-          activeItems={activeItems} />
-        </Droppable>
-      ))}
-    </DndContext>
-  );
+type Props = {
+  events?: CalendarEvent[]
+  onSelectEvent?: (event: CalendarEvent) => void
+  onSelectSlot?: (slotInfo: SlotInfo) => void
+  defaultView?: View
+  className?: string
+}
 
-  function handleDragEnd(event: any) {
-    // console.log("🚀 ~ handleDragEnd ~ event:", event)
-    const {over, active} = event;
-    // console.log("🚀 ~ handleDragEnd ~ over:", over)
-    const data = {
-      containerId: over.id,
-      draggedId: active.data.current.draggedId,
-      plusWidth: over.data.current?.plusWidth,
+export function BigCalendar({
+  events = [],
+  onSelectEvent,
+  onSelectSlot,
+  defaultView = 'month',
+  className,
+}: Props) {
+  const [view, setView] = useState<View>(defaultView)
+  const [date, setDate] = useState(new Date())
+
+  const eventStyleGetter = useCallback((event: CalendarEvent) => {
+    const colors = event.type ? EVENT_COLORS[event.type] : undefined
+    if (!colors) return {}
+    return {
+      style: {
+        backgroundColor: colors.bg,
+        borderColor:     colors.border,
+        color:           colors.text,
+        borderWidth:     1,
+        borderStyle:     'solid',
+        borderRadius:    '6px',
+        fontSize:        '12px',
+        fontWeight:      500,
+        padding:         '2px 6px',
+        boxShadow:       'none',
+      },
     }
+  }, [])
 
-    setActiveItems((prev) => {
-      const findItem = find(propEq(active.id, 'draggedId'))(prev);
-      if (findItem) {
-        return prev.map((item) => item.draggedId === active.id ? data : item);
-      } else {
-        return [...prev, data];
-      }
-    });
-    setPlusWidth(null);
+  function navigate(dir: 1 | -1) {
+    setDate(prev => {
+      const d = new Date(prev)
+      if (view === 'month') d.setMonth(d.getMonth() + dir)
+      else if (view === 'week') d.setDate(d.getDate() + dir * 7)
+      else if (view === 'day' || view === 'agenda') d.setDate(d.getDate() + dir)
+      return d
+    })
   }
 
-  function handleDragOver(event: any) {
-    const {over} = event;
-    // console.log("🚀 ~ handleDragOver ~ over:", over)
-    if (over) {
-      setPlusWidth(over.data.current?.plusWidth);
+  const title = useMemo(() => {
+    if (view === 'month') {
+      return date.toLocaleDateString('uk-UA', { month: 'long', year: 'numeric' })
     }
-  }
-}
+    if (view === 'week') {
+      const start = startOfWeek(date, { locale: uk })
+      const end = new Date(start)
+      end.setDate(start.getDate() + 6)
+      const s = start.toLocaleDateString('uk-UA', { day: 'numeric', month: 'short' })
+      const e = end.toLocaleDateString('uk-UA', { day: 'numeric', month: 'short', year: 'numeric' })
+      return `${s} – ${e}`
+    }
+    return date.toLocaleDateString('uk-UA', {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    })
+  }, [date, view])
 
-const CalendarComponent = () => {
-  
   return (
-    <div>
-      <h1>Calendar</h1>
-    <Example />
+    <div className={cn('flex flex-col gap-3', className)}>
+      <div className="flex items-center gap-3 flex-wrap">
+        <div className="flex items-center rounded-md border bg-muted/30 p-1 gap-0.5">
+          {VIEWS.map(v => (
+            <button
+              key={v.key}
+              onClick={() => setView(v.key)}
+              className={cn(
+                'px-3 py-1 rounded text-sm font-medium transition-colors',
+                view === v.key
+                  ? 'bg-background shadow-sm text-foreground'
+                  : 'text-muted-foreground hover:text-foreground',
+              )}
+            >
+              {v.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-1">
+          <Button variant="ghost" size="icon-sm" onClick={() => navigate(-1)}>
+            <ChevronLeft size={16} />
+          </Button>
+          <span className="text-sm font-medium min-w-[220px] text-center capitalize">
+            {title}
+          </span>
+          <Button variant="ghost" size="icon-sm" onClick={() => navigate(1)}>
+            <ChevronRight size={16} />
+          </Button>
+        </div>
+
+        <Button variant="outline" size="sm" onClick={() => setDate(new Date())}>
+          Сьогодні
+        </Button>
+
+        <div className="ml-auto flex items-center gap-2 flex-wrap">
+          {(Object.entries(EVENT_TYPE_LABELS) as [CalendarEventType, string][]).map(([type, label]) => (
+            <div key={type} className="flex items-center gap-1.5">
+              <span
+                className="size-2.5 rounded-full"
+                style={{ background: EVENT_COLORS[type].border }}
+              />
+              <span className="text-xs text-muted-foreground">{label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="border rounded-lg bg-background" style={{ height: 'calc(90vh - 180px)' }}>
+        <Suspense fallback={<div className="h-full flex items-center justify-center text-sm text-muted-foreground">Завантаження...</div>}>
+          <Calendar
+            localizer={localizer}
+            events={events}
+            view={view}
+            date={date}
+            onNavigate={setDate}
+            onView={setView}
+            onSelectEvent={onSelectEvent as any}
+            onSelectSlot={onSelectSlot}
+            selectable={!!onSelectSlot}
+            eventPropGetter={eventStyleGetter as any}
+            messages={RBC_MESSAGES}
+            culture="uk"
+            toolbar={false}
+            style={{ height: '100%', padding: '8px' }}
+            popup
+          />
+        </Suspense>
+      </div>
     </div>
   )
 }
-
-export default CalendarComponent;

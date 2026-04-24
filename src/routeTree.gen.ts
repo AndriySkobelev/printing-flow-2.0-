@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedSeamstressRouteImport } from './routes/_authenticated/seamstress'
 import { Route as AuthenticatedAppRouteRouteImport } from './routes/_authenticated/app/route'
+import { Route as AuthenticatedAppWorkloadRouteImport } from './routes/_authenticated/app/workload'
 import { Route as AuthenticatedAppUsersRouteImport } from './routes/_authenticated/app/users'
 import { Route as AuthenticatedAppStoreRouteImport } from './routes/_authenticated/app/store'
 import { Route as AuthenticatedAppSpecificationsRouteImport } from './routes/_authenticated/app/specifications'
@@ -52,6 +53,12 @@ const AuthenticatedAppRouteRoute = AuthenticatedAppRouteRouteImport.update({
   path: '/app',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedAppWorkloadRoute =
+  AuthenticatedAppWorkloadRouteImport.update({
+    id: '/workload',
+    path: '/workload',
+    getParentRoute: () => AuthenticatedAppRouteRoute,
+  } as any)
 const AuthenticatedAppUsersRoute = AuthenticatedAppUsersRouteImport.update({
   id: '/users',
   path: '/users',
@@ -143,6 +150,7 @@ export interface FileRoutesByFullPath {
   '/app/specifications': typeof AuthenticatedAppSpecificationsRoute
   '/app/store': typeof AuthenticatedAppStoreRoute
   '/app/users': typeof AuthenticatedAppUsersRoute
+  '/app/workload': typeof AuthenticatedAppWorkloadRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -162,6 +170,7 @@ export interface FileRoutesByTo {
   '/app/specifications': typeof AuthenticatedAppSpecificationsRoute
   '/app/store': typeof AuthenticatedAppStoreRoute
   '/app/users': typeof AuthenticatedAppUsersRoute
+  '/app/workload': typeof AuthenticatedAppWorkloadRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -183,6 +192,7 @@ export interface FileRoutesById {
   '/_authenticated/app/specifications': typeof AuthenticatedAppSpecificationsRoute
   '/_authenticated/app/store': typeof AuthenticatedAppStoreRoute
   '/_authenticated/app/users': typeof AuthenticatedAppUsersRoute
+  '/_authenticated/app/workload': typeof AuthenticatedAppWorkloadRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -204,6 +214,7 @@ export interface FileRouteTypes {
     | '/app/specifications'
     | '/app/store'
     | '/app/users'
+    | '/app/workload'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -223,6 +234,7 @@ export interface FileRouteTypes {
     | '/app/specifications'
     | '/app/store'
     | '/app/users'
+    | '/app/workload'
   id:
     | '__root__'
     | '/'
@@ -243,6 +255,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/specifications'
     | '/_authenticated/app/store'
     | '/_authenticated/app/users'
+    | '/_authenticated/app/workload'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -287,6 +300,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/app'
       preLoaderRoute: typeof AuthenticatedAppRouteRouteImport
       parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/app/workload': {
+      id: '/_authenticated/app/workload'
+      path: '/workload'
+      fullPath: '/app/workload'
+      preLoaderRoute: typeof AuthenticatedAppWorkloadRouteImport
+      parentRoute: typeof AuthenticatedAppRouteRoute
     }
     '/_authenticated/app/users': {
       id: '/_authenticated/app/users'
@@ -396,6 +416,7 @@ interface AuthenticatedAppRouteRouteChildren {
   AuthenticatedAppSpecificationsRoute: typeof AuthenticatedAppSpecificationsRoute
   AuthenticatedAppStoreRoute: typeof AuthenticatedAppStoreRoute
   AuthenticatedAppUsersRoute: typeof AuthenticatedAppUsersRoute
+  AuthenticatedAppWorkloadRoute: typeof AuthenticatedAppWorkloadRoute
 }
 
 const AuthenticatedAppRouteRouteChildren: AuthenticatedAppRouteRouteChildren = {
@@ -414,6 +435,7 @@ const AuthenticatedAppRouteRouteChildren: AuthenticatedAppRouteRouteChildren = {
   AuthenticatedAppSpecificationsRoute: AuthenticatedAppSpecificationsRoute,
   AuthenticatedAppStoreRoute: AuthenticatedAppStoreRoute,
   AuthenticatedAppUsersRoute: AuthenticatedAppUsersRoute,
+  AuthenticatedAppWorkloadRoute: AuthenticatedAppWorkloadRoute,
 }
 
 const AuthenticatedAppRouteRouteWithChildren =

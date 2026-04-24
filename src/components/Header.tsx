@@ -95,7 +95,7 @@ const navConfig: NavItem[] = [
     icon: CalendarDays,
     children: [
       { to: '/app/planner', label: 'Планер пошиву', icon: Waypoints },
-      { to: '/app/production-calendar', label: 'Виробничий календар', icon: CalendarRange },
+      { to: '/app/workload', label: 'Календар завантаження', icon: CalendarRange },
       { to: '/app/production-cut', label: 'Виробництво крою', icon: ScissorsLineDashedIcon },
     ],
   },

@@ -1,6 +1,54 @@
 import { v } from 'convex/values'
-import { query, mutation } from '../_generated/server'
+import { query, mutation, type QueryCtx } from '../_generated/server'
+import { type Id } from '../_generated/dataModel'
+import { omit } from 'ramda'
 import { getAuthUserId } from '@convex-dev/auth/server'
+
+// ─── HELPERS ────────────────────────────────────────────────────────────────
+
+async function resolveSpecForOrder(ctx: QueryCtx, productionOrderId: Id<'productionOrders'>) {
+  const orderItems = await ctx.db
+    .query('productionOrderItems')
+    .withIndex('by_productionOrder', q => q.eq('productionOrderId', productionOrderId))
+    .collect();
+
+  const skus = [...new Set(orderItems.map((i: any) => i.sku as string))];
+
+  const parentIds = new Set<string>();
+  for (const sku of skus) {
+    const product = await ctx.db
+      .query('products')
+      .withIndex('search_sku', q => q.eq('sku', sku))
+      .first();
+    if (product?.parentId) parentIds.add(product.parentId as string);
+  }
+
+  const rawSpecs = await Promise.all([...parentIds].map(id => ctx.db.get(id as Id<'specifications'>)));
+  const specs = rawSpecs.filter(Boolean);
+
+  const resolved = await Promise.all(
+    specs.map(async (spec: any) => {
+      const materials = await Promise.all(
+        spec.materials.map(async (mat: any) => {
+          let name: string | undefined = mat.materialName;
+          if (!name) {
+            if (mat.fabricId) {
+              const fabric = await ctx.db.get(mat.fabricId as Id<'fabrics'>);
+              name = fabric?.fabricName ?? fabric?.name;
+            } else if (mat.materialId) {
+              const material = await ctx.db.get(mat.materialId as Id<'materials'>);
+              name = material?.name;
+            }
+          }
+          return { ...mat, materialName: name };
+        })
+      );
+      return { ...omit(['productionPrice'], spec), materials };
+    })
+  );
+
+  return resolved[0] ?? null;
+}
 
 // ─── QUERIES ────────────────────────────────────────────────────────────────
 
@@ -16,16 +64,20 @@ export const getAllCuttingTasks = query({
           .withIndex('by_cuttingTask', q => q.eq('cuttingTaskId', task._id))
           .collect();
 
-        // Shape sizes as { S: 6, M: 9, ... } for easy table rendering
         const sizesMap: Record<string, number> = {};
         for (const s of sizes) {
           sizesMap[s.size] = s.quantity;
         }
 
+        const spec = await resolveSpecForOrder(ctx, task.productionOrderId);
+        const productionOrder = await ctx.db.get(task.productionOrderId);
+
         return {
           ...task,
           sizesMap,
           sizes,
+          spec,
+          keycrmManager: productionOrder?.keycrmManager ?? null,
         };
       })
     );

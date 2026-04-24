@@ -5,10 +5,10 @@ import { action } from "../_generated/server";
 export const getOrdersKeyCrm = action({
   handler: async (ctx) => {
     const res = await keyRequest(`/order/${1216}`, 'get', {
-    include: "products.offer,assigned,tags,shipping,custom_fields",
+    include: "products.offer,assigned,tags,shipping,custom_fields,manager",
   })
     const data = await res.json();
-    console.log("🚀 ~ data:", data)
+    console.log("🚀 ~ data:", data?.custom_fields)
     await ctx.runMutation(api.queries.orders.creatreProductionTask, {
       externalData: data ?? {},
     })

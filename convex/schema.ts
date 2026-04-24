@@ -155,6 +155,7 @@ export const productStatusMappings = {
  
 export const productionOrders = {
   keycrmOrderId: v.string(),
+  keycrmManager: v.string(),
   startDate: v.number(),
   plannedShipDate: v.number(),
   status: v.union(

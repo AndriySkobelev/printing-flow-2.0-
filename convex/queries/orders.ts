@@ -7,10 +7,10 @@ async function resolveFabricName(ctx: MutationCtx, sku: string): Promise<string>
     .query('products')
     .withIndex('search_sku', q => q.eq('sku', sku))
     .first();
+  console.log("🚀 ~ resolveFabricName ~ product:", product)
   if (!product) return sku;
 
-  const spec = await ctx.db.get(product.parentId);
-  const fabricMaterial = spec?.materials?.find((m: any) => m.type === 'fabric');
+  const fabricMaterial = product?.materials?.find((m: any) => m.fabricId);
   if (!fabricMaterial?.fabricId) return sku;
 
   const fabric = await ctx.db.get(fabricMaterial.fabricId);
@@ -47,9 +47,10 @@ export const creatreProductionTask = mutation({
 
     const productionOrderId = await ctx.db.insert('productionOrders', {
       keycrmOrderId,
-      startDate: Date.now(),
       plannedShipDate,
       status: 'active',
+      startDate: Date.now(),
+      keycrmManager: externalData?.manager?.full_name ?? '-',
     });
 
     // 2. Filter physical products — skip services (shipment_type === null or no size in properties)

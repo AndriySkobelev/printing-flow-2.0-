@@ -11,6 +11,8 @@ import { convexQuery } from '@convex-dev/react-query'
 import { api } from 'convex/_generated/api'
 import { MyPopover } from '@/components/my-popover'
 import { SizeInfo } from './components/size-info'
+import { SpecInfo, type SpecData } from './components/spec-info'
+import { OrderInfo } from './components/order-info'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -52,7 +54,9 @@ export type SizeDetail = {
 interface Order {
   id: string
   number: string
+  manager: string | null
   specName: string
+  spec: SpecData | null
   material: string
   color: string
   sizes: Partial<Record<Size, number>>
@@ -94,13 +98,49 @@ const toRow = (o: Order): OrderRow => ({
 // ─── Table headers ────────────────────────────────────────────────────────────
 
 const makeHeaders = (onSchedule: (row: OrderRow) => void): Array<HeaderObject> => [
-  { accessor: 'number', label: '№ замовл.', width: 100, isSortable: true, type: 'string' },
-  { accessor: 'specName', label: 'Виріб', width: 140, isSortable: true, type: 'string' },
-  { accessor: 'material', label: 'Матеріал', width: 150, isSortable: true, type: 'string' },
+  { accessor: 'number', label: '№ замовл.', width: 100, isSortable: true, type: 'string',
+    cellRenderer: ({ row }) => {
+      const o = row as OrderRow
+      if (!o.manager) return <span className="text-sm">{o.number}</span>
+      return (
+        <MyPopover
+          align="start"
+          withArrow
+          trigger={
+            <button className="text-sm text-left underline decoration-dotted underline-offset-2 cursor-pointer hover:text-primary transition-colors">
+              {o.number}
+            </button>
+          }
+          content={<OrderInfo manager={o.manager} />}
+        />
+      )
+    },
+  },
+  {
+    accessor: 'specName', label: 'Виріб', width: 140, isSortable: true, type: 'string',
+    cellRenderer: ({ row }) => {
+      const o = row as OrderRow
+      if (!o.spec) return <span className="text-sm">{o.specName}</span>
+      return (
+        <MyPopover
+          align="start"
+          withArrow
+          trigger={
+            <button className="text-sm text-left underline decoration-dotted underline-offset-2 cursor-pointer hover:text-primary transition-colors">
+              {o.specName}
+            </button>
+          }
+          content={<SpecInfo spec={o.spec} />}
+        />
+      )
+    },
+  },
+  { accessor: 'material', label: 'Матеріал', width: 160, isSortable: true, type: 'string' },
   { accessor: 'color',    label: 'Колір',    width: 120, isSortable: true, type: 'string' },
   ...SIZES.map((s): HeaderObject => ({
     accessor: `sz_${s}`,
     label: s,
+    align: 'center',
     width: 52,
     isSortable: true,
     type: 'number',
@@ -149,6 +189,22 @@ const makeHeaders = (onSchedule: (row: OrderRow) => void): Array<HeaderObject> =
       return <span className={clsx('text-sm', urgent && 'text-red-500 font-medium')}>{d}</span>
     },
   },
+    {
+    accessor: 'deadline', label: 'Дата видачі', width: 110, isSortable: true, type: 'string',
+    cellRenderer: ({ row }) => {
+      const d = (row as OrderRow).deadline
+      const urgent = daysUntil(d) < 7 && (row as OrderRow).status !== 'done'
+      return <span className={clsx('text-sm', urgent && 'text-red-500 font-medium')}>{d}</span>
+    },
+  },
+    {
+    accessor: 'deadline', label: 'Дата видачі', width: 110, isSortable: true, type: 'string',
+    cellRenderer: ({ row }) => {
+      const d = (row as OrderRow).deadline
+      const urgent = daysUntil(d) < 7 && (row as OrderRow).status !== 'done'
+      return <span className={clsx('text-sm', urgent && 'text-red-500 font-medium')}>{d}</span>
+    },
+  },
   {
     accessor: 'status', label: 'Статус', width: 110, isSortable: true, type: 'string',
     cellRenderer: ({ row }) => {
@@ -186,15 +242,18 @@ export default function ProductionCut() {
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all')
   const { data: rawTasks = [] } = useQuery(convexQuery(api.queries.cutting.getAllCuttingTasks, {}))
+  console.log("🚀 ~ ProductionCut ~ rawTasks:", rawTasks)
 
   const orders: Order[] = useMemo(() =>
     rawTasks.map(task => ({
       id:       task._id,
       number:   task.keycrmOrderId,
+      manager:  task.keycrmManager ?? null,
       type:     deriveType(task.specName),
       material: task.fabric,
       color:    task.color,
       specName:    task.specName,
+      spec:        (task.spec as SpecData | null) ?? null,
       sizes:       task.sizesMap as Partial<Record<Size, number>>,
       sizeDetails: task.sizes.map(s => ({
         _id:          s._id,
