@@ -74,7 +74,11 @@ export const OrderDetail = ({ task, onBack }: Props) => {
           )}
           <ScrollArea className="max-h-100">
             <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
-              {orderItems.map(item => (
+              {[...orderItems].sort((a, b) => {
+                const aDone = completedByItem(a._id) >= a.quantity ? 1 : 0
+                const bDone = completedByItem(b._id) >= b.quantity ? 1 : 0
+                return aDone - bDone
+              }).map(item => (
                 <ProductItemCard
                   key={item._id}
                   item={item}

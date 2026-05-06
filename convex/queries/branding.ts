@@ -10,7 +10,7 @@ export const getAllBrandingTasks = query({
   handler: async (ctx) => {
     const tasks = await ctx.db.query('brandingTasks').collect();
 
-    return Promise.all(
+    const enriched = await Promise.all(
       tasks.map(async (task) => {
         const productionOrder = await ctx.db.get(task.productionOrderId);
         const orderItems = await ctx.db
@@ -31,6 +31,8 @@ export const getAllBrandingTasks = query({
         };
       })
     );
+
+    return enriched.sort((a, b) => (a.endDate ?? 0) - (b.endDate ?? 0));
   },
 });
 
