@@ -19,6 +19,7 @@ export const fabricsSchema = {
   fabricName: v.optional(v.string()),
   units: v.union(v.literal('кг'), v.literal('м')),
   threds: v.optional(v.union(v.string(), v.number())),
+  processingType: v.optional(v.union(v.string(), v.null())),
 };
 
 export const materialsSchema = {
@@ -76,6 +77,7 @@ export const productVariants = {
   style: v.optional(v.string()),
   parentId: v.id('specifications'),
   searchText: v.optional(v.string()),
+  processingType: v.optional(v.union(v.string(), v.null())),
   materials: v.optional(v.array(v.object({
     multiplier: v.optional(v.number()),
     fabricId: v.optional(v.id('fabrics')),
@@ -154,9 +156,10 @@ export const productStatusMappings = {
 // ─── ВИРОБНИЧІ ЗАМОВЛЕННЯ ───────────────────────────────────────────────────
  
 export const productionOrders = {
+  keycrmData: v.any(),
+  startDate: v.number(),
   keycrmOrderId: v.string(),
   keycrmManager: v.string(),
-  startDate: v.number(),
   plannedShipDate: v.number(),
   status: v.union(
     v.literal("active"),
@@ -182,6 +185,8 @@ export const productionOrderItems = {
     v.null()
   ),
   keycrmProductStatusId: v.union(v.number(), v.null()),
+  keycrmProductComment: v.optional(v.union(v.string(), v.null())),
+  materialProcessingType: v.optional(v.union(v.string(), v.null())),
   processingType: v.optional(v.union(
     v.literal("branding"),
     v.literal("embroidery"),
@@ -278,10 +283,15 @@ export const sewingLogs = {
 // ─── БРЕНДУВАННЯ ────────────────────────────────────────────────────────────
  
 export const brandingTasks = {
-  productionOrderId: v.id("productionOrders"),
-  keycrmOrderId: v.string(),
-  startDate: v.number(),
   endDate: v.number(),
+  startDate: v.number(),
+  keycrmOrderId: v.string(),
+  note: v.optional(v.string()),
+  manager: v.optional(v.string()),
+  shippedDate: v.optional(v.number()),
+  identifierName: v.optional(v.string()),
+  attachedFiles: v.optional(v.array(v.any())),
+  productionOrderId: v.id("productionOrders"),
   status: v.union(
     v.literal("new"),
     v.literal("in_progress"),
@@ -289,7 +299,7 @@ export const brandingTasks = {
     v.literal("paused"),
     v.literal("waiting")
   ),
-  note: v.optional(v.string()),
+  tags: v.optional(v.array(v.object({ name: v.string(), color: v.string() }))),
 };
  
 export const brandingLogs = {
@@ -488,7 +498,8 @@ export default defineSchema({
     .searchIndex('search_text', {
       searchField: 'searchText'
     }),
-  specifications: specifications,
+  specifications: specifications
+    .index('search_skuPrefix', ['skuPrefix']),
   shiftReports: shiftReportsTabel
     .index('by_timeStamp', ['timeStamp']),
   storeMovements: icomingMaterialsTable,

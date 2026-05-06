@@ -182,7 +182,7 @@ const makeHeaders = (onSchedule: (row: OrderRow) => void): Array<HeaderObject> =
     cellRenderer: ({ row }) => <span className="font-medium text-sm">{(row as OrderRow)._total}</span>,
   },
   {
-    accessor: 'deadline', label: 'Дата видачі', width: 110, isSortable: true, type: 'string',
+    accessor: 'deadline', label: 'Видача крою', width: 150, isSortable: true, type: 'string',
     cellRenderer: ({ row }) => {
       const d = (row as OrderRow).deadline
       const urgent = daysUntil(d) < 7 && (row as OrderRow).status !== 'done'
@@ -190,15 +190,7 @@ const makeHeaders = (onSchedule: (row: OrderRow) => void): Array<HeaderObject> =
     },
   },
     {
-    accessor: 'deadline', label: 'Дата видачі', width: 110, isSortable: true, type: 'string',
-    cellRenderer: ({ row }) => {
-      const d = (row as OrderRow).deadline
-      const urgent = daysUntil(d) < 7 && (row as OrderRow).status !== 'done'
-      return <span className={clsx('text-sm', urgent && 'text-red-500 font-medium')}>{d}</span>
-    },
-  },
-    {
-    accessor: 'deadline', label: 'Дата видачі', width: 110, isSortable: true, type: 'string',
+    accessor: 'deadline', label: 'Дата здачі', width: 110, isSortable: true, type: 'string',
     cellRenderer: ({ row }) => {
       const d = (row as OrderRow).deadline
       const urgent = daysUntil(d) < 7 && (row as OrderRow).status !== 'done'

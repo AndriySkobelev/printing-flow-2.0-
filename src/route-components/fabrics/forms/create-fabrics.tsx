@@ -11,10 +11,12 @@ const formSchema = z.object({
   name: z.string(),
   skuPrefix: z.string(),
   units: z.string(),
+  processingType: z.string().nullable(),
   colors: z.array(z.object({ value: z.string(), label: z.string() })),
 })
 
 type FormValuesType = z.infer<typeof formSchema>;
+
 type valuesSubmitType = {
   colors: Array<string>
 }
@@ -31,7 +33,6 @@ const CreateFabricForm: FunctionComponent<CreateFabricFormProps> = ({
   actionSubmit
 }) => {
   const { data } = useQuery(convexQuery(api.queries.specifications.getSpecificationsWithMaterials));
-  
   
   const form = useAppForm({
     validationLogic: revalidateLogic(),
@@ -57,10 +58,16 @@ const CreateFabricForm: FunctionComponent<CreateFabricFormProps> = ({
         }}
         className="flex flex-col gap-3"
       >
-        <form.AppField
-          name="name"
-          children={(field) => <field.FormTextField label="Назва" />}
-        />
+        <div className='flex gap-2 items-end'>
+          <form.AppField
+            name="name"
+            children={(field) => <field.FormTextField label="Назва" />}
+          />
+          <form.AppField
+            name="processingType"
+            children={(field) => <field.FormTextField label="Обробка" />}
+          />
+        </div>
         <div className="flex flex-row gap-2 items-end">
           <form.AppField
             name="skuPrefix"

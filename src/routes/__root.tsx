@@ -8,6 +8,7 @@ import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import appCss from '../styles.css?url'
 import { type QueryClient } from '@tanstack/react-query'
+import { type ConvexReactClient } from 'convex/react'
 import { Toaster } from '@/components/ui/sonner'
 import { setSSRLanguage } from '@/lib/i18n'
 import { AuthPropsType } from '@/contexts/auth';
@@ -20,6 +21,7 @@ import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 interface MyRouterContext {
   auth: AuthPropsType | null
   queryClient: QueryClient
+  convexClient: ConvexReactClient
 }
 
 export const Route = createRootRouteWithContext<MyRouterContext>()({

@@ -2,12 +2,20 @@ import { v } from 'convex/values'
 import { mutation } from '../_generated/server'
 import type { MutationCtx } from '../_generated/server'
 
+async function resolveMaterialProcessingType(ctx: MutationCtx, sku: string): Promise<string | null> {
+  const product = await ctx.db
+    .query('products')
+    .withIndex('search_sku', q => q.eq('sku', sku))
+    .first();
+  return (product as any)?.processingType ?? null;
+}
+
 async function resolveFabricName(ctx: MutationCtx, sku: string): Promise<string> {
   const product = await ctx.db
     .query('products')
     .withIndex('search_sku', q => q.eq('sku', sku))
     .first();
-  console.log("🚀 ~ resolveFabricName ~ product:", product)
+  
   if (!product) return sku;
 
   const fabricMaterial = product?.materials?.find((m: any) => m.fabricId);
@@ -25,12 +33,75 @@ type OrderItemEntry = {
   needsCutting: boolean;
 };
 
+async function createCuttingTasks(ctx: MutationCtx, { productionOrderId, keycrmOrderId, orderItems }: {
+  productionOrderId: any
+  keycrmOrderId: string
+  orderItems: OrderItemEntry[]
+}) {
+  const cuttingGroups = new Map<string, OrderItemEntry[]>();
+  for (const item of orderItems.filter(i => i.needsCutting)) {
+    const key = `${item.product.name}__${item.color}`;
+    if (!cuttingGroups.has(key)) cuttingGroups.set(key, []);
+    cuttingGroups.get(key)!.push(item);
+  }
+
+  for (const items of cuttingGroups.values()) {
+    const { product, color } = items[0];
+    const specName = product.name as string;
+    const fabric   = await resolveFabricName(ctx, items[0].product.sku as string);
+
+    const cuttingTaskId = await ctx.db.insert('cuttingTasks', {
+      productionOrderId,
+      keycrmOrderId,
+      specName,
+      fabric,
+      color,
+      status: 'new',
+    });
+
+    for (const item of items) {
+      await ctx.db.insert('cuttingTaskSizes', {
+        cuttingTaskId,
+        productionOrderItemId: item.id as any,
+        size: item.size,
+        quantity: item.product.quantity,
+        completedQty: 0,
+      });
+    }
+  }
+}
+
+async function createBrandingTasks(ctx: MutationCtx, { productionOrderId, keycrmOrderId, plannedShipDate, externalData, attachedFiles }: {
+  productionOrderId: any
+  keycrmOrderId: string
+  plannedShipDate: number
+  externalData: any
+  attachedFiles?: any[]
+}) {
+  const tags = (externalData.tags ?? [])
+    .filter((t: any) => t?.name)
+    .map((t: any) => ({ name: String(t.name), color: String(t.color ?? '#6b7280') }))
+
+  await ctx.db.insert('brandingTasks', {
+    productionOrderId,
+    keycrmOrderId,
+    startDate: Date.now(),
+    endDate: plannedShipDate,
+    status: 'new',
+    manager:         externalData.manager?.full_name ?? undefined,
+    identifierName:  externalData.source_uuid        ?? undefined,
+    tags:            tags.length ? tags : undefined,
+    attachedFiles:   attachedFiles?.length ? attachedFiles : undefined,
+  });
+}
+
 export const creatreProductionTask = mutation({
   args: {
-    externalData: v.any()
+    externalData: v.any(),
+    attachedFiles: v.optional(v.array(v.any())),
   },
   handler: async (ctx, args) => {
-    const { externalData } = args;
+    const { externalData, attachedFiles } = args;
     const keycrmOrderId = String(externalData.id);
 
     // 0. Guard against duplicates
@@ -50,6 +121,7 @@ export const creatreProductionTask = mutation({
       plannedShipDate,
       status: 'active',
       startDate: Date.now(),
+      keycrmData: externalData,
       keycrmManager: externalData?.manager?.full_name ?? '-',
     });
 
@@ -64,7 +136,8 @@ export const creatreProductionTask = mutation({
     for (const product of physicalProducts) {
       const color = product.properties.find((p: any) => p.name === 'колір')?.value ?? '';
       const size  = product.properties.find((p: any) => p.name === 'розмір')?.value ?? '';
-
+      const productSkuPrefix = product.sku ? String(product.sku).split('-')[0] : '';
+      const spec = await ctx.db.query('specifications').withIndex('search_skuPrefix', q => q.eq('skuPrefix', productSkuPrefix)).first();
       let processingType: 'branding' | 'embroidery' | 'silkscreen' | 'none' = 'none';
       if (product.product_status_id != null) {
         const mapping = await ctx.db
@@ -73,7 +146,7 @@ export const creatreProductionTask = mutation({
           .first();
         if (mapping) processingType = mapping.processingType;
       }
-
+      
       const shipmentType = product.shipment_type as 'manufacturing' | 'warehouse';
       const needsCutting = shipmentType === 'manufacturing';
 
@@ -81,17 +154,18 @@ export const creatreProductionTask = mutation({
         productionOrderId,
         keycrmOrderId,
         keycrmProductId: product.offer.product_id,
-        name: product.name,
-        sku: product.sku,
+        name: spec?.name ?? product?.name,
+        sku: product?.sku ?? '',
         color,
         size,
         quantity: product.quantity,
+        keycrmProductComment: product.comment ?? '',
         shipmentType,
         keycrmProductStatusId: product.product_status_id ?? null,
         processingType,
         needsCutting,
         needsSewing:        needsCutting,
-        needsBranding:      processingType === 'branding',
+        needsBranding:      true,
         needsSubcontractor: processingType === 'embroidery' || processingType === 'silkscreen',
         needsPackaging:     true,
       });
@@ -99,38 +173,11 @@ export const creatreProductionTask = mutation({
       orderItems.push({ id: itemId as unknown as string, product, color, size, needsCutting });
     }
 
-    // 4. Group manufacturing items by specName+color → one cuttingTask per group
-    const cuttingGroups = new Map<string, OrderItemEntry[]>();
-    for (const item of orderItems.filter(i => i.needsCutting)) {
-      const key = `${item.product.name}__${item.color}`;
-      if (!cuttingGroups.has(key)) cuttingGroups.set(key, []);
-      cuttingGroups.get(key)!.push(item);
-    }
+    // 4. Create cutting tasks for manufacturing items
+    // await createCuttingTasks(ctx, { productionOrderId, keycrmOrderId, orderItems });
 
-    for (const items of cuttingGroups.values()) {
-      const { product, color } = items[0];
-      const specName  = product.name as string;
-      const fabric = await resolveFabricName(ctx, items[0].product.sku as string);
-
-      const cuttingTaskId = await ctx.db.insert('cuttingTasks', {
-        productionOrderId,
-        keycrmOrderId,
-        specName,
-        fabric,
-        color,
-        status: 'new',
-      });
-
-      for (const item of items) {
-        await ctx.db.insert('cuttingTaskSizes', {
-          cuttingTaskId,
-          productionOrderItemId: item.id as any,
-          size: item.size,
-          quantity: item.product.quantity,
-          completedQty: 0,
-        });
-      }
-    }
+    // 5. Create branding task for the order
+    await createBrandingTasks(ctx, { productionOrderId, keycrmOrderId, plannedShipDate, externalData, attachedFiles });
 
     return { productionOrderId };
   },

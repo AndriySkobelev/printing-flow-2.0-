@@ -21,7 +21,7 @@ const addToAll = (value: any, data: Array<any>) => {
 export const getFabricsByNameAndColors = async (ctx: QueryCtx, fabricName: string, colors?: Array<string>) => {
   const getFabric = await ctx.db.query('fabrics').filter(q => q.eq(q.field('fabricName'), fabricName)).collect();
   const sortedFabrics = getFabric.sort((a, b) => a.skuNumber - b.skuNumber);
-  const getFabrics= sortedFabrics.map((el) => (pick(['color', '_id'], el)));
+  const getFabrics= sortedFabrics.map((el) => (pick(['color', '_id', 'processingType'], el)));
   let filteredFabrics = getFabrics;
   if (colors) {
     filteredFabrics = getFabrics.filter(el => colors.includes(el.color));
@@ -145,7 +145,7 @@ export const createProductsBySpecification = mutation({
     if (checkSpectCreated) throw new Error(`Products for specification with id ${args.specification} already created`);
     const sizes = args.allSizes ? productSizes : args.sizes?.map(size => size.value);
     const specFabric = spec?.materials.find(material => material.fabricId && material?.type === 'fabric');
-    const fabricsByColors: Array<{ color: string, _id: string}> = args.allColors 
+    const fabricsByColors: Array<{ color: string, _id: string, processingType?: string | null }> = args.allColors 
       ? await getFabricsByNameAndColors(ctx, args.name)
       : await getFabricsByNameAndColors(ctx, args.name, args.colors?.map(color => color.value) || []);
     if (!spec) {
@@ -160,6 +160,7 @@ export const createProductsBySpecification = mutation({
         color: fabric?.color,
         parentId: spec?._id,
         skuNumber: numberSku,
+        processingType: fabric?.processingType,
         searchText: `${spec?.name}.${size}.${fabric?.color}`,
         materials: [
           { fabricId: fabric._id, multiplier: 1, overwriteMaterialId: specFabric?.fabricId },

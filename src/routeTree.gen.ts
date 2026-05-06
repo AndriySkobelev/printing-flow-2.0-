@@ -28,6 +28,7 @@ import { Route as AuthenticatedAppMaterialsRouteImport } from './routes/_authent
 import { Route as AuthenticatedAppLoginRouteImport } from './routes/_authenticated/app/login'
 import { Route as AuthenticatedAppInventoryMovementRouteImport } from './routes/_authenticated/app/inventory-movement'
 import { Route as AuthenticatedAppFabricsRouteImport } from './routes/_authenticated/app/fabrics'
+import { Route as AuthenticatedAppBrandingRouteImport } from './routes/_authenticated/app/branding'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -131,12 +132,19 @@ const AuthenticatedAppFabricsRoute = AuthenticatedAppFabricsRouteImport.update({
   path: '/fabrics',
   getParentRoute: () => AuthenticatedAppRouteRoute,
 } as any)
+const AuthenticatedAppBrandingRoute =
+  AuthenticatedAppBrandingRouteImport.update({
+    id: '/branding',
+    path: '/branding',
+    getParentRoute: () => AuthenticatedAppRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/app': typeof AuthenticatedAppRouteRouteWithChildren
   '/seamstress': typeof AuthenticatedSeamstressRoute
+  '/app/branding': typeof AuthenticatedAppBrandingRoute
   '/app/fabrics': typeof AuthenticatedAppFabricsRoute
   '/app/inventory-movement': typeof AuthenticatedAppInventoryMovementRoute
   '/app/login': typeof AuthenticatedAppLoginRoute
@@ -157,6 +165,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/app': typeof AuthenticatedAppRouteRouteWithChildren
   '/seamstress': typeof AuthenticatedSeamstressRoute
+  '/app/branding': typeof AuthenticatedAppBrandingRoute
   '/app/fabrics': typeof AuthenticatedAppFabricsRoute
   '/app/inventory-movement': typeof AuthenticatedAppInventoryMovementRoute
   '/app/login': typeof AuthenticatedAppLoginRoute
@@ -179,6 +188,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/_authenticated/app': typeof AuthenticatedAppRouteRouteWithChildren
   '/_authenticated/seamstress': typeof AuthenticatedSeamstressRoute
+  '/_authenticated/app/branding': typeof AuthenticatedAppBrandingRoute
   '/_authenticated/app/fabrics': typeof AuthenticatedAppFabricsRoute
   '/_authenticated/app/inventory-movement': typeof AuthenticatedAppInventoryMovementRoute
   '/_authenticated/app/login': typeof AuthenticatedAppLoginRoute
@@ -201,6 +211,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/app'
     | '/seamstress'
+    | '/app/branding'
     | '/app/fabrics'
     | '/app/inventory-movement'
     | '/app/login'
@@ -221,6 +232,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/app'
     | '/seamstress'
+    | '/app/branding'
     | '/app/fabrics'
     | '/app/inventory-movement'
     | '/app/login'
@@ -242,6 +254,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/_authenticated/app'
     | '/_authenticated/seamstress'
+    | '/_authenticated/app/branding'
     | '/_authenticated/app/fabrics'
     | '/_authenticated/app/inventory-movement'
     | '/_authenticated/app/login'
@@ -399,10 +412,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppFabricsRouteImport
       parentRoute: typeof AuthenticatedAppRouteRoute
     }
+    '/_authenticated/app/branding': {
+      id: '/_authenticated/app/branding'
+      path: '/branding'
+      fullPath: '/app/branding'
+      preLoaderRoute: typeof AuthenticatedAppBrandingRouteImport
+      parentRoute: typeof AuthenticatedAppRouteRoute
+    }
   }
 }
 
 interface AuthenticatedAppRouteRouteChildren {
+  AuthenticatedAppBrandingRoute: typeof AuthenticatedAppBrandingRoute
   AuthenticatedAppFabricsRoute: typeof AuthenticatedAppFabricsRoute
   AuthenticatedAppInventoryMovementRoute: typeof AuthenticatedAppInventoryMovementRoute
   AuthenticatedAppLoginRoute: typeof AuthenticatedAppLoginRoute
@@ -420,6 +441,7 @@ interface AuthenticatedAppRouteRouteChildren {
 }
 
 const AuthenticatedAppRouteRouteChildren: AuthenticatedAppRouteRouteChildren = {
+  AuthenticatedAppBrandingRoute: AuthenticatedAppBrandingRoute,
   AuthenticatedAppFabricsRoute: AuthenticatedAppFabricsRoute,
   AuthenticatedAppInventoryMovementRoute:
     AuthenticatedAppInventoryMovementRoute,

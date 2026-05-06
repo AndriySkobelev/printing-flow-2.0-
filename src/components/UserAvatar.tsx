@@ -30,7 +30,7 @@ export default function UserAvatar({
   showRole = false,
 }: UserAvatarProps) {
   const { wrap, text, ring } = sizeMap[size]
-  const fullName = [name, lastName].filter(Boolean).join(' ')
+  const fullName = [name].filter(Boolean).join(' ')
   const initials = [name, lastName]
     .filter(Boolean)
     .map(w => w![0])

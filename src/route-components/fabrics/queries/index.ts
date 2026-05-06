@@ -28,4 +28,20 @@ export function useCreateFabricsName() {
   })
 }
 
+export function useUpdateType() {
+  const mutationFn = useConvexMutation(
+    api.queries.fabrics.migrateFleeceProcessingType,
+  )
+
+  return useMutation({
+    mutationFn,
+    onSuccess: () => {
+      toast.success('Оновлено');
+    },
+    onError: (error) => {
+      toast.error(`Помилка при додаванні назв до тканин: ${error.message}`);
+    },
+  })
+}
+
 

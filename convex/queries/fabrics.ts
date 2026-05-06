@@ -91,6 +91,21 @@ export const createFabrics = mutation({
 })
 ///////// MUTATIONS //////////
 
+export const migrateFleeceProcessingType = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const fabrics = await ctx.db.query('fabrics').collect()
+    const fleeceRegex = /на\s+флісі/i
+    const matches = fabrics.filter(f => fleeceRegex.test(f.fabricName ?? f.name ?? ''))
+
+    await Promise.all(
+      matches.map(f => ctx.db.patch(f._id, { processingType: 'Начос' }))
+    )
+
+    return { updated: matches.length }
+  },
+})
+
 export const migrateFabricsAddName = mutation({
   handler: async (ctx) => {
     const fabrics = await ctx.db.query("fabrics").collect();

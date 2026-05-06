@@ -8,6 +8,7 @@ const FormCreatableSelect = lazy(() => import('./select/creatable-select'));
 const FormButton = lazy(() => import('./from-button'));
 const InputDate = lazy(() => import('./input-date'));
 const TextAreaField = lazy(() => import('./text-area'));
+const FormInputNumber = lazy(() => import('./input-number'));
 export const { fieldContext, formContext, useFieldContext, useFormContext } = createFormHookContexts();
 
 export const { useAppForm } = createFormHook({
@@ -19,7 +20,8 @@ export const { useAppForm } = createFormHook({
     FormTextField,
     FormAsyncSelect,
     TextAreaField,
-    FormCreatableSelect
+    FormCreatableSelect,
+    FormInputNumber,
   },
   formComponents: {
     FormButton
