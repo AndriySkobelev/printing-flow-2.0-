@@ -156,11 +156,11 @@ export const productStatusMappings = {
 // ─── ВИРОБНИЧІ ЗАМОВЛЕННЯ ───────────────────────────────────────────────────
  
 export const productionOrders = {
-  keycrmData: v.any(),
   startDate: v.number(),
   keycrmOrderId: v.string(),
   keycrmManager: v.string(),
   plannedShipDate: v.number(),
+  keycrmData: v.optional(v.any()),
   status: v.union(
     v.literal("active"),
     v.literal("done"),
