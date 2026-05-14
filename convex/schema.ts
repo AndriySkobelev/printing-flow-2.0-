@@ -203,13 +203,15 @@ export const productionOrderItems = {
 // ─── РОЗКРІЙ ────────────────────────────────────────────────────────────────
  
 export const cuttingTasks = {
-  productionOrderId: v.id("productionOrders"),
-  keycrmOrderId: v.string(),
-  specName: v.string(),
-  fabric: v.string(),
   color: v.string(),
-  startDate: v.optional(v.number()),
+  fabric: v.string(),
+  specName: v.string(),
+  keycrmOrderId: v.string(),
   endDate: v.optional(v.number()),
+  startDate: v.optional(v.number()),
+  orderIndex: v.optional(v.string()),
+  planedEndDate: v.optional(v.number()),
+  productionOrderId: v.id("productionOrders"),
   status: v.union(
     v.literal("new"),
     v.literal("in_progress"),
@@ -239,8 +241,11 @@ export const cuttingTaskSizes = {
  
 export const sewingTasks = {
   productionOrderId: v.id("productionOrders"),
+  cuttingTaskId: v.optional(v.id("cuttingTasks")),
   keycrmOrderId: v.string(),
+  orderIndex: v.optional(v.string()),
   specName: v.string(),
+  color: v.optional(v.string()),
   totalQuantity: v.number(),
   startDate: v.number(),
   endDate: v.number(),
@@ -255,10 +260,14 @@ export const sewingTasks = {
 
 export const sewingSubTasks = {
   sewingTaskId: v.id("sewingTasks"),
-  assignedTo: v.id("users"),
+  productionOrderItemId: v.optional(v.id("productionOrderItems")),
+  assignedTo: v.optional(v.id("users")),
+  size: v.optional(v.string()),
   quantity: v.number(),
-  startDate: v.number(),
-  endDate: v.number(),
+  completedQty: v.optional(v.number()),
+  startDate: v.optional(v.number()),
+  endDate: v.optional(v.number()),
+  duration: v.optional(v.union(v.number(), v.string())),
   status: v.union(
     v.literal("new"),
     v.literal("in_progress"),
@@ -422,15 +431,23 @@ const sewingLogsTable = defineTable(sewingLogs)
   .index("by_type", ["type"]);
 const sewingSubTasksTable = defineTable(sewingSubTasks)
   .index("by_sewingTask", ["sewingTaskId"])
-  .index("by_assignedTo", ["assignedTo"]);
+  .index("by_assignedTo", ["assignedTo"])
+  .index("by_productionOrderItem", ["productionOrderItemId"]);
 const sewingTasksTable = defineTable(sewingTasks)
   .index("by_productionOrder", ["productionOrderId"])
+  .index("by_cuttingTask", ["cuttingTaskId"])
   .index("by_status", ["status"]);
 
+export const fabricColors = {
+  hex: v.string(),
+  name: v.string(),
+  labelHex: v.string(),
+}
 
-const fabricsTable = defineTable(fabricsSchema)
-const usersTable = defineTable(users)
 const ordersTable = defineTable(orders)
+const usersTable = defineTable(users)
+const fabricsTable = defineTable(fabricsSchema)
+const fabricColorsTable = defineTable(fabricColors)
 const proudctsTable = defineTable(productVariants);
 const shiftReportsTabel = defineTable(shiftReports)
 const materialsTable = defineTable(materialsSchema)
@@ -471,6 +488,7 @@ export default defineSchema({
   sewingSubTasks: sewingSubTasksTable,
   sewingLogs: sewingLogsTable,
   brandingTasks: brandingTasksTable,
+  fabricColors: fabricColorsTable,
   brandingLogs: brandingLogsTable,
   packagingTasks: packagingTasksTable,
   packagingLogs: packagingLogsTable,

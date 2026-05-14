@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { type SimpleTable as SimpleTableType, type HeaderObject, QuickFilterConfig, RowSelectionChangeProps} from 'simple-table-core';
+import { type HeaderObject, QuickFilterConfig, RowSelectionChangeProps} from 'simple-table-core';
 import { Spinner } from '@/components/ui/spinner';
 import 'simple-table-core/styles.css';
 
@@ -22,6 +22,9 @@ interface AppTableProps {
   quickFilter?: QuickFilterConfig,
   onRowSelectionChange?: (data: RowSelectionChangeProps) => void;
   getRowId?: (row: any) => string | number;
+  shouldPaginate?: boolean;
+  rowsPerPage?: number;
+  onPageChange?: (page: number) => void;
 }
 
 const AppTable = ({ fallback, defaultHeaders, height, rows, isLoading, getRowId, ...props }: AppTableProps) => (

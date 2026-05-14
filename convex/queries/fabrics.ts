@@ -1,5 +1,5 @@
 import { query, mutation } from "../_generated/server";
-import { pick, prop } from 'ramda';
+import { pick, prop, uniq } from 'ramda';
 import { fabricsSchema } from "../schema";
 import { v } from "convex/values";
 
@@ -7,9 +7,9 @@ import { v } from "convex/values";
 export const getFabrics = query({
   args: {},
   handler: async (ctx) => {
-    const materials = await ctx.db.query("fabrics").collect();
-    if (!materials) return []; 
-    return materials;
+    const fabrics = await ctx.db.query("fabrics").collect();
+    if (!fabrics) return []; 
+    return fabrics;
   }
 })
 

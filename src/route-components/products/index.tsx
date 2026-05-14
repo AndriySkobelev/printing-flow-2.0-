@@ -1,9 +1,8 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { uniq } from "ramda";
 import { type FunctionComponent, useContext } from "react";
 import { type HeaderObject } from "simple-table-core";
-import { useQuery } from '@tanstack/react-query'
-import { convexQuery } from '@convex-dev/react-query'
+import { usePaginatedQuery } from 'convex/react'
 import { api } from "convex/_generated/api";
 import { DialogContext } from '@/contexts/dialog'
 import { useCreateProducts, useUpdateProducts } from "./queries";
@@ -49,7 +48,12 @@ const headers: Array<HeaderObject> = [
 ];
 
 const Products: FunctionComponent<ProductsProps> = () => {
-  const { data: dataAllProducts, isLoading } = useQuery(convexQuery(api.queries.products.getProductsWithResolvedMaterials));
+  const { results: dataAllProducts, status, loadMore } = usePaginatedQuery(
+    api.queries.products.getProductsWithResolvedMaterials,
+    {},
+    { initialNumItems: 100 },
+  );
+  const isLoading = status === 'LoadingFirstPage';
   const { mutate: updateProducts } = useUpdateProducts();
   const [search, setSearch] = useState('');
   const [selectedData, setSelectedData] = useState<Array<any>>([]);
@@ -57,7 +61,6 @@ const Products: FunctionComponent<ProductsProps> = () => {
   const { openDialog, closeDialog, setIsLoading } = useContext(DialogContext);
 
   const handleAddProducts = (data: any) => {
-    console.log('data', data)
     createProduct.mutate(data);
     closeDialog();
   }
@@ -92,6 +95,13 @@ const Products: FunctionComponent<ProductsProps> = () => {
   const handleSearch = () => {
     const searchValue = form.state.values.search || '';
     setSearch(searchValue);
+  }
+
+  const handlePageChange = (page: number) => {
+    const needed = (page + 1) * 50
+    if (needed > dataAllProducts.length && status === 'CanLoadMore') {
+      loadMore(100)
+    }
   }
 
   const handleSelectRow = ({ selectedRows }: any) => {
@@ -141,13 +151,16 @@ const Products: FunctionComponent<ProductsProps> = () => {
         </Button>
       </div>
       <AppTable
-        height={500}
+        height={650}
+        shouldPaginate
+        rowsPerPage={50}
         enableRowSelection
         enableStickyParents
         isLoading={isLoading}
         defaultHeaders={headers}
-        rows={dataAllProducts || []}
+        rows={dataAllProducts}
         rowGrouping={['group', 'data']}
+        onPageChange={handlePageChange}
         onRowSelectionChange={handleSelectRow}
         getRowId={(row) => row.row._id as string}
         quickFilter={{ mode: 'smart', text: search, caseSensitive: false }}

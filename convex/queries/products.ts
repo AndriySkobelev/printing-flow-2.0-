@@ -1,4 +1,5 @@
 import { query, mutation, QueryCtx, internalQuery } from "../_generated/server";
+import { paginationOptsValidator } from "convex/server";
 import { groupBy, prop, keys, pick } from 'ramda';
 import { getAll } from 'convex-helpers/server/relationships'
 import { Fabrics, Materials, materialsSchema,   } from "../schema";
@@ -177,19 +178,19 @@ export const createProductsBySpecification = mutation({
 })
 
 export const getProductsWithResolvedMaterials = query({
-  handler: async (ctx) => {
-    const products = await ctx.db.query('products').collect();
+  args: { paginationOpts: paginationOptsValidator },
+  handler: async (ctx, args) => {
+    const result = await ctx.db.query('products').paginate(args.paginationOpts);
 
-    return Promise.all(products.map(async (product) => {
+    const page = await Promise.all(result.page.map(async (product) => {
       const spec = await ctx.db.get('specifications', product.parentId);
       if (!spec) return { ...product, resolvedMaterials: [] };
 
       const productOverrides = product.materials || [];
 
-      // Start from spec parent materials, apply product overrides by overwriteMaterialId
       const effectiveMaterials = spec.materials.map((specMaterial) => {
         const override = productOverrides.find(
-          (m) => m.overwriteMaterialId === (specMaterial.fabricId ?? specMaterial.materialId)
+          (m: any) => m.overwriteMaterialId === (specMaterial.fabricId ?? specMaterial.materialId)
         );
         if (!override) return specMaterial;
         return {
@@ -200,36 +201,22 @@ export const getProductsWithResolvedMaterials = query({
         };
       });
 
-      // Resolve each effective material to its full data
-      const resolvedMaterials = await Promise.all(effectiveMaterials.map(async (material) => {
+      const resolvedMaterials = await Promise.all(effectiveMaterials.map(async (material: any) => {
         if (material.fabricId) {
           const fabric = await ctx.db.get(material.fabricId) as Fabrics | null;
-          return {
-            ...material,
-            name: fabric?.fabricName,
-            color: fabric?.color,
-            units: fabric?.units,
-          };
+          return { ...material, name: fabric?.fabricName, color: fabric?.color, units: fabric?.units };
         }
         if (material.materialId) {
           const mat = await ctx.db.get(material.materialId) as Materials | null;
-          return {
-            ...material,
-            name: mat?.name,
-            size: mat?.size,
-            color: mat?.color,
-            units: mat?.units,
-          };
+          return { ...material, name: mat?.name, size: mat?.size, color: mat?.color, units: mat?.units };
         }
         return material;
       }));
 
-      return {
-        ...product,
-        specName: spec.name,
-        resolvedMaterials,
-      };
+      return { ...product, specName: spec.name, resolvedMaterials };
     }));
+
+    return { ...result, page };
   },
 });
 

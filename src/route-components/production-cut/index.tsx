@@ -98,7 +98,7 @@ const toRow = (o: Order): OrderRow => ({
 // ─── Table headers ────────────────────────────────────────────────────────────
 
 const makeHeaders = (onSchedule: (row: OrderRow) => void): Array<HeaderObject> => [
-  { accessor: 'number', label: '№ замовл.', width: 100, isSortable: true, type: 'string',
+  { accessor: 'number', label: '№', width: 70, isSortable: true, type: 'string',
     cellRenderer: ({ row }) => {
       const o = row as OrderRow
       if (!o.manager) return <span className="text-sm">{o.number}</span>
@@ -107,7 +107,7 @@ const makeHeaders = (onSchedule: (row: OrderRow) => void): Array<HeaderObject> =
           align="start"
           withArrow
           trigger={
-            <button className="text-sm text-left underline decoration-dotted underline-offset-2 cursor-pointer hover:text-primary transition-colors">
+            <button className="text-sm text-left text-primary/70 decoration-dotted underline-offset-2 cursor-pointer hover:text-primary transition-colors">
               {o.number}
             </button>
           }
@@ -126,7 +126,7 @@ const makeHeaders = (onSchedule: (row: OrderRow) => void): Array<HeaderObject> =
           align="start"
           withArrow
           trigger={
-            <button className="text-sm text-left underline decoration-dotted underline-offset-2 cursor-pointer hover:text-primary transition-colors">
+            <button className="text-sm text-left decoration-dotted underline-offset-2 cursor-pointer capitalize hover:text-primary transition-colors">
               {o.specName}
             </button>
           }
@@ -239,7 +239,7 @@ export default function ProductionCut() {
   const orders: Order[] = useMemo(() =>
     rawTasks.map(task => ({
       id:       task._id,
-      number:   task.keycrmOrderId,
+      number:   task?.orderIndex ?? '',
       manager:  task.keycrmManager ?? null,
       type:     deriveType(task.specName),
       material: task.fabric,

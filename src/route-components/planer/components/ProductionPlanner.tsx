@@ -1,233 +1,389 @@
-import { useState, useRef, useEffect } from 'react'
-import { type Doc } from 'convex/_generated/dataModel'
+import { useState, useMemo, useRef, useCallback, useEffect } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { convexQuery } from '@convex-dev/react-query'
+import { api } from 'convex/_generated/api'
+import { ChevronLeft, ChevronRight, Check } from 'lucide-react'
 import {
   DndContext,
   useDraggable,
-  useDroppable,
-  type DragEndEvent,
   PointerSensor,
   useSensor,
   useSensors,
+  type DragStartEvent,
+  type DragMoveEvent,
 } from '@dnd-kit/core'
-import { ChevronLeft, ChevronRight, Plus, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog'
-import { useAppForm } from '@/components/main-form'
 import { cn } from '@/lib/utils'
-import { DAY_START, DAY_END, DAY_MINS, HOUR_PX, MIN_PX, SEWERS, SEWER_OPTIONS, DAY_NAMES } from '../constants'
-import { snap15, toDateStr, addDays, getMondayOf, fmtTime, fmtDur } from '../helpers'
-import { usePlannerEvents, useCreateEvent, useUpdateEvent, useDeleteEvent } from '../queries'
+import { MyPopover } from '@/components/my-popover'
+import { SEWER_COLORS, DAY_NAMES, DAY_START, DAY_END, DAY_MINS } from '../constants'
+import { toDateStr, addDays, getMondayOf, snap15, fmtDur } from '../helpers'
+import { usePlannerStore, type PlannedTask } from '../store'
+import { useUpdateSewingSubTaskDates } from '../queries'
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+type Sewer = { id: string; name: string; color: string }
 
-type PlannerEvent = Doc<'plannerEvents'>
+// ─── Config ───────────────────────────────────────────────────────────────────
 
-export type PlannerOrder = {
-  id: string
-  number: string
-  duration: number // minutes
+const HOUR_W   = 72
+const COL_W    = HOUR_W * (DAY_END - DAY_START)
+const HOURS    = DAY_END - DAY_START
+const TASK_H   = 34
+const ROW_H    = 60
+const HEADER_H = 68
+const LABEL_W  = 148
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+const minuteToPx = (min: number) => (min / 60) * HOUR_W
+
+const pxToPosition = (px: number, dayStrs: string[]) => {
+  const dayIdx      = Math.max(0, Math.min(4, Math.floor(px / COL_W)))
+  const minuteRaw   = ((px % COL_W) / HOUR_W) * 60
+  const startMinute = Math.max(0, Math.min(DAY_MINS - 15, snap15(minuteRaw)))
+  return { startDate: dayStrs[dayIdx] ?? dayStrs[0], startMinute }
 }
 
-// ─── Event Form Dialog ────────────────────────────────────────────────────────
-
-type FormValues = {
-  orderId: string
-  sewerId: string
-  date: string
-  startH: string
-  startM: string
+const taskLeft = (task: PlannedTask, dayStrs: string[]) => {
+  const idx = dayStrs.indexOf(task.startDate)
+  return idx === -1 ? -1 : idx * COL_W + minuteToPx(task.startMinute)
 }
 
-type EventFormDialogProps = {
-  open: boolean
-  onClose: () => void
-  orders: PlannerOrder[]
-  prefillSewer?: string
-  prefillDate?: string
-  prefillH?: number
-  prefillM?: number
-  editEvent?: PlannerEvent
-}
+// ─── ColumnBg ────────────────────────────────────────────────────────────────
 
-function EventFormDialog({
-  open, onClose, orders, prefillSewer, prefillDate, prefillH, prefillM, editEvent,
-}: EventFormDialogProps) {
-  const { mutate: create } = useCreateEvent()
-  const { mutate: update } = useUpdateEvent()
-
-  const orderOptions = orders.map(o => ({ value: o.id, label: `#${o.number}` }))
-
-  const form = useAppForm({
-    defaultValues: {
-      orderId: editEvent?.orderId  ?? '',
-      sewerId: editEvent?.sewerId  ?? prefillSewer ?? SEWERS[0].id,
-      date:    editEvent?.date     ?? prefillDate  ?? toDateStr(new Date()),
-      startH:  editEvent ? String(editEvent.startH) : String(prefillH ?? DAY_START),
-      startM:  editEvent ? String(editEvent.startM) : String(prefillM ?? 0),
-    } as FormValues,
-    onSubmit: ({ value }) => {
-      const order = orders.find(o => o.id === value.orderId)
-      if (!order) return
-      const startH = Number(value.startH)
-      const startM = snap15(Number(value.startM))
-      if (editEvent) {
-        update({ id: editEvent._id, sewerId: value.sewerId, date: value.date, startH, startM }, { onSuccess: onClose })
-      } else {
-        create(
-          { orderId: order.id, orderNumber: order.number, sewerId: value.sewerId, date: value.date, startH, startM, duration: order.duration },
-          { onSuccess: onClose },
-        )
-      }
-    },
-  })
-
-  useEffect(() => { if (open) form.reset() }, [open])
-
-  return (
-    <Dialog open={open} onOpenChange={v => !v && onClose()}>
-      <DialogContent className="max-w-sm">
-        <DialogHeader>
-          <DialogTitle>{editEvent ? 'Редагувати подію' : 'Запланувати замовлення'}</DialogTitle>
-        </DialogHeader>
-
-        <form onSubmit={e => { e.preventDefault(); form.handleSubmit() }} className="flex flex-col gap-3">
-          {!editEvent && (
-            <form.AppField name="orderId" children={f => <f.FormSelect label="Замовлення" options={orderOptions} />} />
-          )}
-          <form.AppField name="sewerId" children={f => <f.FormSelect label="Швея" options={SEWER_OPTIONS} />} />
-          <form.AppField name="date" children={f => <f.FormTextField label="Дата" type="text" placeholder="рррр-мм-дд" />} />
-          <div className="flex gap-2">
-            <form.AppField name="startH" children={f => <f.FormTextField label="Година" type="number" />} />
-            <form.AppField name="startM" children={f => <f.FormTextField label="Хвилини" type="number" />} />
-          </div>
-          <DialogFooter className="pt-1">
-            <Button type="button" variant="outline" onClick={onClose}>Скасувати</Button>
-            <Button type="submit">Зберегти</Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-  )
-}
-
-// ─── Draggable Event Block ────────────────────────────────────────────────────
-
-function EventBlock({ event, sewer, onEdit }: {
-  event: PlannerEvent
-  sewer: typeof SEWERS[number]
-  onEdit: (ev: PlannerEvent) => void
-}) {
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
-    id: event._id,
-    data: { event },
-  })
-
-  const x = ((event.startH - DAY_START) * 60 + event.startM) * MIN_PX
-  const w = Math.max(event.duration * MIN_PX, 44)
-
-  return (
-    <div
-      ref={setNodeRef}
-      {...listeners}
-      {...attributes}
-      onClick={e => { e.stopPropagation(); onEdit(event) }}
-      className={cn(
-        'absolute top-1 bottom-1 rounded-md px-2 py-1 cursor-grab active:cursor-grabbing select-none overflow-hidden flex flex-col justify-center shadow-sm border transition-opacity',
-        isDragging && 'opacity-50',
-      )}
-      style={{
-        left: x,
-        width: w,
-        background: sewer.bg,
-        borderColor: sewer.color,
-        transform: transform ? `translate3d(${transform.x}px,${transform.y}px,0)` : undefined,
-        zIndex: isDragging ? 50 : 1,
-      }}
-    >
-      <div className="text-[11px] font-semibold truncate" style={{ color: sewer.color }}>
-        #{event.orderNumber}
+const ColumnBg = ({ dayStrs, today }: { dayStrs: string[]; today: string }) => (
+  <>
+    {dayStrs.map((ds) => (
+      <div
+        key={ds}
+        style={{ width: COL_W }}
+        className={cn('relative shrink-0 h-full border-r border-border/60 pointer-events-none', ds === today && 'bg-primary/5')}
+      >
+        {Array.from({ length: HOURS - 1 }, (_, h) => (
+          <div
+            key={h}
+            className="absolute top-0 bottom-0 border-r border-border/25"
+            style={{ left: (h + 1) * HOUR_W }}
+          />
+        ))}
       </div>
-      <div className="text-[10px] text-muted-foreground">
-        {fmtTime(event.startH, event.startM)} · {fmtDur(event.duration)}
+    ))}
+  </>
+)
+
+// ─── DayHeaders ──────────────────────────────────────────────────────────────
+
+const DayHeaders = ({ days, dayStrs, today, dailyLoad }: {
+  days:      Date[]
+  dayStrs:   string[]
+  today:     string
+  dailyLoad: Map<string, number>
+}) => (
+  <div className="flex border-b sticky top-0 z-10 bg-background" style={{ height: HEADER_H }}>
+    <div style={{ width: LABEL_W }} className="shrink-0 border-r bg-muted/30 flex items-center px-3">
+      <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Виконавець</span>
+    </div>
+    {days.map((d, i) => {
+      const ds      = dayStrs[i]
+      const load    = Math.round((dailyLoad.get(ds) ?? 0) / DAY_MINS * 100)
+      const isToday = ds === today
+      return (
+        <div
+          key={ds}
+          style={{ width: COL_W }}
+          className={cn('shrink-0 flex flex-col border-r', isToday && 'bg-primary/5')}
+        >
+          <div className="flex items-center gap-2 px-2 pt-1.5 pb-1">
+            <span className={cn('text-xs font-semibold', isToday ? 'text-primary' : 'text-foreground')}>
+              {DAY_NAMES[i]}
+            </span>
+            <span className={cn('text-[11px]', isToday ? 'text-primary/70' : 'text-muted-foreground')}>
+              {d.toLocaleDateString('uk-UA', { day: '2-digit', month: '2-digit' })}
+            </span>
+            {load > 0 && (
+              <span className={cn(
+                'ml-auto text-[10px] font-semibold',
+                load > 100 ? 'text-red-500' : load > 70 ? 'text-amber-500' : 'text-emerald-500',
+              )}>
+                {load}%
+              </span>
+            )}
+          </div>
+          <div className="flex border-t border-border/30 mt-auto">
+            {Array.from({ length: HOURS }, (_, h) => (
+              <div
+                key={h}
+                style={{ width: HOUR_W }}
+                className="shrink-0 flex items-center justify-start pl-0.5 border-r border-border/20 last:border-r-0"
+              >
+                <span className="text-[9px] text-muted-foreground/50 leading-none tabular-nums">
+                  {DAY_START + h}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )
+    })}
+  </div>
+)
+
+// ─── TaskPopoverContent ───────────────────────────────────────────────────────
+
+const TaskPopoverContent = ({ task }: { task: PlannedTask }) => {
+  const c      = task.color
+  const startH = Math.floor((DAY_START * 60 + task.startMinute) / 60)
+  const startM = (DAY_START * 60 + task.startMinute) % 60
+  const timeStr = `${startH}:${String(startM).padStart(2, '0')}`
+
+  return (
+    <div className="flex flex-col gap-1.5 min-w-[180px]">
+      <div className="flex items-center gap-1.5">
+        <span className="size-2 rounded-full shrink-0" style={{ background: c }} />
+        <span className="text-[12px] font-semibold">#{task.orderNumber}</span>
+      </div>
+      <div className='flex gap-2 items-center'>
+        <p className="text-[11px] text-muted-foreground">{task.specName}</p>
+        {task.size && (
+          <span className="self-start text-[10px] font-semibold px-1.5 py-0.5 rounded bg-muted border border-border/60 leading-none">
+            {task.size}
+          </span>
+        )}
+      </div>
+      <div className="flex items-center gap-3 text-[11px] border-t border-border/40 pt-1.5">
+        <span className="tabular-nums">{task.quantity} шт</span>
+        <span className="text-muted-foreground tabular-nums">{fmtDur(task.durationMinutes)}</span>
+        {task.isScheduled && (
+          <span className="text-muted-foreground tabular-nums ml-auto">{task.startDate} {timeStr}</span>
+        )}
       </div>
     </div>
   )
 }
 
-// ─── Droppable Sewer Row ──────────────────────────────────────────────────────
+// ─── TaskBar ─────────────────────────────────────────────────────────────────
 
-function SewerRow({ sewer, events, date, onSlotClick, onEdit }: {
-  sewer: typeof SEWERS[number]
-  events: PlannerEvent[]
-  date: string
-  onSlotClick: (sewerId: string, h: number, m: number) => void
-  onEdit: (ev: PlannerEvent) => void
-}) {
-  const { setNodeRef, isOver } = useDroppable({ id: sewer.id })
-  const rowRef = useRef<HTMLDivElement>(null)
+const TaskBar = ({ task, left, onCheck }: {
+  task:    PlannedTask
+  left:    number
+  onCheck: () => void
+}) => {
+  const {
+    listeners: moveListeners, attributes: moveAttrs, setNodeRef: setMoveRef, isDragging: isMoveActive,
+  } = useDraggable({ id: task.sewingSubTaskId, data: { type: 'move' } })
 
-  const totalMins = events.reduce((s, e) => s + e.duration, 0)
-  const load = totalMins / DAY_MINS
-  const hours = Array.from({ length: DAY_END - DAY_START + 1 }, (_, i) => DAY_START + i)
-
-  const now = new Date()
-  const nowMins = now.getHours() * 60 + now.getMinutes() - DAY_START * 60
-  const showNow = toDateStr(now) === date && nowMins >= 0 && nowMins <= DAY_MINS
-
-  function handleRowClick(e: React.MouseEvent<HTMLDivElement>) {
-    if (!rowRef.current) return
-    const rect = rowRef.current.getBoundingClientRect()
-    const snapped = snap15(Math.max(0, Math.min((e.clientX - rect.left) / MIN_PX, DAY_MINS - 1)))
-    onSlotClick(sewer.id, DAY_START + Math.floor(snapped / 60), snapped % 60)
-  }
+  const width  = minuteToPx(task.durationMinutes)
+  const top    = (ROW_H - TASK_H) / 2
+  const narrow = width < 72
+  const c      = task.color
 
   return (
-    <div className="flex items-stretch min-h-[64px]">
-      <div className="w-[180px] shrink-0 flex flex-col justify-center px-3 py-2 bg-muted/30 border-r gap-1">
-        <div className="flex items-center gap-2">
-          <span
-            className="size-7 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0"
-            style={{ background: sewer.color }}
-          >
-            {sewer.name[0]}
-          </span>
-          <span className="text-sm font-medium truncate">{sewer.name}</span>
-        </div>
-        <div className="text-[11px] text-muted-foreground">{fmtDur(totalMins)}</div>
-        <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+    <MyPopover
+      align="start"
+      trigger={
+        <div
+          className={cn(
+            'absolute rounded overflow-visible select-none cursor-pointer',
+            isMoveActive && 'opacity-70 z-20',
+            task.isDirty && 'ring-1 ring-inset ring-primary/50',
+          )}
+          style={{ left, top, width: Math.max(width - 2, 4), height: TASK_H }}
+        >
+          {/* visual background */}
           <div
-            className={cn('h-full rounded-full', load > 1 ? 'bg-red-500' : 'bg-emerald-500')}
-            style={{ width: `${Math.min(load * 100, 100)}%` }}
+            className="absolute inset-0 rounded pointer-events-none"
+            style={{ backgroundColor: c + '18', border: `1.5px solid ${c}40` }}
           />
+          {/* left accent */}
+          <div className="absolute inset-y-0 left-0 w-[3px] rounded-l pointer-events-none" style={{ background: c }} />
+
+          {/* move drag handle */}
+          <div
+            ref={setMoveRef}
+            {...moveListeners}
+            {...moveAttrs}
+            className="absolute inset-0 cursor-grab active:cursor-grabbing"
+          />
+
+          {/* content */}
+          {!narrow && (
+            <div className="absolute inset-0 flex items-center gap-1 pl-2.5 pr-2 pointer-events-none">
+              <span className="text-[11px] font-semibold truncate leading-none flex-1" style={{ color: c }}>
+                #{task.orderNumber}
+              </span>
+              {task.size && (
+                <span className="text-[9px] font-semibold px-1 py-0.5 rounded leading-none shrink-0" style={{ background: c + '25', color: c }}>
+                  {task.size}
+                </span>
+              )}
+              <span className="text-[10px] text-muted-foreground shrink-0 tabular-nums">
+                {fmtDur(task.durationMinutes)}
+              </span>
+            </div>
+          )}
+
+          {/* save button */}
+          {task.isDirty && (
+            <Button
+              type="button"
+              size="icon-sm"
+              title="Зберегти"
+              className="absolute -top-2.5 -right-2.5 z-10 size-5 rounded-full p-0"
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => { e.stopPropagation(); onCheck() }}
+            >
+              <Check size={11} strokeWidth={3} />
+            </Button>
+          )}
+        </div>
+      }
+      content={<TaskPopoverContent task={task} />}
+    />
+  )
+}
+
+// ─── UnscheduledPopover ───────────────────────────────────────────────────────
+
+const UnscheduledPopover = ({
+  x, tasks, onPlace, onClose,
+}: {
+  x:       number
+  tasks:   PlannedTask[]
+  onPlace: (id: string) => void
+  onClose: () => void
+}) => (
+  <div
+    className="absolute z-20 bg-popover border border-border rounded-lg shadow-lg py-1 min-w-[160px]"
+    style={{ left: x, top: (ROW_H - TASK_H) / 2 - 4 }}
+    onPointerDown={(e) => e.stopPropagation()}
+  >
+    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide px-2.5 pb-0.5 pt-1">
+      Додати задачу
+    </p>
+    {tasks.map((t) => (
+      <Button
+        key={t.sewingSubTaskId}
+        type="button"
+        variant="ghost"
+        size="sm"
+        className="w-full flex items-center gap-2 px-2.5 py-1.5 h-auto justify-start text-[11px] rounded-none"
+        onClick={() => { onPlace(t.sewingSubTaskId); onClose() }}
+      >
+        <span className="size-2 rounded-full shrink-0" style={{ background: t.color }} />
+        <span className="truncate flex-1">#{t.orderNumber} · {t.specName}</span>
+        <span className="text-muted-foreground shrink-0 tabular-nums">{t.quantity} шт</span>
+      </Button>
+    ))}
+    <div className="border-t border-border/40 mt-0.5 pt-0.5">
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        className="w-full h-7 text-[10px] text-muted-foreground"
+        onClick={onClose}
+      >
+        Скасувати
+      </Button>
+    </div>
+  </div>
+)
+
+// ─── SewerRow ────────────────────────────────────────────────────────────────
+
+const SewerRow = ({ sewer, dayStrs, today }: {
+  sewer:   Sewer
+  dayStrs: string[]
+  today:   string
+}) => {
+  const { mutateAsync: updateDates } = useUpdateSewingSubTaskDates()
+  const storeTasks = usePlannerStore((s) => s.tasks)
+  const tasks      = useMemo(
+    () => Object.values(storeTasks).filter((t) => t.sewerId === sewer.id),
+    [storeTasks, sewer.id],
+  )
+  const { schedule, markSaved } = usePlannerStore.getState()
+
+  const scheduled   = useMemo(() => tasks.filter((t) => t.isScheduled), [tasks])
+  const unscheduled = useMemo(() => tasks.filter((t) => !t.isScheduled), [tasks])
+  const weekTotal   = useMemo(() => tasks.reduce((s, t) => s + t.quantity, 0), [tasks])
+
+  const [popup, setPopup] = useState<{ x: number; startDate: string; startMinute: number } | null>(null)
+
+  const handleCheck = useCallback(async (task: PlannedTask) => {
+    if (!task.isScheduled) return
+    const [y, mo, d] = task.startDate.split('-').map(Number)
+    const startMs    = new Date(y, mo - 1, d, DAY_START + Math.floor(task.startMinute / 60), task.startMinute % 60).getTime()
+    const endMs      = startMs + task.durationMinutes * 60_000
+    await updateDates({ sewingSubTaskId: task.sewingSubTaskId as any, startDate: startMs, endDate: endMs })
+    markSaved(task.sewingSubTaskId)
+  }, [updateDates, markSaved])
+
+  const handleTimelineClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.target !== e.currentTarget) return
+    if (popup) { setPopup(null); return }
+    if (unscheduled.length === 0) return
+
+    const rect = e.currentTarget.getBoundingClientRect()
+    const relX = e.clientX - rect.left
+    const { startDate, startMinute } = pxToPosition(relX, dayStrs)
+
+    if (unscheduled.length === 1) {
+      schedule(unscheduled[0].sewingSubTaskId, startDate, startMinute)
+    } else {
+      setPopup({ x: relX, startDate, startMinute })
+    }
+  }, [dayStrs, unscheduled, schedule, popup])
+
+  return (
+    <div className="flex border-b" style={{ height: ROW_H }}>
+      {/* Label */}
+      <div
+        style={{ width: LABEL_W }}
+        className="shrink-0 border-r bg-background flex items-start px-2 gap-2 pt-2 sticky left-0 z-10"
+      >
+        <span
+          className="size-7 rounded-full flex items-center justify-center text-white text-[11px] font-bold shrink-0 mt-0.5"
+          style={{ background: sewer.color }}
+        >
+          {sewer.name[0]}
+        </span>
+        <div className="min-w-0 flex flex-col gap-0.5">
+          <p className="text-sm font-medium leading-tight">{sewer.name}</p>
+          {/* {weekTotal > 0 && (
+            <p className="text-[11px] text-muted-foreground">{weekTotal} шт</p>
+          )} */}
+          {unscheduled.length > 0 && (
+            <p className="text-[10px] text-amber-500">{unscheduled.length} не розп.</p>
+          )}
         </div>
       </div>
 
+      {/* Timeline */}
       <div
-        ref={node => { setNodeRef(node); (rowRef as any).current = node }}
-        className={cn('relative flex-1 border-b cursor-pointer transition-colors', isOver && 'bg-primary/5')}
-        style={{ width: DAY_MINS * MIN_PX, minWidth: DAY_MINS * MIN_PX }}
-        onClick={handleRowClick}
+        className="relative flex"
+        style={{ width: 5 * COL_W, height: ROW_H, cursor: unscheduled.length > 0 ? 'cell' : 'default' }}
+        onClick={handleTimelineClick}
       >
-        {hours.map(h => (
-          <div
-            key={h}
-            className="absolute top-0 bottom-0 border-l border-dashed border-border/40"
-            style={{ left: (h - DAY_START) * HOUR_PX }}
-          />
-        ))}
-        {events.map(ev => (
-          <EventBlock key={ev._id} event={ev} sewer={sewer} onEdit={onEdit} />
-        ))}
-        {showNow && (
-          <div
-            className="absolute top-0 bottom-0 w-px bg-red-500 z-20 pointer-events-none"
-            style={{ left: nowMins * MIN_PX }}
+        <ColumnBg dayStrs={dayStrs} today={today} />
+
+        {scheduled.map((task) => {
+          const lx = taskLeft(task, dayStrs)
+          if (lx < 0) return null
+          return (
+            <TaskBar
+              key={task.sewingSubTaskId}
+              task={task}
+              left={lx}
+              onCheck={() => handleCheck(task)}
+            />
+          )
+        })}
+
+        {popup && (
+          <UnscheduledPopover
+            x={popup.x}
+            tasks={unscheduled}
+            onPlace={(id) => schedule(id, popup.startDate, popup.startMinute)}
+            onClose={() => setPopup(null)}
           />
         )}
       </div>
@@ -235,276 +391,178 @@ function SewerRow({ sewer, events, date, onSlotClick, onEdit }: {
   )
 }
 
-// ─── Day View ─────────────────────────────────────────────────────────────────
+// ─── TodayLine ───────────────────────────────────────────────────────────────
 
-function DayView({ date, events, onSlotClick, onEdit, onDrop }: {
-  date: string
-  events: PlannerEvent[]
-  onSlotClick: (sewerId: string, h: number, m: number) => void
-  onEdit: (ev: PlannerEvent) => void
-  onDrop: (event: PlannerEvent, newSewerId: string, newH: number, newM: number) => void
-}) {
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
-  const dayEvents = events.filter(e => e.date === date)
-  const hours = Array.from({ length: DAY_END - DAY_START + 1 }, (_, i) => DAY_START + i)
+const TodayLine = ({ dayStrs, today, totalH }: { dayStrs: string[]; today: string; totalH: number }) => {
+  const idx = dayStrs.indexOf(today)
+  if (idx === -1) return null
+  const now    = new Date()
+  const curMin = now.getHours() * 60 + now.getMinutes() - DAY_START * 60
+  const leftPx = LABEL_W + idx * COL_W + minuteToPx(Math.max(0, Math.min(DAY_MINS, curMin)))
+  return (
+    <div
+      className="absolute top-0 w-0.5 bg-primary/80 pointer-events-none z-10"
+      style={{ left: leftPx, height: totalH }}
+    />
+  )
+}
 
-  function handleDragEnd(e: DragEndEvent) {
-    const ev = e.active.data.current?.event as PlannerEvent | undefined
-    if (!ev || !e.over) return
-    const activeRect = e.active.rect.current.translated
-    const overRect = e.over.rect
-    if (!activeRect || !overRect) return
-    const snapped = snap15(Math.max(0, Math.min((activeRect.left - overRect.left) / MIN_PX, DAY_MINS - 1)))
-    onDrop(ev, e.over.id as string, DAY_START + Math.floor(snapped / 60), snapped % 60)
-  }
+// ─── Main Component ───────────────────────────────────────────────────────────
+
+const ProductionPlanner = () => {
+  const [currentDate, setCurrentDate] = useState(() => new Date())
+  const monday  = getMondayOf(currentDate)
+  const days    = useMemo(() => Array.from({ length: 5 }, (_, i) => addDays(monday, i)), [monday.toISOString()])
+  const dayStrs = useMemo(() => days.map(toDateStr), [days])
+  const today   = toDateStr(new Date())
+
+  const { data: sewerData      = [] } = useQuery(convexQuery(api.queries.sewing.getSewerUsers, {}))
+  const { data: plannerSubTasks = [] } = useQuery(convexQuery(api.queries.sewing.getPlannerSubTasks, {}))
+
+  // Hydrate store from DB — only for tasks not already managed locally
+  useEffect(() => {
+    if (plannerSubTasks.length === 0) return
+    const { assign, tasks } = usePlannerStore.getState()
+    for (const pt of plannerSubTasks) {
+      if (tasks[String(pt.sewingSubTaskId)]) continue
+
+      let isScheduled = false
+      let startDate   = ''
+      let startMinute = 0
+
+      if (pt.startDateMs) {
+        const d   = new Date(pt.startDateMs)
+        const min = d.getHours() * 60 + d.getMinutes() - DAY_START * 60
+        if (min >= 0 && min < DAY_MINS) {
+          isScheduled = true
+          startDate   = toDateStr(d)
+          startMinute = min
+        }
+      }
+
+      assign({
+        sewingSubTaskId: String(pt.sewingSubTaskId),
+        sewerId:         String(pt.sewerId),
+        isScheduled,
+        startDate,
+        startMinute,
+        durationMinutes: Math.max(20, pt.quantity * 3),
+        quantity:        pt.quantity,
+        size:            pt.size ?? undefined,
+        orderNumber:     pt.orderNumber,
+        specName:        pt.specName,
+        color:           pt.color,
+      })
+    }
+  }, [plannerSubTasks])
+
+  const sewers = useMemo<Sewer[]>(
+    () => sewerData.map((u, i) => ({
+      id:    u._id,
+      name:  `${u.name} ${u.lastName}`.trim() || '—',
+      color: SEWER_COLORS[i % SEWER_COLORS.length],
+    })),
+    [sewerData],
+  )
+
+  const storeTasks = usePlannerStore((s) => s.tasks)
+
+  const dailyLoad = useMemo(() => {
+    const map = new Map<string, number>()
+    for (const t of Object.values(storeTasks)) {
+      if (t.isScheduled) map.set(t.startDate, (map.get(t.startDate) ?? 0) + t.durationMinutes)
+    }
+    return map
+  }, [storeTasks])
+
+  // Captures drag-start state; sewerPeers is the snapshot used as baseline for swap logic
+  const initialDragRef = useRef<{
+    taskId:     string
+    initialLeft: number
+    curWidth:    number
+    sewerPeers:  PlannedTask[]
+  } | null>(null)
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+  )
+
+  const handleDragStart = useCallback(({ active }: DragStartEvent) => {
+    const taskId = active.id as string
+    const task   = usePlannerStore.getState().tasks[taskId]
+    if (!task?.isScheduled) return
+
+    const sewerPeers = Object.values(usePlannerStore.getState().tasks)
+      .filter((t) => t.isScheduled && t.sewerId === task.sewerId && t.sewingSubTaskId !== taskId)
+
+    initialDragRef.current = {
+      taskId,
+      initialLeft: taskLeft(task, dayStrs),
+      curWidth:    minuteToPx(task.durationMinutes),
+      sewerPeers,
+    }
+  }, [dayStrs])
+
+  const handleDragMove = useCallback(({ delta }: DragMoveEvent) => {
+    const d = initialDragRef.current
+    if (!d) return
+    const { moveWithPush, moveWithSwap } = usePlannerStore.getState()
+
+    const newLeft = Math.max(0, Math.min(5 * COL_W - d.curWidth, d.initialLeft + delta.x))
+    const { startDate, startMinute } = pxToPosition(newLeft, dayStrs)
+
+    if (delta.x < 0) {
+      // Moving left → swap: recompute from the drag-start snapshot each time to prevent gap drift
+      moveWithSwap(d.taskId, startDate, startMinute, d.sewerPeers)
+    } else {
+      // Moving right → push tasks forward
+      moveWithPush(d.taskId, startDate, startMinute)
+    }
+  }, [dayStrs])
+
+  const handleDragEnd = useCallback(() => { initialDragRef.current = null }, [])
+
+  const totalH = HEADER_H + sewers.length * ROW_H
+  const nav    = (dir: 1 | -1) => setCurrentDate((d) => addDays(d, dir * 7))
 
   return (
-    <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-      <div className="flex flex-col overflow-x-auto">
-        <div className="flex" style={{ paddingLeft: 180 }}>
-          <div className="relative" style={{ width: DAY_MINS * MIN_PX, height: 24, flexShrink: 0 }}>
-            {hours.map(h => (
-              <div
-                key={h}
-                className="absolute text-[11px] text-muted-foreground"
-                style={{ left: (h - DAY_START) * HOUR_PX - 12 }}
-              >
-                {String(h).padStart(2, '0')}:00
-              </div>
-            ))}
-          </div>
+    <DndContext sensors={sensors} onDragStart={handleDragStart} onDragMove={handleDragMove} onDragEnd={handleDragEnd}>
+      <div className="flex flex-col h-full">
+        <div className="flex items-center gap-2 px-3 py-2 border-b shrink-0">
+          <Button variant="ghost" size="icon-sm" onClick={() => nav(-1)}><ChevronLeft size={16} /></Button>
+          <span className="text-sm font-medium min-w-[180px] text-center">
+            {monday.toLocaleDateString('uk-UA', { day: 'numeric', month: 'long' })}
+            {' – '}
+            {addDays(monday, 4).toLocaleDateString('uk-UA', { day: 'numeric', month: 'long', year: 'numeric' })}
+          </span>
+          <Button variant="ghost" size="icon-sm" onClick={() => nav(1)}><ChevronRight size={16} /></Button>
+          <Button variant="outline" size="sm" onClick={() => setCurrentDate(new Date())} className="ml-1">
+            Сьогодні
+          </Button>
+          <span className="ml-auto text-xs text-muted-foreground">
+            {DAY_START}:00 – {DAY_END}:00
+          </span>
         </div>
-        <div className="flex flex-col gap-px mt-1">
-          {SEWERS.map(sewer => (
-            <SewerRow
-              date={date}
-              sewer={sewer}
-              key={sewer.id}
-              onEdit={onEdit}
-              onSlotClick={onSlotClick}
-              events={dayEvents.filter(e => e.sewerId === sewer.id)}
-            />
-          ))}
+
+        <div className="flex-1 overflow-auto">
+          <div className="relative" style={{ width: LABEL_W + 5 * COL_W, height: totalH }}>
+            <DayHeaders days={days} dayStrs={dayStrs} today={today} dailyLoad={dailyLoad} />
+            <div style={{ marginTop: HEADER_H }}>
+              {sewers.map((sewer) => (
+                <SewerRow
+                  key={sewer.id}
+                  sewer={sewer}
+                  dayStrs={dayStrs}
+                  today={today}
+                />
+              ))}
+            </div>
+            <TodayLine dayStrs={dayStrs} today={today} totalH={totalH} />
+          </div>
         </div>
       </div>
     </DndContext>
   )
 }
 
-// ─── Week View ────────────────────────────────────────────────────────────────
-
-function WeekView({ monday, events, onCellClick, onEdit }: {
-  monday: Date
-  events: PlannerEvent[]
-  onCellClick: (sewerId: string, date: string) => void
-  onEdit: (ev: PlannerEvent) => void
-}) {
-  const days = Array.from({ length: 5 }, (_, i) => addDays(monday, i))
-
-  return (
-    <div className="overflow-x-auto">
-      <table className="w-full border-collapse text-sm">
-        <thead>
-          <tr>
-            <th className="w-[140px] border border-border bg-muted/30 p-2 text-left text-xs font-medium text-muted-foreground">
-              Швея
-            </th>
-            {days.map((d, i) => (
-              <th
-                key={i}
-                className={cn(
-                  'border border-border bg-muted/30 p-2 text-center text-xs font-medium min-w-[140px]',
-                  toDateStr(d) === toDateStr(new Date()) && 'bg-primary/5 text-primary',
-                )}
-              >
-                {DAY_NAMES[i]}<br />
-                <span className="font-normal">{d.toLocaleDateString('uk-UA', { day: '2-digit', month: '2-digit' })}</span>
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {SEWERS.map(sewer => (
-            <tr key={sewer.id}>
-              <td className="border border-border p-2 bg-muted/10">
-                <div className="flex items-center gap-2">
-                  <span
-                    className="size-6 rounded-full flex items-center justify-center text-white text-[11px] font-bold"
-                    style={{ background: sewer.color }}
-                  >
-                    {sewer.name[0]}
-                  </span>
-                  <span className="text-sm font-medium">{sewer.name}</span>
-                </div>
-              </td>
-              {days.map((d, di) => {
-                const dateStr = toDateStr(d)
-                const dayEvs = events.filter(e => e.date === dateStr && e.sewerId === sewer.id)
-                return (
-                  <td
-                    key={di}
-                    className="border border-border p-1 align-top cursor-pointer hover:bg-muted/20 transition-colors"
-                    style={{ minHeight: 80 }}
-                    onClick={() => onCellClick(sewer.id, dateStr)}
-                  >
-                    <div className="flex flex-col gap-1">
-                      {dayEvs.map(ev => (
-                        <div
-                          key={ev._id}
-                          onClick={e => { e.stopPropagation(); onEdit(ev) }}
-                          className="rounded px-2 py-1 text-[11px] cursor-pointer hover:opacity-80 border"
-                          style={{ background: sewer.bg, borderColor: sewer.color }}
-                        >
-                          <div className="font-semibold" style={{ color: sewer.color }}>#{ev.orderNumber}</div>
-                          <div className="text-muted-foreground">{fmtTime(ev.startH, ev.startM)} · {fmtDur(ev.duration)}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </td>
-                )
-              })}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  )
-}
-
-// ─── Main Component ───────────────────────────────────────────────────────────
-
-type Props = { orders: PlannerOrder[] }
-
-export default function ProductionPlanner({ orders }: Props) {
-  const [view, setView] = useState<'day' | 'week'>('day')
-  const [currentDate, setCurrentDate] = useState(() => new Date())
-  const [dialogOpen, setDialogOpen] = useState(false)
-  const [editEvent, setEditEvent] = useState<PlannerEvent | undefined>()
-  const [prefill, setPrefill] = useState<{ sewerId?: string; date?: string; h?: number; m?: number }>({})
-  const [deleteConfirm, setDeleteConfirm] = useState<PlannerEvent | undefined>()
-
-  const monday  = getMondayOf(currentDate)
-  const dateStr = toDateStr(currentDate)
-
-  const from = toDateStr(addDays(monday, -7))
-  const to   = toDateStr(addDays(monday, 14))
-  const { data: events = [] } = usePlannerEvents(from, to)
-
-  const { mutate: updateEvent } = useUpdateEvent()
-  const { mutate: deleteEvent } = useDeleteEvent()
-
-  function navigate(dir: 1 | -1) {
-    setCurrentDate(d => addDays(d, view === 'day' ? dir : dir * 7))
-  }
-
-  function openNew(sewerId?: string, date?: string, h?: number, m?: number) {
-    setEditEvent(undefined)
-    setPrefill({ sewerId, date, h, m })
-    setDialogOpen(true)
-  }
-
-  function openEdit(ev: PlannerEvent) {
-    setEditEvent(ev)
-    setPrefill({})
-    setDialogOpen(true)
-  }
-
-  function handleDrop(ev: PlannerEvent, newSewerId: string, newH: number, newM: number) {
-    updateEvent({ id: ev._id, sewerId: newSewerId, startH: newH, startM: newM })
-  }
-
-  const dialogKey = dialogOpen ? `${editEvent?._id ?? 'new'}-${JSON.stringify(prefill)}` : 'closed'
-
-  return (
-    <div className="flex flex-col gap-4 p-4 h-full w-full">
-      {/* Toolbar */}
-      <div className="flex items-center gap-3 flex-wrap">
-        <div className="flex items-center gap-1 rounded-md border bg-muted/30 p-1">
-          {(['day', 'week'] as const).map(v => (
-            <button
-              key={v}
-              onClick={() => setView(v)}
-              className={cn(
-                'px-3 py-1 rounded text-sm font-medium transition-colors',
-                view === v ? 'bg-background shadow-sm' : 'text-muted-foreground hover:text-foreground',
-              )}
-            >
-              {v === 'day' ? 'День' : 'Тиждень'}
-            </button>
-          ))}
-        </div>
-
-        <div className="flex items-center gap-1">
-          <Button variant="ghost" size="icon-sm" onClick={() => navigate(-1)}><ChevronLeft size={16} /></Button>
-          <span className="text-sm font-medium min-w-[160px] text-center">
-            {view === 'day'
-              ? currentDate.toLocaleDateString('uk-UA', { weekday: 'short', day: 'numeric', month: 'long' })
-              : `${monday.toLocaleDateString('uk-UA', { day: 'numeric', month: 'short' })} – ${addDays(monday, 4).toLocaleDateString('uk-UA', { day: 'numeric', month: 'short', year: 'numeric' })}`
-            }
-          </span>
-          <Button variant="ghost" size="icon-sm" onClick={() => navigate(1)}><ChevronRight size={16} /></Button>
-        </div>
-
-        <Button variant="outline" size="sm" onClick={() => setCurrentDate(new Date())}>Сьогодні</Button>
-
-        <Button size="sm" className="ml-auto" onClick={() => openNew(undefined, dateStr)}>
-          <Plus size={14} /> Запланувати
-        </Button>
-      </div>
-
-      {/* Calendar */}
-      <div className="flex-1 overflow-auto border rounded-lg">
-        {view === 'day' ? (
-          <DayView
-            date={dateStr}
-            events={events}
-            onSlotClick={(sewerId, h, m) => openNew(sewerId, dateStr, h, m)}
-            onEdit={openEdit}
-            onDrop={handleDrop}
-          />
-        ) : (
-          <WeekView
-            monday={monday}
-            events={events}
-            onCellClick={(sewerId, date) => openNew(sewerId, date)}
-            onEdit={openEdit}
-          />
-        )}
-      </div>
-
-      <EventFormDialog
-        key={dialogKey}
-        open={dialogOpen}
-        onClose={() => setDialogOpen(false)}
-        orders={orders}
-        prefillSewer={prefill.sewerId}
-        prefillDate={prefill.date}
-        prefillH={prefill.h}
-        prefillM={prefill.m}
-        editEvent={editEvent}
-      />
-
-      <Dialog open={!!deleteConfirm} onOpenChange={v => !v && setDeleteConfirm(undefined)}>
-        <DialogContent className="max-w-xs">
-          <DialogHeader>
-            <DialogTitle>Видалити подію?</DialogTitle>
-          </DialogHeader>
-          <p className="text-sm text-muted-foreground">
-            Замовлення #{deleteConfirm?.orderNumber} буде видалено з розкладу.
-          </p>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteConfirm(undefined)}>Скасувати</Button>
-            <Button
-              variant="destructive"
-              onClick={() => {
-                if (deleteConfirm) deleteEvent({ id: deleteConfirm._id }, { onSuccess: () => setDeleteConfirm(undefined) })
-              }}
-            >
-              <Trash2 size={14} /> Видалити
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
-  )
-}
+export default ProductionPlanner

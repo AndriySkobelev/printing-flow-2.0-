@@ -3,6 +3,13 @@ import { convexQuery, useConvexMutation } from '@convex-dev/react-query'
 import { api } from 'convex/_generated/api'
 import { toast } from 'sonner'
 
+export function useUpdateSewingSubTaskDates() {
+  return useMutation({
+    mutationFn: useConvexMutation(api.queries.sewing.updateSewingSubTaskDates),
+    onError: (e: Error) => toast.error(e.message),
+  })
+}
+
 export function usePlannerEvents(from: string, to: string) {
   return useQuery(convexQuery(api.queries.planner.getEventsByDateRange, { from, to }))
 }

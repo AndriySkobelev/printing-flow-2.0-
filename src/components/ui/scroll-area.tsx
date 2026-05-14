@@ -14,6 +14,7 @@ function ScrollArea({
     <ScrollAreaPrimitive.Root
       data-slot="scroll-area"
       className={cn("relative overflow-auto", className)}
+      scrollHideDelay={0}
       {...props}
     >
       <ScrollAreaPrimitive.Viewport

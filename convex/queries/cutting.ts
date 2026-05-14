@@ -57,7 +57,7 @@ export const getAllCuttingTasks = query({
   handler: async (ctx) => {
     const tasks = await ctx.db.query('cuttingTasks').collect();
 
-    return Promise.all(
+    const enriched = await Promise.all(
       tasks.map(async task => {
         const sizes = await ctx.db
           .query('cuttingTaskSizes')
@@ -71,16 +71,24 @@ export const getAllCuttingTasks = query({
 
         const spec = await resolveSpecForOrder(ctx, task.productionOrderId);
         const productionOrder = await ctx.db.get(task.productionOrderId);
+        const fabricColor = await ctx.db
+          .query('fabricColors')
+          .filter(q => q.eq(q.field('name'), task.color))
+          .first();
 
         return {
           ...task,
-          sizesMap,
-          sizes,
           spec,
+          sizes,
+          sizesMap,
+          fabricColorHex: fabricColor?.hex ?? null,
+          labelColorHex: fabricColor?.labelHex ?? null,
           keycrmManager: productionOrder?.keycrmManager ?? null,
         };
       })
     );
+
+    return enriched.sort((a, b) => (a.endDate ?? 0) - (b.endDate ?? 0));
   },
 });
 

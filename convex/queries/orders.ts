@@ -11,18 +11,23 @@ async function resolveMaterialProcessingType(ctx: MutationCtx, sku: string): Pro
 }
 
 async function resolveFabricName(ctx: MutationCtx, sku: string): Promise<string> {
-  const product = await ctx.db
-    .query('products')
-    .withIndex('search_sku', q => q.eq('sku', sku))
-    .first();
-  
-  if (!product) return sku;
+  if (!sku) return ''
 
-  const fabricMaterial = product?.materials?.find((m: any) => m.fabricId);
-  if (!fabricMaterial?.fabricId) return sku;
+  const skuPrefix = sku.split('-')[0]
+  if (!skuPrefix) return sku
 
-  const fabric = await ctx.db.get(fabricMaterial.fabricId);
-  return fabric?.fabricName ?? sku;
+  const spec = await ctx.db
+    .query('specifications')
+    .withIndex('search_skuPrefix', q => q.eq('skuPrefix', skuPrefix))
+    .first()
+
+  if (!spec) return sku
+
+  const fabricMaterial = (spec.materials ?? []).find((m: any) => m.fabricId)
+  if (!fabricMaterial?.fabricId) return sku
+
+  const fabric = await ctx.db.get(fabricMaterial.fabricId)
+  return fabric?.fabricName ?? sku
 }
 
 type OrderItemEntry = {
@@ -33,11 +38,12 @@ type OrderItemEntry = {
   needsCutting: boolean;
 };
 
-async function createCuttingTasks(ctx: MutationCtx, { productionOrderId, keycrmOrderId, orderItems }: {
+async function createCuttingTasks(ctx: MutationCtx, { productionOrderId, plannedShipDate, keycrmOrderId, orderItems }: {
   productionOrderId: any
   keycrmOrderId: string
+  plannedShipDate: number,
   orderItems: OrderItemEntry[]
-}) {
+}): Promise<Map<string, string>> {
   const cuttingGroups = new Map<string, OrderItemEntry[]>();
   for (const item of orderItems.filter(i => i.needsCutting)) {
     const key = `${item.product.name}__${item.color}`;
@@ -45,19 +51,27 @@ async function createCuttingTasks(ctx: MutationCtx, { productionOrderId, keycrmO
     cuttingGroups.get(key)!.push(item);
   }
 
-  for (const items of cuttingGroups.values()) {
+  const totalTasks = cuttingGroups.size
+  let taskIndex = 1
+  const groupToCuttingTaskId = new Map<string, string>()
+
+  for (const [key, items] of cuttingGroups.entries()) {
     const { product, color } = items[0];
     const specName = product.name as string;
     const fabric   = await resolveFabricName(ctx, items[0].product.sku as string);
 
     const cuttingTaskId = await ctx.db.insert('cuttingTasks', {
-      productionOrderId,
-      keycrmOrderId,
-      specName,
-      fabric,
       color,
+      fabric,
+      specName,
+      keycrmOrderId,
       status: 'new',
+      productionOrderId,
+      endDate: plannedShipDate,
+      orderIndex: totalTasks === 1 ? keycrmOrderId : `${keycrmOrderId}-(${taskIndex++})`,
     });
+
+    groupToCuttingTaskId.set(key, cuttingTaskId as unknown as string)
 
     for (const item of items) {
       await ctx.db.insert('cuttingTaskSizes', {
@@ -67,6 +81,59 @@ async function createCuttingTasks(ctx: MutationCtx, { productionOrderId, keycrmO
         quantity: item.product.quantity,
         completedQty: 0,
       });
+    }
+  }
+
+  return groupToCuttingTaskId
+}
+
+async function createSewingTasks(ctx: MutationCtx, { productionOrderId, plannedShipDate, keycrmOrderId, orderItems, cuttingTaskIds }: {
+  productionOrderId: any
+  keycrmOrderId: string
+  plannedShipDate: number
+  orderItems: OrderItemEntry[]
+  cuttingTaskIds: Map<string, string>
+}) {
+  const sewingGroups = new Map<string, OrderItemEntry[]>()
+  for (const item of orderItems.filter(i => i.needsCutting)) {
+    const key = `${item.product.name}__${item.color}`
+    if (!sewingGroups.has(key)) sewingGroups.set(key, [])
+    sewingGroups.get(key)!.push(item)
+  }
+
+  const totalTasks = sewingGroups.size
+  let taskIndex = 1
+
+  for (const [key, items] of sewingGroups.entries()) {
+    const { product, color } = items[0]
+    const skuPrefix     = (product.sku as string ?? '').split('-')[0]
+    const spec          = await ctx.db.query('specifications').withIndex('search_skuPrefix', q => q.eq('skuPrefix', skuPrefix)).first()
+    const specName      = spec?.name ?? (product.name as string)
+    const totalQuantity = items.reduce((s, i) => s + (i.product.quantity as number), 0)
+    const cuttingTaskId = cuttingTaskIds.get(key)
+
+    const sewingTaskId = await ctx.db.insert('sewingTasks', {
+      productionOrderId,
+      keycrmOrderId,
+      specName,
+      color,
+      totalQuantity,
+      startDate: Date.now(),
+      endDate:   plannedShipDate,
+      status:    'new',
+      orderIndex:    totalTasks === 1 ? keycrmOrderId : `${keycrmOrderId}-(${taskIndex++})`,
+      cuttingTaskId: cuttingTaskId as any,
+    })
+
+    for (const item of items) {
+      await ctx.db.insert('sewingSubTasks', {
+        sewingTaskId,
+        productionOrderItemId: item.id as any,
+        size:         item.size,
+        quantity:     item.product.quantity as number,
+        completedQty: 0,
+        status:       'new',
+      })
     }
   }
 }
@@ -137,6 +204,8 @@ export const creatreProductionTask = mutation({
       const color = product.properties.find((p: any) => p.name === 'колір')?.value ?? '';
       const size  = product.properties.find((p: any) => p.name === 'розмір')?.value ?? '';
       const productSkuPrefix = product.sku ? String(product.sku).split('-')[0] : '';
+      const productDoc = await ctx.db.query('products').withIndex('search_sku', q => q.eq('sku', product.sku)).first();
+
       const spec = await ctx.db.query('specifications').withIndex('search_skuPrefix', q => q.eq('skuPrefix', productSkuPrefix)).first();
       let processingType: 'branding' | 'embroidery' | 'silkscreen' | 'none' = 'none';
       if (product.product_status_id != null) {
@@ -146,7 +215,8 @@ export const creatreProductionTask = mutation({
           .first();
         if (mapping) processingType = mapping.processingType;
       }
-      
+      console.log(product.sku, productDoc?.color, color, productDoc?.color ?? color)
+      console.log(product.sku, productDoc?.size, size, productDoc?.size ?? size)
       const shipmentType = product.shipment_type as 'manufacturing' | 'warehouse';
       const needsCutting = shipmentType === 'manufacturing';
 
@@ -156,8 +226,8 @@ export const creatreProductionTask = mutation({
         keycrmProductId: product.offer.product_id,
         name: spec?.name ?? product?.name,
         sku: product?.sku ?? '',
-        color,
-        size,
+        color: productDoc?.color ?? color,
+        size: productDoc?.size ?? size,
         quantity: product.quantity,
         keycrmProductComment: product.comment ?? '',
         shipmentType,
@@ -170,13 +240,22 @@ export const creatreProductionTask = mutation({
         needsPackaging:     true,
       });
 
-      orderItems.push({ id: itemId as unknown as string, product, color, size, needsCutting });
+      orderItems.push({
+        id: itemId as unknown as string,
+        product,
+        needsCutting,
+        size: productDoc?.size ?? size,
+        color: productDoc?.color ?? color,
+      });
     }
 
     // 4. Create cutting tasks for manufacturing items
-    // await createCuttingTasks(ctx, { productionOrderId, keycrmOrderId, orderItems });
+    const cuttingTaskIds = await createCuttingTasks(ctx, { productionOrderId, plannedShipDate, keycrmOrderId, orderItems });
 
-    // 5. Create branding task for the order
+    // 5. Create sewing tasks + sub-tasks (mirroring cutting task structure)
+    await createSewingTasks(ctx, { productionOrderId, plannedShipDate, keycrmOrderId, orderItems, cuttingTaskIds });
+
+    // 6. Create branding task for the order
     await createBrandingTasks(ctx, { productionOrderId, keycrmOrderId, plannedShipDate, externalData, attachedFiles });
 
     return { productionOrderId };
