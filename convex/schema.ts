@@ -59,6 +59,10 @@ export const productsSpecification = {
   category: v.string(),
   skuPrefix: v.string(),
   productionPrice: v.optional(v.union(v.number(), v.string())),
+  productionTime:  v.optional(v.union(v.number(), v.string())),
+  cutTime:         v.optional(v.union(v.number(), v.string())),
+  packingTime:     v.optional(v.union(v.number(), v.string())),
+  brandingTime:    v.optional(v.union(v.number(), v.string())),
   materials: v.array(v.object({
     units: v.string(),
     quantity: v.union(v.number(), v.string()),
@@ -186,6 +190,7 @@ export const productionOrderItems = {
   ),
   keycrmProductStatusId: v.union(v.number(), v.null()),
   keycrmProductComment: v.optional(v.union(v.string(), v.null())),
+  comment: v.optional(v.string()),
   materialProcessingType: v.optional(v.union(v.string(), v.null())),
   processingType: v.optional(v.union(
     v.literal("branding"),
@@ -198,6 +203,20 @@ export const productionOrderItems = {
   needsBranding: v.optional(v.boolean()),
   needsSubcontractor: v.optional(v.boolean()),
   needsPackaging: v.optional(v.boolean()),
+  brandingType: v.optional(v.array(v.union(
+    v.literal('dtf'),
+    v.literal('dtg'),
+    v.literal('flok'),
+    v.literal('embroidery'),
+    v.literal('sublimation'),
+  ))),
+  cuttingBrandingType: v.optional(v.array(v.union(
+    v.literal('dtf'),
+    v.literal('dtg'),
+    v.literal('flok'),
+    v.literal('embroidery'),
+    v.literal('sublimation'),
+  ))),
 };
 
 // ─── РОЗКРІЙ ────────────────────────────────────────────────────────────────

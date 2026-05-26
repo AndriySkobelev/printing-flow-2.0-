@@ -25,6 +25,10 @@ const specificationSchema = z.object({
   name: z.string().min(3, 'Must be an 3 min charts'),
   category: z.string().min(3, 'Must be an 3 min charts'),
   skuPrefix: z.string().min(1, 'Must be an 1 min charts'),
+  productionTime: z.string().min(1, 'Must be an 1 min charts'),
+  cutTime:        z.string().min(1, 'Must be an 1 min charts'),
+  packingTime:    z.string().min(1, 'Must be an 1 min charts'),
+  brandingTime:   z.string().min(1, 'Must be an 1 min charts'),
   productionPrice: z.string().min(1, 'Must be an 1 min charts'),
   materials: z.array(z.discriminatedUnion('type', [
     z.object({
@@ -87,6 +91,10 @@ const SpecificationForm: FunctionComponent<SpecificationFormProps> = ({
       category: '',
       skuPrefix: '',
       productionPrice: '1',
+      productionTime: '0',
+      cutTime:        '0',
+      packingTime:    '0',
+      brandingTime:   '0',
       materials: [
         { type: 'fabric' as const, fabricId: undefined, quantity: '1', units: '' }
       ]
@@ -124,6 +132,22 @@ const SpecificationForm: FunctionComponent<SpecificationFormProps> = ({
           <form.AppField
             name='productionPrice'
             children={(field) => <field.FormTextField type="number" label='Ціна виробництва'/>} />
+        </div>
+        <div className="flex gap-2">
+          <form.AppField
+            name='productionTime'
+            children={(field) => <field.FormTextField type="number" label='Час виробництва (хв)'/>} />
+          <form.AppField
+            name='cutTime'
+            children={(field) => <field.FormTextField type="number" label='Час крою (хв)'/>} />
+        </div>
+        <div className="flex gap-2">
+          <form.AppField
+            name='packingTime'
+            children={(field) => <field.FormTextField type="number" label='Час пакування (хв)'/>} />
+          <form.AppField
+            name='brandingTime'
+            children={(field) => <field.FormTextField type="number" label='Час брендингу (хв)'/>} />
         </div>
         <form.Field
           mode="array"

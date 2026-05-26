@@ -3,6 +3,76 @@ import { query, mutation } from '../_generated/server'
 
 // ─── QUERIES ────────────────────────────────────────────────────────────────
 
+export const getOrderCuttingAndSewingProgress = query({
+  args: { productionOrderId: v.id('productionOrders') },
+  handler: async (ctx, args) => {
+    // ── Cutting ──────────────────────────────────────────────────────────────
+    const cuttingTasks = await ctx.db
+      .query('cuttingTasks')
+      .withIndex('by_productionOrder', q => q.eq('productionOrderId', args.productionOrderId))
+      .collect()
+
+    let cuttingTotal = 0
+    let cuttingDone  = 0
+    const cuttingLogs: Array<{ specName: string; color: string; size: string; quantity: number; timestamp: number }> = []
+
+    for (const ct of cuttingTasks) {
+      const sizes = await ctx.db
+        .query('cuttingTaskSizes')
+        .withIndex('by_cuttingTask', q => q.eq('cuttingTaskId', ct._id))
+        .collect()
+      for (const sz of sizes) {
+        cuttingTotal += sz.quantity
+        cuttingDone  += sz.completedQty
+        for (const log of sz.logs ?? []) {
+          cuttingLogs.push({ specName: ct.specName, color: ct.color, size: sz.size, quantity: log.quantity, timestamp: log.timestamp })
+        }
+      }
+    }
+    cuttingLogs.sort((a, b) => b.timestamp - a.timestamp)
+
+    // ── Sewing ───────────────────────────────────────────────────────────────
+    const sewingTasks = await ctx.db
+      .query('sewingTasks')
+      .withIndex('by_productionOrder', q => q.eq('productionOrderId', args.productionOrderId))
+      .collect()
+
+    let sewingTotal = 0
+    let sewingDone  = 0
+    const sewingLogs: Array<{ userName: string; size: string | null; quantity: number; type: string; timestamp: number }> = []
+
+    for (const st of sewingTasks) {
+      const subTasks = await ctx.db
+        .query('sewingSubTasks')
+        .withIndex('by_sewingTask', q => q.eq('sewingTaskId', st._id))
+        .collect()
+
+      for (const sub of subTasks) {
+        sewingTotal += sub.quantity
+        sewingDone  += sub.completedQty ?? 0
+
+        const logs = await ctx.db
+          .query('sewingLogs')
+          .withIndex('by_sewingSubTask', q => q.eq('sewingSubTaskId', sub._id))
+          .collect()
+
+        const user     = sub.assignedTo ? await ctx.db.get(sub.assignedTo) : null
+        const userName = user ? `${user.name ?? ''} ${user.lastName ?? ''}`.trim() || '—' : '—'
+
+        for (const log of logs) {
+          sewingLogs.push({ userName, size: sub.size ?? null, quantity: log.quantity, type: log.type, timestamp: log.timestamp })
+        }
+      }
+    }
+    sewingLogs.sort((a, b) => b.timestamp - a.timestamp)
+
+    return {
+      cutting: { total: cuttingTotal, done: cuttingDone, logs: cuttingLogs },
+      sewing:  { total: sewingTotal,  done: sewingDone,  logs: sewingLogs },
+    }
+  },
+})
+
 export const getSewingTasksWithCuttingProgress = query({
   args: {},
   handler: async (ctx) => {

@@ -495,9 +495,12 @@ const ProductionPlanner = () => {
     const sewerPeers = Object.values(usePlannerStore.getState().tasks)
       .filter((t) => t.isScheduled && t.sewerId === task.sewerId && t.sewingSubTaskId !== taskId)
 
+    // Snap initialLeft to the 15-min grid so delta-based position calculations
+    // never produce a rightward jump when a DB task has a non-aligned startMinute.
+    const snappedMinute = snap15(task.startMinute)
     initialDragRef.current = {
       taskId,
-      initialLeft: taskLeft(task, dayStrs),
+      initialLeft: taskLeft({ ...task, startMinute: snappedMinute }, dayStrs),
       curWidth:    minuteToPx(task.durationMinutes),
       sewerPeers,
     }
@@ -509,13 +512,32 @@ const ProductionPlanner = () => {
     const { moveWithPush, moveWithSwap } = usePlannerStore.getState()
 
     const newLeft = Math.max(0, Math.min(5 * COL_W - d.curWidth, d.initialLeft + delta.x))
-    const { startDate, startMinute } = pxToPosition(newLeft, dayStrs)
 
     if (delta.x < 0) {
-      // Moving left → swap: recompute from the drag-start snapshot each time to prevent gap drift
+      // Moving left: use edge-aware snap so the dragged task can fill a gap right up to
+      // a peer's end without the 15-min grid jumping it inside that peer and triggering swap.
+      const dayIdx    = Math.max(0, Math.min(4, Math.floor(newLeft / COL_W)))
+      const startDate = dayStrs[dayIdx] ?? dayStrs[0]
+      const rawMin    = ((newLeft % COL_W) / HOUR_W) * 60
+
+      const grid15 = snap15(rawMin)
+      let startMinute = Math.max(0, Math.min(DAY_MINS - 15, grid15))
+      let bestDist    = Math.abs(rawMin - grid15)
+
+      for (const peer of d.sewerPeers) {
+        if (peer.startDate !== startDate) continue
+        const peerEnd = peer.startMinute + peer.durationMinutes
+        const dist    = Math.abs(rawMin - peerEnd)
+        if (dist < bestDist) {
+          startMinute = Math.max(0, Math.min(DAY_MINS - 15, peerEnd))
+          bestDist    = dist
+        }
+      }
+
       moveWithSwap(d.taskId, startDate, startMinute, d.sewerPeers)
     } else {
       // Moving right → push tasks forward
+      const { startDate, startMinute } = pxToPosition(newLeft, dayStrs)
       moveWithPush(d.taskId, startDate, startMinute)
     }
   }, [dayStrs])

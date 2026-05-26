@@ -22,9 +22,10 @@ export async function getAttaches(entityId: number) {
   try {
     const res = await keyRequest(storageUrl('order', entityId), 'get');
     const getData = await res.json();
-    return getData;
+    // KeyCRM returns { data: [...], meta: {...} } — extract the array
+    return Array.isArray(getData) ? getData : (getData?.data ?? []);
   } catch (error) {
-    console.log('ERROR-getAttaches', error) 
+    console.log('ERROR-getAttaches', error)
     return [];
   }
 };

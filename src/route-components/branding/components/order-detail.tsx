@@ -1,17 +1,14 @@
-import { Truck } from 'lucide-react'
 import { DetailHeader } from './detail-header'
 import { ProductItemCard } from './product-item-card'
 import { LogsTable } from './logs-table'
 import { ImagesSection } from './images-section'
+import { CuttingSewingProgress } from './cutting-sewing-progress'
 import type { BrandingTask } from '../index'
 import { ScrollArea } from '@/components/ui/scroll-area'
 
 type Tag = { name: string; color: string }
 type OrderItem = { _id: string; name: string; color: string; size: string; quantity: number, shipmentType: string, materialProcessingType: string }
 type BrandingLog = { _id: string; type: string; quantity: number; timestamp: number; comment?: string; productionOrderItemId: string }
-
-const formatDate = (ts?: number | null) =>
-  ts ? new Date(ts).toLocaleDateString('uk-UA', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '—'
 
 type Props = {
   task: BrandingTask | null
@@ -51,17 +48,12 @@ export const OrderDetail = ({ task, onBack }: Props) => {
         manager={task.keycrmManager as string | null}
         brandingTaskId={task._id as string}
         identifierName={task.identifierName as string | null | undefined}
+        endDate={task.endDate as number | null}
+        totalQty={totalQty}
+        completedTotal={completedTotal}
       />
 
-      {/* Meta strip */}
-      <div className="flex items-center gap-4 px-3 py-2 border-b text-xs text-muted-foreground shrink-0">
-        <span>Всього: <b className="text-foreground">{totalQty} шт</b></span>
-        <span>Виконано: <b className="text-foreground">{completedTotal} шт</b></span>
-        <span className="flex items-center gap-1 ml-auto">
-          <Truck size={11} />
-          <b className="text-foreground">{formatDate(task.endDate as number)}</b>
-        </span>
-      </div>
+      <CuttingSewingProgress productionOrderId={task.productionOrderId as string} />
 
       <div className="flex-1 overflow-y-auto">
 

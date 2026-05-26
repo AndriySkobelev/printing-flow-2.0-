@@ -1,5 +1,5 @@
 import { v } from 'convex/values'
-import { mutation } from '../_generated/server'
+import { query, mutation } from '../_generated/server'
 import type { MutationCtx } from '../_generated/server'
 
 async function resolveMaterialProcessingType(ctx: MutationCtx, sku: string): Promise<string | null> {
@@ -162,6 +162,273 @@ async function createBrandingTasks(ctx: MutationCtx, { productionOrderId, keycrm
   });
 }
 
+export const getAllProductionOrdersWithProgress = query({
+  args: {},
+  handler: async (ctx) => {
+    const orders = await ctx.db.query('productionOrders').collect()
+
+    const result = await Promise.all(orders.map(async (order) => {
+      const items = await ctx.db
+        .query('productionOrderItems')
+        .withIndex('by_productionOrder', q => q.eq('productionOrderId', order._id))
+        .collect()
+
+      const totalQty = items.reduce((s, i) => s + i.quantity, 0)
+
+      // Cutting
+      const cuttingTasks = await ctx.db
+        .query('cuttingTasks')
+        .withIndex('by_productionOrder', q => q.eq('productionOrderId', order._id))
+        .collect()
+      let cutTotal = 0, cutDone = 0
+      for (const ct of cuttingTasks) {
+        const sizes = await ctx.db
+          .query('cuttingTaskSizes')
+          .withIndex('by_cuttingTask', q => q.eq('cuttingTaskId', ct._id))
+          .collect()
+        for (const sz of sizes) { cutTotal += sz.quantity; cutDone += sz.completedQty }
+      }
+
+      // Sewing
+      const sewingTasks = await ctx.db
+        .query('sewingTasks')
+        .withIndex('by_productionOrder', q => q.eq('productionOrderId', order._id))
+        .collect()
+      let sewTotal = 0, sewDone = 0
+      for (const st of sewingTasks) {
+        const subTasks = await ctx.db
+          .query('sewingSubTasks')
+          .withIndex('by_sewingTask', q => q.eq('sewingTaskId', st._id))
+          .collect()
+        for (const sub of subTasks) { sewTotal += sub.quantity; sewDone += sub.completedQty ?? 0 }
+      }
+
+      // Branding
+      const brandingTask = await ctx.db
+        .query('brandingTasks')
+        .withIndex('by_productionOrder', q => q.eq('productionOrderId', order._id))
+        .first()
+      const brandingTotal = items.filter(i => i.needsBranding).reduce((s, i) => s + i.quantity, 0)
+      let brandingDone = 0
+      if (brandingTask) {
+        const logs = await ctx.db
+          .query('brandingLogs')
+          .withIndex('by_brandingTask', q => q.eq('brandingTaskId', brandingTask._id))
+          .collect()
+        brandingDone = logs.filter(l => l.type === 'completed').reduce((s, l) => s + l.quantity, 0)
+      }
+
+      // Packing
+      const packagingTask = await ctx.db
+        .query('packagingTasks')
+        .withIndex('by_productionOrder', q => q.eq('productionOrderId', order._id))
+        .first()
+      const packingTotal = items.filter(i => i.needsPackaging).reduce((s, i) => s + i.quantity, 0)
+      let packingDone = 0
+      if (packagingTask) {
+        const logs = await ctx.db
+          .query('packagingLogs')
+          .withIndex('by_packagingTask', q => q.eq('packagingTaskId', packagingTask._id))
+          .collect()
+        packingDone = logs.filter(l => l.type === 'completed').reduce((s, l) => s + l.quantity, 0)
+      }
+
+      return {
+        _id:             order._id,
+        group:           `#${order.keycrmOrderId}`,
+        keycrmOrderId:   order.keycrmOrderId,
+        keycrmManager:   order.keycrmManager,
+        plannedShipDate: order.plannedShipDate,
+        totalQty,
+        cutDone,      cutTotal,
+        sewDone,      sewTotal,
+        brandingDone, brandingTotal,
+        packingDone,  packingTotal,
+        data: items.map(i => ({
+          _id:      i._id,
+          name:     i.name,
+          sku:      i.sku,
+          color:    i.color,
+          size:     i.size,
+          quantity: i.quantity,
+        })),
+      }
+    }))
+
+    return result.sort((a, b) => b.plannedShipDate - a.plannedShipDate)
+  },
+})
+
+export const getProductionOrderDetails = query({
+  args: { productionOrderId: v.id('productionOrders') },
+  handler: async (ctx, { productionOrderId }) => {
+    const order = await ctx.db.get(productionOrderId)
+    if (!order) return null
+
+    const items = await ctx.db
+      .query('productionOrderItems')
+      .withIndex('by_productionOrder', q => q.eq('productionOrderId', productionOrderId))
+      .collect()
+
+    const totalQty = items.reduce((s, i) => s + i.quantity, 0)
+
+    // Cutting progress
+    const cuttingTasks = await ctx.db
+      .query('cuttingTasks')
+      .withIndex('by_productionOrder', q => q.eq('productionOrderId', productionOrderId))
+      .collect()
+    let cutTotal = 0, cutDone = 0
+    for (const ct of cuttingTasks) {
+      const sizes = await ctx.db
+        .query('cuttingTaskSizes')
+        .withIndex('by_cuttingTask', q => q.eq('cuttingTaskId', ct._id))
+        .collect()
+      for (const sz of sizes) { cutTotal += sz.quantity; cutDone += sz.completedQty }
+    }
+
+    // Sewing progress
+    const sewingTasks = await ctx.db
+      .query('sewingTasks')
+      .withIndex('by_productionOrder', q => q.eq('productionOrderId', productionOrderId))
+      .collect()
+    let sewTotal = 0, sewDone = 0
+    for (const st of sewingTasks) {
+      const subTasks = await ctx.db
+        .query('sewingSubTasks')
+        .withIndex('by_sewingTask', q => q.eq('sewingTaskId', st._id))
+        .collect()
+      for (const sub of subTasks) { sewTotal += sub.quantity; sewDone += sub.completedQty ?? 0 }
+    }
+
+    // Branding progress
+    const brandingTask = await ctx.db
+      .query('brandingTasks')
+      .withIndex('by_productionOrder', q => q.eq('productionOrderId', productionOrderId))
+      .first()
+    const brandingTotal = items.filter(i => i.needsBranding).reduce((s, i) => s + i.quantity, 0)
+    let brandingDone = 0
+    if (brandingTask) {
+      const logs = await ctx.db
+        .query('brandingLogs')
+        .withIndex('by_brandingTask', q => q.eq('brandingTaskId', brandingTask._id))
+        .collect()
+      brandingDone = logs.filter(l => l.type === 'completed').reduce((s, l) => s + l.quantity, 0)
+    }
+
+    // Packing progress
+    const packagingTask = await ctx.db
+      .query('packagingTasks')
+      .withIndex('by_productionOrder', q => q.eq('productionOrderId', productionOrderId))
+      .first()
+    const packingTotal = items.filter(i => i.needsPackaging).reduce((s, i) => s + i.quantity, 0)
+    let packingDone = 0
+    if (packagingTask) {
+      const logs = await ctx.db
+        .query('packagingLogs')
+        .withIndex('by_packagingTask', q => q.eq('packagingTaskId', packagingTask._id))
+        .collect()
+      packingDone = logs.filter(l => l.type === 'completed').reduce((s, l) => s + l.quantity, 0)
+    }
+
+    return {
+      _id: order._id,
+      keycrmOrderId: order.keycrmOrderId,
+      keycrmManager: order.keycrmManager,
+      plannedShipDate: order.plannedShipDate,
+      status: order.status,
+      totalQty,
+      cutDone,      cutTotal,
+      sewDone,      sewTotal,
+      brandingDone, brandingTotal,
+      packingDone,  packingTotal,
+      attachedFiles: brandingTask?.attachedFiles ?? [],
+      items: items.map(i => ({
+        _id:                  i._id,
+        name:                 i.name,
+        sku:                  i.sku,
+        color:                i.color,
+        size:                 i.size,
+        quantity:             i.quantity,
+        keycrmProductComment: i.keycrmProductComment ?? null,
+        comment:              i.comment ?? null,
+        shipmentType:         i.shipmentType,
+        processingType:       i.processingType ?? null,
+        brandingType:         i.brandingType ?? null,
+        cuttingBrandingType:  i.cuttingBrandingType ?? null,
+      })),
+    }
+  },
+})
+
+export const updateOrderItemBrandingType = mutation({
+  args: {
+    itemId: v.id('productionOrderItems'),
+    brandingType: v.optional(v.array(v.union(
+      v.literal('dtf'),
+      v.literal('dtg'),
+      v.literal('flok'),
+      v.literal('embroidery'),
+      v.literal('sublimation'),
+    ))),
+  },
+  handler: async (ctx, { itemId, brandingType }) => {
+    await ctx.db.patch(itemId, { brandingType })
+  },
+})
+
+export const updateOrderItemCuttingBrandingType = mutation({
+  args: {
+    itemId: v.id('productionOrderItems'),
+    cuttingBrandingType: v.optional(v.array(v.union(
+      v.literal('dtf'),
+      v.literal('dtg'),
+      v.literal('flok'),
+      v.literal('embroidery'),
+      v.literal('sublimation'),
+    ))),
+  },
+  handler: async (ctx, { itemId, cuttingBrandingType }) => {
+    await ctx.db.patch(itemId, { cuttingBrandingType })
+  },
+})
+
+export const updateAllOrderItemsBrandingType = mutation({
+  args: {
+    productionOrderId: v.id('productionOrders'),
+    brandingType: v.optional(v.array(v.union(
+      v.literal('dtf'),
+      v.literal('dtg'),
+      v.literal('flok'),
+      v.literal('embroidery'),
+      v.literal('sublimation'),
+    ))),
+    cuttingBrandingType: v.optional(v.array(v.union(
+      v.literal('dtf'),
+      v.literal('dtg'),
+      v.literal('flok'),
+      v.literal('embroidery'),
+      v.literal('sublimation'),
+    ))),
+  },
+  handler: async (ctx, { productionOrderId, brandingType, cuttingBrandingType }) => {
+    const items = await ctx.db
+      .query('productionOrderItems')
+      .withIndex('by_productionOrder', q => q.eq('productionOrderId', productionOrderId))
+      .collect()
+    await Promise.all(items.map(item => ctx.db.patch(item._id, { brandingType, cuttingBrandingType })))
+  },
+})
+
+export const updateOrderItemComment = mutation({
+  args: {
+    itemId:  v.id('productionOrderItems'),
+    comment: v.optional(v.string()),
+  },
+  handler: async (ctx, { itemId, comment }) => {
+    await ctx.db.patch(itemId, { comment })
+  },
+})
+
 export const creatreProductionTask = mutation({
   args: {
     externalData: v.any(),
@@ -171,12 +438,23 @@ export const creatreProductionTask = mutation({
     const { externalData, attachedFiles } = args;
     const keycrmOrderId = String(externalData.id);
 
-    // 0. Guard against duplicates
+    // 0. Guard against duplicates — but always sync attachedFiles onto the branding task
     const existing = await ctx.db
       .query('productionOrders')
       .withIndex('by_keycrmOrderId', q => q.eq('keycrmOrderId', keycrmOrderId))
       .first();
-    if (existing) return null;
+    if (existing) {
+      if (attachedFiles?.length) {
+        const existingBrandingTask = await ctx.db
+          .query('brandingTasks')
+          .withIndex('by_productionOrder', q => q.eq('productionOrderId', existing._id))
+          .first();
+        if (existingBrandingTask) {
+          await ctx.db.patch(existingBrandingTask._id, { attachedFiles });
+        }
+      }
+      return null;
+    }
 
     // 1. Create productionOrder
     const plannedShipDate = externalData.shipping?.shipping_date_actual

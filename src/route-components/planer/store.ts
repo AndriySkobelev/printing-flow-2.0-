@@ -1,6 +1,8 @@
 import { create } from 'zustand'
 import { DAY_MINS } from './constants'
 
+const SWAP_THRESHOLD_MINS = 20
+
 // Shift a yyyy-mm-dd string by n calendar days
 const dateShift = (dateStr: string, n: number): string => {
   const [y, m, d] = dateStr.split('-').map(Number)
@@ -111,9 +113,15 @@ export const usePlannerStore = create<PlannerStore>((set) => ({
         }
       }
 
-      // Find the single touched task: rightmost peer (original positions) overlapping current drag position
+      // Find the single touched task: rightmost peer overlapping by at least SWAP_THRESHOLD_MINS
+      // This gives a brief visual overlap before the swap fires.
       const touched = sewerPeers
-        .filter((t: PlannedTask) => t.startDate === startDate && startMinute < t.startMinute + t.durationMinutes / 1.25 && t.startMinute < startMinute + task.durationMinutes)
+        .filter((t: PlannedTask) => {
+          if (t.startDate !== startDate) return false
+          const overlapAmt = Math.min(startMinute + task.durationMinutes, t.startMinute + t.durationMinutes)
+                           - Math.max(startMinute, t.startMinute)
+          return overlapAmt >= SWAP_THRESHOLD_MINS
+        })
         .sort((a: PlannedTask, b: PlannedTask) => (b.startMinute + b.durationMinutes) - (a.startMinute + a.durationMinutes))[0]
 
       if (touched) {

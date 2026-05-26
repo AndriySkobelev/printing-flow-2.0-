@@ -65,7 +65,7 @@ export default memo(function MyDialog({
   setIsLoading?: (isLoading: boolean) => void,
 }) {  
   return (
-    <div className="no-scrollbar max-h-[50vh] overflow-y-auto relative">
+    <div className="no-scrollbar max-h-[50vh] overflow-y-auto relative max-w-none">
       <Dialog open={open} onOpenChange={setOpen}>
         {
           trigger
@@ -75,7 +75,7 @@ export default memo(function MyDialog({
           : null
         }
         <DialogContent
-          className={clsx('', className)}
+          className={clsx('max-w-none', className)}
           onInteractOutside={(event) => {
             if (!outerClose) return event.preventDefault()
           }}

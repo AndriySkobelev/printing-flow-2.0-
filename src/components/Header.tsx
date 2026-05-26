@@ -9,6 +9,7 @@ import {
   ClipboardList,
   Layers,
   Menu,
+  PackageSearch,
   Scissors,
   PaintRoller,
   Waypoints,
@@ -68,6 +69,12 @@ type NavGroup = {
 type NavItem = NavLink | NavGroup
 
 const navConfig: NavItem[] = [
+  {
+    type: 'link',
+    label: 'Замовлення',
+    to:    '/app/production-orders',
+    icon:  PackageSearch,
+  },
   {
     type: 'group',
     label: 'Склад',
