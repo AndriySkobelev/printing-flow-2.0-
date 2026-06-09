@@ -18,7 +18,6 @@ type Field = {
 }
 
 function FieldRow({ icon, label, value = '-' }: Field) {
-  console.log("🚀 ~ FieldRow ~ value:", typeof value )
   return (
     <div className="flex items-center gap-3 py-2.5">
       <span className="text-primary/60 shrink-0">{icon}</span>
@@ -38,7 +37,6 @@ export default function ProfileCard() {
   const roleLabel = user.role
     ? (ROLE_LABELS[user.role as UserRole] ?? String(user.role))
     : null
-  console.log('user.startDate', user.startDate)
   const fields: Field[] = [
     { icon: <User size={14} />,      label: "Ім'я",            value: user.name },
     { icon: <User size={14} />,      label: 'Прізвище',        value: user.lastName },

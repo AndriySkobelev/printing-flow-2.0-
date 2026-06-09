@@ -158,7 +158,6 @@ export type MaterialsOption = ReturnType<typeof generateOptions>;
 const InventoryMovement: FunctionComponent = () => {
   const { openDialog, closeDialog, setIsLoading } = useContext(DialogContext);
   const { data } = useQuery(convexQuery(api.queries.movements.getMovementsWithMaterials));
-  console.log("🚀 ~ InventoryMovement ~ data:", data)
   const incomingMutation = useCreateIncomingMutation();
 
   const handleSubmit = (data: IncomingFormData | any) => {

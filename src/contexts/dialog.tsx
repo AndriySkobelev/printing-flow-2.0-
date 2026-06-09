@@ -1,5 +1,5 @@
 import MyDialog from "@/components/myDialog";
-import { createContext, useState, useCallback } from "react";
+import { createContext, useState, useCallback, useMemo } from "react";
 
 type DialogOptions = {
   trigger?: any
@@ -39,7 +39,7 @@ export const ContextDialogComponent = ({ children }: { children: React.ReactNode
     setDialogs(prev => id ? prev.filter(d => d.id !== id) : prev.slice(0, -1));
   }, []);
 
-  const value = { openDialog, closeDialog, isLoading, setIsLoading };
+  const value = useMemo(() => ({ openDialog, closeDialog, isLoading, setIsLoading }), [openDialog, closeDialog, isLoading]);
 
   return (
     <DialogContext.Provider value={value}>
@@ -48,7 +48,6 @@ export const ContextDialogComponent = ({ children }: { children: React.ReactNode
         <MyDialog
           key={dialog.id}
           open={true}
-          setOpen={open => { if (!open) closeDialog(dialog.id); }}
           title={dialog.title}
           isLoading={isLoading}
           formId={dialog.formId}
@@ -60,6 +59,7 @@ export const ContextDialogComponent = ({ children }: { children: React.ReactNode
           outerClose={dialog.outerClose}
           description={dialog.description}
           actionSubmit={dialog.actionSubmit}
+          setOpen={open => { if (!open) closeDialog(dialog.id); }}
         />
       ))}
     </DialogContext.Provider>

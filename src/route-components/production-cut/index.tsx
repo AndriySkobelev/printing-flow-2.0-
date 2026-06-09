@@ -234,7 +234,6 @@ export default function ProductionCut() {
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all')
   const { data: rawTasks = [] } = useQuery(convexQuery(api.queries.cutting.getAllCuttingTasks, {}))
-  console.log("🚀 ~ ProductionCut ~ rawTasks:", rawTasks)
 
   const orders: Order[] = useMemo(() =>
     rawTasks.map(task => ({

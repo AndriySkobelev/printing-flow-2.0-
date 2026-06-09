@@ -2,10 +2,12 @@ import { useCallback, useContext, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { convexQuery } from '@convex-dev/react-query'
 import { type HeaderObject, type CellClickProps } from 'simple-table-core'
+import { Route as orderDetailsRoute } from '@/routes/_authenticated/app/production-orders_.$orderId'
+import { Route as productionOrdersRoute } from '@/routes/_authenticated/app/production-orders'
 import { api } from 'convex/_generated/api'
 import AppTable from '@/components/ui/app-table'
 import { DialogContext } from '@/contexts/dialog'
-import { OrderDetails } from './components/order-details'
+import { Outlet, useNavigate } from '@tanstack/react-router'
 
 // ─── Progress bar cell ────────────────────────────────────────────────────────
 
@@ -114,6 +116,7 @@ const headers: HeaderObject[] = [
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 const ProductionOrdersPage = () => {
+  const navigate = useNavigate({ from: productionOrdersRoute.to});
   const { data, isLoading } = useQuery(
     convexQuery(api.queries.orders.getAllProductionOrdersWithProgress, {})
   )
@@ -126,16 +129,14 @@ const ProductionOrdersPage = () => {
     [rows],
   )
 
-  const handleCellClick = useCallback(({ row }: CellClickProps) => {
+  const handleCellClick = ({ row }: CellClickProps) => {
     const r = row as any
     if (!r.keycrmOrderId) return
-    openDialog({
-      title: `Замовлення #${r.keycrmOrderId}`,
-      content: <div className="h-[62vh]"><OrderDetails productionOrderId={r._id} /></div>,
-      className: 'sm:max-w-none w-[70vw]',
-      outerClose: true,
+    navigate({
+      to: orderDetailsRoute.to,
+      params: { orderId: r._id },
     })
-  }, [openDialog])
+  }
 
   return (
     <div className="flex flex-col h-full p-3 gap-3">
@@ -143,7 +144,6 @@ const ProductionOrdersPage = () => {
         <h1 className="text-base font-semibold">Виробничі замовлення</h1>
         <span className="text-xs text-muted-foreground">{orderCount} замовлень</span>
       </div>
-
       <AppTable
         editColumns
         expandAll={false}

@@ -176,8 +176,8 @@ export const productionOrders = {
  
 export const productionOrderItems = {
   productionOrderId: v.id("productionOrders"),
-  keycrmOrderId: v.string(),
-  keycrmProductId: v.number(),
+  keycrmOrderId: v.optional(v.string()),
+  keycrmProductId: v.optional(v.number()),
   name: v.string(),
   sku: v.string(),
   color: v.string(),
@@ -191,6 +191,10 @@ export const productionOrderItems = {
   keycrmProductStatusId: v.union(v.number(), v.null()),
   keycrmProductComment: v.optional(v.union(v.string(), v.null())),
   comment: v.optional(v.string()),
+  sewingComment: v.optional(v.string()),
+  cuttingComment: v.optional(v.string()),
+  brandingComment: v.optional(v.string()),
+  packagingComment: v.optional(v.string()),
   materialProcessingType: v.optional(v.union(v.string(), v.null())),
   processingType: v.optional(v.union(
     v.literal("branding"),
@@ -408,6 +412,30 @@ export const subcontractorTasks = {
   ),
   note: v.optional(v.string()),
 };
+
+
+export const additionalOrderTasks = {
+  productionOrderId: v.id("productionOrders"),
+  keycrmOrderId: v.string(),
+  type: v.union(
+    v.literal("branding"),
+    v.literal("cutting"),
+    v.literal("sewing"),
+    v.literal("packaging"),
+    v.literal("subcontractor")
+  ),
+  quantity: v.number(),
+  startDate: v.number(),
+  comment: v.optional(v.string()),
+  endDate: v.optional(v.number()),
+  status: v.union(
+    v.literal("new"),
+    v.literal("in_progress"),
+    v.literal("done"),
+    v.literal("paused"),
+    v.literal("waiting")
+  ),
+}
 
 
 const productStatusMappingsTable = defineTable(productStatusMappings)

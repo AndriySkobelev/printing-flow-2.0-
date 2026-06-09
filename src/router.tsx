@@ -12,6 +12,7 @@ import '@/lib/i18n';
 // Import the generated route tree
 import { routeTree } from './routeTree.gen'
 import { ContextDialogComponent } from './contexts/dialog'
+import { ContextDrawerComponent } from './contexts/drawer'
 import { AuthProvider } from './contexts/auth';
 
 // Create a new router instance
@@ -51,7 +52,9 @@ export const getRouter = () => {
         <ConvexProvider client={convexQueryClient.convexClient}>
           <AuthProvider>
             <ContextDialogComponent>
-              {children}
+              <ContextDrawerComponent>
+                {children}
+              </ContextDrawerComponent>
             </ContextDialogComponent>
           </AuthProvider>
         </ConvexProvider>

@@ -350,7 +350,8 @@ export const getProductionOrderDetails = query({
         size:                 i.size,
         quantity:             i.quantity,
         keycrmProductComment: i.keycrmProductComment ?? null,
-        comment:              i.comment ?? null,
+        brandingComment:      i.brandingComment ?? null,
+        sewingComment:        i.sewingComment ?? null,
         shipmentType:         i.shipmentType,
         processingType:       i.processingType ?? null,
         brandingType:         i.brandingType ?? null,
@@ -409,23 +410,81 @@ export const updateAllOrderItemsBrandingType = mutation({
       v.literal('embroidery'),
       v.literal('sublimation'),
     ))),
+    brandingComment: v.optional(v.string()),
+    sewingComment:   v.optional(v.string()),
   },
-  handler: async (ctx, { productionOrderId, brandingType, cuttingBrandingType }) => {
+  handler: async (ctx, { productionOrderId, brandingType, cuttingBrandingType, brandingComment, sewingComment }) => {
     const items = await ctx.db
       .query('productionOrderItems')
       .withIndex('by_productionOrder', q => q.eq('productionOrderId', productionOrderId))
       .collect()
-    await Promise.all(items.map(item => ctx.db.patch(item._id, { brandingType, cuttingBrandingType })))
+    await Promise.all(items.map(item => ctx.db.patch(item._id, { brandingType, cuttingBrandingType, brandingComment, sewingComment })))
   },
 })
 
-export const updateOrderItemComment = mutation({
+export const updateSelectedOrderItemsBrandingType = mutation({
   args: {
-    itemId:  v.id('productionOrderItems'),
-    comment: v.optional(v.string()),
+    itemIds: v.array(v.id('productionOrderItems')),
+    brandingType: v.optional(v.array(v.union(
+      v.literal('dtf'),
+      v.literal('dtg'),
+      v.literal('flok'),
+      v.literal('embroidery'),
+      v.literal('sublimation'),
+    ))),
+    cuttingBrandingType: v.optional(v.array(v.union(
+      v.literal('dtf'),
+      v.literal('dtg'),
+      v.literal('flok'),
+      v.literal('embroidery'),
+      v.literal('sublimation'),
+    ))),
+    brandingComment: v.optional(v.string()),
+    sewingComment:   v.optional(v.string()),
   },
-  handler: async (ctx, { itemId, comment }) => {
-    await ctx.db.patch(itemId, { comment })
+  handler: async (ctx, { itemIds, brandingType, cuttingBrandingType, brandingComment, sewingComment }) => {
+    for (const id of itemIds) {
+      await ctx.db.patch(id, { brandingType, cuttingBrandingType, brandingComment, sewingComment })
+    }
+  },
+})
+
+export const migrateCommentToBrandingComment = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const items = await ctx.db.query('productionOrderItems').collect()
+    let migrated = 0
+    for (const item of items) {
+      const legacy = (item as any).comment
+      if (legacy !== undefined) {
+        await ctx.db.patch(item._id, {
+          brandingComment: item.brandingComment ?? legacy,
+          comment: undefined,
+        } as any)
+        migrated++
+      }
+    }
+    return { migrated }
+  },
+})
+
+export const updateOrderItemBrandingComment = mutation({
+  args: {
+    itemId:         v.id('productionOrderItems'),
+    brandingComment: v.optional(v.string()),
+  },
+  handler: async (ctx, { itemId, brandingComment }) => {
+    await ctx.db.patch(itemId, { brandingComment })
+  },
+})
+
+export const updateOrderItemSewingComment = mutation({
+  args: {
+    itemId:        v.id('productionOrderItems'),
+    sewingComment: v.optional(v.string()),
+  },
+  handler: async (ctx, { itemId, sewingComment }) => {
+    await ctx.db.patch(itemId, { sewingComment })
   },
 })
 
@@ -493,8 +552,6 @@ export const creatreProductionTask = mutation({
           .first();
         if (mapping) processingType = mapping.processingType;
       }
-      console.log(product.sku, productDoc?.color, color, productDoc?.color ?? color)
-      console.log(product.sku, productDoc?.size, size, productDoc?.size ?? size)
       const shipmentType = product.shipment_type as 'manufacturing' | 'warehouse';
       const needsCutting = shipmentType === 'manufacturing';
 
@@ -537,5 +594,45 @@ export const creatreProductionTask = mutation({
     await createBrandingTasks(ctx, { productionOrderId, keycrmOrderId, plannedShipDate, externalData, attachedFiles });
 
     return { productionOrderId };
+  },
+})
+
+export const addProductionOrderItems = mutation({
+  args: {
+    productionOrderId: v.id('productionOrders'),
+    items: v.array(v.object({
+      name:         v.string(),
+      sku:          v.optional(v.string()),
+      color:        v.string(),
+      size:         v.string(),
+      quantity:     v.number(),
+      shipmentType: v.union(v.literal('manufacturing'), v.literal('warehouse')),
+    })),
+  },
+  handler: async (ctx, { productionOrderId, items }) => {
+    const order = await ctx.db.get(productionOrderId)
+    if (!order) throw new Error('Order not found')
+
+    for (const item of items) {
+      const needsCutting = item.shipmentType === 'manufacturing'
+      const materialProcessingType = item.sku ? await resolveMaterialProcessingType(ctx, item.sku) : null
+
+      await ctx.db.insert('productionOrderItems', {
+        productionOrderId,
+        keycrmOrderId: order.keycrmOrderId,
+        name:          item.name,
+        sku:           item.sku ?? '',
+        color:         item.color,
+        size:          item.size,
+        quantity:      item.quantity,
+        shipmentType:  item.shipmentType,
+        keycrmProductStatusId: null,
+        materialProcessingType,
+        needsCutting,
+        needsSewing:    needsCutting,
+        needsBranding:  true,
+        needsPackaging: true,
+      })
+    }
   },
 })

@@ -1,4 +1,3 @@
-import { memo, useState } from "react";
 import clsx from "clsx";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "./ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -36,7 +35,7 @@ const Footer = ({ actionSubmit, isLoading, formId }: FooterProps) => {
   )
 }
 
-export default memo(function MyDialog({
+export default function MyDialog({
   open,
   title,
   formId,
@@ -47,7 +46,7 @@ export default memo(function MyDialog({
   className,
   description,
   actionSubmit,
-  isLoading = true,
+  isLoading = false,
   outerClose = false,
 }: {
   open?: boolean,
@@ -65,7 +64,7 @@ export default memo(function MyDialog({
   setIsLoading?: (isLoading: boolean) => void,
 }) {  
   return (
-    <div className="no-scrollbar max-h-[50vh] overflow-y-auto relative max-w-none">
+    // <div className="no-scrollbar max-h-[50vh] overflow-y-auto relative max-w-none">
       <Dialog open={open} onOpenChange={setOpen}>
         {
           trigger
@@ -108,6 +107,6 @@ export default memo(function MyDialog({
           }
         </DialogContent>
       </Dialog>
-    </div>
+    // </div>
   )
-});
+};

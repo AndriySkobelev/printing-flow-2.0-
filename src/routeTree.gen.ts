@@ -30,7 +30,7 @@ import { Route as AuthenticatedAppLoginRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedAppInventoryMovementRouteImport } from './routes/_authenticated/app/inventory-movement'
 import { Route as AuthenticatedAppFabricsRouteImport } from './routes/_authenticated/app/fabrics'
 import { Route as AuthenticatedAppBrandingRouteImport } from './routes/_authenticated/app/branding'
-import { Route as AuthenticatedAppProductionOrdersChar123orderIdChar125RouteImport } from './routes/_authenticated/app/production-orders.${orderId}'
+import { Route as AuthenticatedAppProductionOrdersOrderIdRouteImport } from './routes/_authenticated/app/production-orders_.$orderId'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -146,11 +146,11 @@ const AuthenticatedAppBrandingRoute =
     path: '/branding',
     getParentRoute: () => AuthenticatedAppRouteRoute,
   } as any)
-const AuthenticatedAppProductionOrdersChar123orderIdChar125Route =
-  AuthenticatedAppProductionOrdersChar123orderIdChar125RouteImport.update({
-    id: '/${orderId}',
-    path: '/${orderId}',
-    getParentRoute: () => AuthenticatedAppProductionOrdersRoute,
+const AuthenticatedAppProductionOrdersOrderIdRoute =
+  AuthenticatedAppProductionOrdersOrderIdRouteImport.update({
+    id: '/production-orders_/$orderId',
+    path: '/production-orders/$orderId',
+    getParentRoute: () => AuthenticatedAppRouteRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
@@ -166,7 +166,7 @@ export interface FileRoutesByFullPath {
   '/app/planner': typeof AuthenticatedAppPlannerRoute
   '/app/production-calendar': typeof AuthenticatedAppProductionCalendarRoute
   '/app/production-cut': typeof AuthenticatedAppProductionCutRoute
-  '/app/production-orders': typeof AuthenticatedAppProductionOrdersRouteWithChildren
+  '/app/production-orders': typeof AuthenticatedAppProductionOrdersRoute
   '/app/products': typeof AuthenticatedAppProductsRoute
   '/app/profile': typeof AuthenticatedAppProfileRoute
   '/app/register': typeof AuthenticatedAppRegisterRoute
@@ -174,7 +174,7 @@ export interface FileRoutesByFullPath {
   '/app/store': typeof AuthenticatedAppStoreRoute
   '/app/users': typeof AuthenticatedAppUsersRoute
   '/app/workload': typeof AuthenticatedAppWorkloadRoute
-  '/app/production-orders/${orderId}': typeof AuthenticatedAppProductionOrdersChar123orderIdChar125Route
+  '/app/production-orders/$orderId': typeof AuthenticatedAppProductionOrdersOrderIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -189,7 +189,7 @@ export interface FileRoutesByTo {
   '/app/planner': typeof AuthenticatedAppPlannerRoute
   '/app/production-calendar': typeof AuthenticatedAppProductionCalendarRoute
   '/app/production-cut': typeof AuthenticatedAppProductionCutRoute
-  '/app/production-orders': typeof AuthenticatedAppProductionOrdersRouteWithChildren
+  '/app/production-orders': typeof AuthenticatedAppProductionOrdersRoute
   '/app/products': typeof AuthenticatedAppProductsRoute
   '/app/profile': typeof AuthenticatedAppProfileRoute
   '/app/register': typeof AuthenticatedAppRegisterRoute
@@ -197,7 +197,7 @@ export interface FileRoutesByTo {
   '/app/store': typeof AuthenticatedAppStoreRoute
   '/app/users': typeof AuthenticatedAppUsersRoute
   '/app/workload': typeof AuthenticatedAppWorkloadRoute
-  '/app/production-orders/${orderId}': typeof AuthenticatedAppProductionOrdersChar123orderIdChar125Route
+  '/app/production-orders/$orderId': typeof AuthenticatedAppProductionOrdersOrderIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -214,7 +214,7 @@ export interface FileRoutesById {
   '/_authenticated/app/planner': typeof AuthenticatedAppPlannerRoute
   '/_authenticated/app/production-calendar': typeof AuthenticatedAppProductionCalendarRoute
   '/_authenticated/app/production-cut': typeof AuthenticatedAppProductionCutRoute
-  '/_authenticated/app/production-orders': typeof AuthenticatedAppProductionOrdersRouteWithChildren
+  '/_authenticated/app/production-orders': typeof AuthenticatedAppProductionOrdersRoute
   '/_authenticated/app/products': typeof AuthenticatedAppProductsRoute
   '/_authenticated/app/profile': typeof AuthenticatedAppProfileRoute
   '/_authenticated/app/register': typeof AuthenticatedAppRegisterRoute
@@ -222,7 +222,7 @@ export interface FileRoutesById {
   '/_authenticated/app/store': typeof AuthenticatedAppStoreRoute
   '/_authenticated/app/users': typeof AuthenticatedAppUsersRoute
   '/_authenticated/app/workload': typeof AuthenticatedAppWorkloadRoute
-  '/_authenticated/app/production-orders/${orderId}': typeof AuthenticatedAppProductionOrdersChar123orderIdChar125Route
+  '/_authenticated/app/production-orders_/$orderId': typeof AuthenticatedAppProductionOrdersOrderIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -247,7 +247,7 @@ export interface FileRouteTypes {
     | '/app/store'
     | '/app/users'
     | '/app/workload'
-    | '/app/production-orders/${orderId}'
+    | '/app/production-orders/$orderId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -270,7 +270,7 @@ export interface FileRouteTypes {
     | '/app/store'
     | '/app/users'
     | '/app/workload'
-    | '/app/production-orders/${orderId}'
+    | '/app/production-orders/$orderId'
   id:
     | '__root__'
     | '/'
@@ -294,7 +294,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/store'
     | '/_authenticated/app/users'
     | '/_authenticated/app/workload'
-    | '/_authenticated/app/production-orders/${orderId}'
+    | '/_authenticated/app/production-orders_/$orderId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -452,30 +452,15 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppBrandingRouteImport
       parentRoute: typeof AuthenticatedAppRouteRoute
     }
-    '/_authenticated/app/production-orders/${orderId}': {
-      id: '/_authenticated/app/production-orders/${orderId}'
-      path: '/${orderId}'
-      fullPath: '/app/production-orders/${orderId}'
-      preLoaderRoute: typeof AuthenticatedAppProductionOrdersChar123orderIdChar125RouteImport
-      parentRoute: typeof AuthenticatedAppProductionOrdersRoute
+    '/_authenticated/app/production-orders_/$orderId': {
+      id: '/_authenticated/app/production-orders_/$orderId'
+      path: '/production-orders/$orderId'
+      fullPath: '/app/production-orders/$orderId'
+      preLoaderRoute: typeof AuthenticatedAppProductionOrdersOrderIdRouteImport
+      parentRoute: typeof AuthenticatedAppRouteRoute
     }
   }
 }
-
-interface AuthenticatedAppProductionOrdersRouteChildren {
-  AuthenticatedAppProductionOrdersChar123orderIdChar125Route: typeof AuthenticatedAppProductionOrdersChar123orderIdChar125Route
-}
-
-const AuthenticatedAppProductionOrdersRouteChildren: AuthenticatedAppProductionOrdersRouteChildren =
-  {
-    AuthenticatedAppProductionOrdersChar123orderIdChar125Route:
-      AuthenticatedAppProductionOrdersChar123orderIdChar125Route,
-  }
-
-const AuthenticatedAppProductionOrdersRouteWithChildren =
-  AuthenticatedAppProductionOrdersRoute._addFileChildren(
-    AuthenticatedAppProductionOrdersRouteChildren,
-  )
 
 interface AuthenticatedAppRouteRouteChildren {
   AuthenticatedAppBrandingRoute: typeof AuthenticatedAppBrandingRoute
@@ -486,7 +471,7 @@ interface AuthenticatedAppRouteRouteChildren {
   AuthenticatedAppPlannerRoute: typeof AuthenticatedAppPlannerRoute
   AuthenticatedAppProductionCalendarRoute: typeof AuthenticatedAppProductionCalendarRoute
   AuthenticatedAppProductionCutRoute: typeof AuthenticatedAppProductionCutRoute
-  AuthenticatedAppProductionOrdersRoute: typeof AuthenticatedAppProductionOrdersRouteWithChildren
+  AuthenticatedAppProductionOrdersRoute: typeof AuthenticatedAppProductionOrdersRoute
   AuthenticatedAppProductsRoute: typeof AuthenticatedAppProductsRoute
   AuthenticatedAppProfileRoute: typeof AuthenticatedAppProfileRoute
   AuthenticatedAppRegisterRoute: typeof AuthenticatedAppRegisterRoute
@@ -494,6 +479,7 @@ interface AuthenticatedAppRouteRouteChildren {
   AuthenticatedAppStoreRoute: typeof AuthenticatedAppStoreRoute
   AuthenticatedAppUsersRoute: typeof AuthenticatedAppUsersRoute
   AuthenticatedAppWorkloadRoute: typeof AuthenticatedAppWorkloadRoute
+  AuthenticatedAppProductionOrdersOrderIdRoute: typeof AuthenticatedAppProductionOrdersOrderIdRoute
 }
 
 const AuthenticatedAppRouteRouteChildren: AuthenticatedAppRouteRouteChildren = {
@@ -507,8 +493,7 @@ const AuthenticatedAppRouteRouteChildren: AuthenticatedAppRouteRouteChildren = {
   AuthenticatedAppProductionCalendarRoute:
     AuthenticatedAppProductionCalendarRoute,
   AuthenticatedAppProductionCutRoute: AuthenticatedAppProductionCutRoute,
-  AuthenticatedAppProductionOrdersRoute:
-    AuthenticatedAppProductionOrdersRouteWithChildren,
+  AuthenticatedAppProductionOrdersRoute: AuthenticatedAppProductionOrdersRoute,
   AuthenticatedAppProductsRoute: AuthenticatedAppProductsRoute,
   AuthenticatedAppProfileRoute: AuthenticatedAppProfileRoute,
   AuthenticatedAppRegisterRoute: AuthenticatedAppRegisterRoute,
@@ -516,6 +501,8 @@ const AuthenticatedAppRouteRouteChildren: AuthenticatedAppRouteRouteChildren = {
   AuthenticatedAppStoreRoute: AuthenticatedAppStoreRoute,
   AuthenticatedAppUsersRoute: AuthenticatedAppUsersRoute,
   AuthenticatedAppWorkloadRoute: AuthenticatedAppWorkloadRoute,
+  AuthenticatedAppProductionOrdersOrderIdRoute:
+    AuthenticatedAppProductionOrdersOrderIdRoute,
 }
 
 const AuthenticatedAppRouteRouteWithChildren =

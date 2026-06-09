@@ -263,7 +263,6 @@ export const Seamstress = () => {
   })
 
   const handleSubmit = (values: any) => {
-    console.log("🚀 ~ handleSubmit ~ values:", values)
     createReport({ ...values, userId: user?._id })
     closeDialog();
   }

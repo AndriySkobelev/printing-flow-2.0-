@@ -8,7 +8,6 @@ export const getOrdersKeyCrm = action({
     include: "products.offer,assigned,tags,shipping,custom_fields,manager",
   })
     const data = await res.json();
-    console.log("🚀 ~ data:", data?.custom_fields)
     await ctx.runMutation(api.queries.orders.creatreProductionTask, {
       externalData: data ?? {},
     })

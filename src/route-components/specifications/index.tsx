@@ -61,7 +61,6 @@ const ActionsListComponent = ({ row, handleEditSpec }: { row: any, handleEditSpe
 };
 
 export const MaterialsCellComponent = memo(({ materials }: { materials: any }) => {
-  console.log('materials', materials)
   return (
     <div className="flex flex-col gap-1">
       {materials?.map((material: any, i: number) => (

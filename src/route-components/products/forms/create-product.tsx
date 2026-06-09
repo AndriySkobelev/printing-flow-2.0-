@@ -59,7 +59,6 @@ const CreateProductForm: FunctionComponent<CreateProductFormProps> = ({
 
   const specification = useStore(form.store, (state: any) => state.values.specification);
   const values = useStore(form.store, (state: any) => state);
-  console.log("🚀 ~ CreateProductForm ~ values:", values)
   const colorsOptions = useAllColorsByFabric(specification, data);
 
   return (

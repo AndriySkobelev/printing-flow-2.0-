@@ -17,6 +17,8 @@ interface AppTableProps {
   selectableCells?: boolean;
   expandAll?: boolean;
   enableRowSelection?: boolean;
+  ref?: React.Ref<any>;
+  hideHeader?: boolean;
   enableStickyParents?: boolean;
   defaultHeaders: HeaderObject[];
   quickFilter?: QuickFilterConfig,

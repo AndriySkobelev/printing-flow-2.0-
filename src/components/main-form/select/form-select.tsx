@@ -61,7 +61,6 @@ const CustomFabricSmallOption: FunctionComponent<{ innerProps: any, innerRef: an
 const CustomMaterialsOption: FunctionComponent<{ innerProps: any, innerRef: any, data: Option }> = ({ innerProps, innerRef, data }) => {
   const label = data.label as string;
   const regLabel = label.match(regex4) || [];
-  console.log("🚀 ~ CustomMaterialsOption ~ regLabel:", regLabel)
   const [_, name, size, color] = regLabel || [];
 
   return (
