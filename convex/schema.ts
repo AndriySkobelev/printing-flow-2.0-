@@ -166,11 +166,32 @@ export const productionOrders = {
   plannedShipDate: v.number(),
   keycrmData: v.optional(v.any()),
   status: v.union(
+    v.literal("in_progress"),
     v.literal("active"),
+    v.literal("dispatched"),
     v.literal("done"),
     v.literal("cancelled")
   ),
 };
+
+export const productionOrderLogs = {
+  productionOrderId: v.id("productionOrders"),
+  keyCrmOrderId: v.string(),
+  productionOrderItemId: v.optional(v.id("productionOrderItems")),
+  timestamp: v.number(),
+  userId: v.id("users"),
+  type: v.union(
+    v.literal('split'),
+    v.literal("created"),
+    v.literal("deleted"),
+    v.literal("updated")
+  ),
+  changes: v.optional(v.any()),
+  comment: v.optional(v.string()),
+  newQuantity: v.optional(v.number()),
+  oldQuantity: v.optional(v.number()),
+  shownToUserId: v.optional(v.id("users")),
+}
 
 // ─── ТОВАРИ ЗАМОВЛЕННЯ ──────────────────────────────────────────────────────
  
@@ -191,10 +212,10 @@ export const productionOrderItems = {
   keycrmProductStatusId: v.union(v.number(), v.null()),
   keycrmProductComment: v.optional(v.union(v.string(), v.null())),
   comment: v.optional(v.string()),
-  sewingComment: v.optional(v.string()),
-  cuttingComment: v.optional(v.string()),
-  brandingComment: v.optional(v.string()),
-  packagingComment: v.optional(v.string()),
+  sewingComment: v.optional(v.nullable(v.string())),
+  cuttingComment: v.optional(v.nullable(v.string())),
+  brandingComment: v.optional(v.nullable(v.string())),
+  packagingComment: v.optional(v.nullable(v.string())),
   materialProcessingType: v.optional(v.union(v.string(), v.null())),
   processingType: v.optional(v.union(
     v.literal("branding"),
@@ -205,22 +226,23 @@ export const productionOrderItems = {
   needsCutting: v.optional(v.boolean()),
   needsSewing: v.optional(v.boolean()),
   needsBranding: v.optional(v.boolean()),
+  destination: v.optional(v.nullable(v.union(v.literal("customer"), v.literal("warehouse"), v.literal('defects')))),
   needsSubcontractor: v.optional(v.boolean()),
   needsPackaging: v.optional(v.boolean()),
-  brandingType: v.optional(v.array(v.union(
+  brandingType: v.optional(v.nullable(v.array(v.union(
     v.literal('dtf'),
     v.literal('dtg'),
     v.literal('flok'),
     v.literal('embroidery'),
     v.literal('sublimation'),
-  ))),
-  cuttingBrandingType: v.optional(v.array(v.union(
+  )))),
+  cuttingBrandingType: v.optional(v.nullable(v.array(v.union(
     v.literal('dtf'),
     v.literal('dtg'),
     v.literal('flok'),
     v.literal('embroidery'),
     v.literal('sublimation'),
-  ))),
+  )))),
 };
 
 // ─── РОЗКРІЙ ────────────────────────────────────────────────────────────────
@@ -381,61 +403,34 @@ export const packagingLogs = {
 };
  
 // ─── ПІДРЯДНИКИ ─────────────────────────────────────────────────────────────
- 
-export const subcontractors = {
-  name: v.string(),
-  type: v.union(
-    v.literal("embroidery"),
-    v.literal("silkscreen"),
-    v.literal("other")
-  ),
-  leadTimeDays: v.number(),
-};
+
 
 export const subcontractorTasks = {
   productionOrderId: v.id("productionOrders"),
-  keycrmOrderId: v.string(),
-  subcontractorId: v.id("subcontractors"),
-  type: v.union(
-    v.literal("embroidery"),
-    v.literal("silkscreen")
-  ),
-  quantity: v.number(),
+  keycrmOrderId: v.optional(v.string()),
+  userId: v.id("users"),
+  name: v.string(),
+  quantity: v.optional(v.number()),
   sentDate: v.number(),
   expectedReturnDate: v.number(),
+  type: v.union(
+    v.literal("sublimation"),
+    v.literal("embroidery"),
+    v.literal("silkscreen"),
+    v.literal("dtg"),
+    v.literal("dtf"),
+    v.literal("other"),
+  ),
   actualReturnDate: v.optional(v.number()),
   status: v.union(
     v.literal("sent"),
     v.literal("in_progress"),
     v.literal("returned"),
-    v.literal("delayed")
+    v.literal("delayed"),
+    v.literal("waiting_to_sent")
   ),
   note: v.optional(v.string()),
 };
-
-
-export const additionalOrderTasks = {
-  productionOrderId: v.id("productionOrders"),
-  keycrmOrderId: v.string(),
-  type: v.union(
-    v.literal("branding"),
-    v.literal("cutting"),
-    v.literal("sewing"),
-    v.literal("packaging"),
-    v.literal("subcontractor")
-  ),
-  quantity: v.number(),
-  startDate: v.number(),
-  comment: v.optional(v.string()),
-  endDate: v.optional(v.number()),
-  status: v.union(
-    v.literal("new"),
-    v.literal("in_progress"),
-    v.literal("done"),
-    v.literal("paused"),
-    v.literal("waiting")
-  ),
-}
 
 
 const productStatusMappingsTable = defineTable(productStatusMappings)
@@ -456,9 +451,10 @@ const cuttingTaskSizesTable = defineTable(cuttingTaskSizes)
   .index("by_productionOrderItem", ["productionOrderItemId"]);
 const subcontractorTasksTable = defineTable(subcontractorTasks)
   .index("by_productionOrder", ["productionOrderId"])
-  .index("by_subcontractor", ["subcontractorId"])
   .index("by_status", ["status"]);
-const subcontractorsTable = defineTable(subcontractors);
+const productionOrderLogsTable = defineTable(productionOrderLogs)
+  .index("by_productionOrder", ["productionOrderId"])
+  .index("by_productionOrderItem", ["productionOrderItemId"]);
 const packagingLogsTable = defineTable(packagingLogs)
   .index("by_packagingTask", ["packagingTaskId"])
   .index("by_productionOrderItem", ["productionOrderItemId"])
@@ -539,8 +535,8 @@ export default defineSchema({
   brandingLogs: brandingLogsTable,
   packagingTasks: packagingTasksTable,
   packagingLogs: packagingLogsTable,
-  subcontractors: subcontractorsTable,
   subcontractorTasks: subcontractorTasksTable,
+  productionOrderLogs: productionOrderLogsTable,
   users: usersTable.index("email", ["email"]),
   orders: ordersTable.index("orderId", ["orderId"]),
   fabrics: fabricsTable

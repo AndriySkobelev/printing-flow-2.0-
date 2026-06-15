@@ -1,6 +1,32 @@
 import { v } from 'convex/values'
 import { query, mutation } from '../_generated/server'
 import type { MutationCtx } from '../_generated/server'
+import { getAuthUserId } from '@convex-dev/auth/server'
+import { omit } from 'ramda'
+
+type Diff = Record<string, { from: any; to: any }>
+
+const computeDiff = (before: Record<string, any>, after: Record<string, any>): Diff => {
+  const diff: Diff = {}
+  for (const key of Object.keys(after)) {
+    if (JSON.stringify(before[key] ?? null) !== JSON.stringify(after[key] ?? null)) {
+      diff[key] = { from: before[key] ?? null, to: after[key] ?? null }
+    }
+  }
+  return diff
+}
+
+async function insertLog(ctx: MutationCtx, args: {
+  productionOrderId: any
+  keyCrmOrderId: string
+  productionOrderItemId?: any
+  type: 'split' | 'created' | 'deleted' | 'updated'
+  changes?: Diff
+}) {
+  const userId = await getAuthUserId(ctx)
+  if (!userId) return
+  await ctx.db.insert('productionOrderLogs', { ...args, userId, timestamp: Date.now() })
+}
 
 async function resolveMaterialProcessingType(ctx: MutationCtx, sku: string): Promise<string | null> {
   const product = await ctx.db
@@ -356,6 +382,7 @@ export const getProductionOrderDetails = query({
         processingType:       i.processingType ?? null,
         brandingType:         i.brandingType ?? null,
         cuttingBrandingType:  i.cuttingBrandingType ?? null,
+        destination:          i.destination ?? null,
       })),
     }
   },
@@ -594,6 +621,165 @@ export const creatreProductionTask = mutation({
     await createBrandingTasks(ctx, { productionOrderId, keycrmOrderId, plannedShipDate, externalData, attachedFiles });
 
     return { productionOrderId };
+  },
+})
+
+export const getSubcontractorTasksByOrder = query({
+  args: { productionOrderId: v.id('productionOrders') },
+  handler: async (ctx, { productionOrderId }) => {
+    const tasks = await ctx.db
+      .query('subcontractorTasks')
+      .withIndex('by_productionOrder', q => q.eq('productionOrderId', productionOrderId))
+      .collect()
+    return Promise.all(tasks.map(async task => {
+      const user = await ctx.db.get(task.userId)
+      return { ...task, userName: user ? `${user.name ?? ''}`.trim() : '' }
+    }))
+  },
+})
+
+export const createSubcontractorTask = mutation({
+  args: {
+    productionOrderId:  v.id('productionOrders'),
+    name:               v.string(),
+    type:               v.union(v.literal('sublimation'), v.literal('embroidery'), v.literal('silkscreen'), v.literal('dtg'), v.literal('dtf'), v.literal('other')),
+    quantity:           v.optional(v.number()),
+    sentDate:           v.optional(v.number()),
+    expectedReturnDate: v.number(),
+    status:             v.union(v.literal('sent'), v.literal('in_progress'), v.literal('returned'), v.literal('delayed'), v.literal('waiting_to_sent')),
+    note:               v.optional(v.string()),
+  },
+  handler: async (ctx, { productionOrderId, name, type, quantity, sentDate, expectedReturnDate, status, note }) => {
+    const userId = await getAuthUserId(ctx)
+    if (!userId) throw new Error('Not authenticated')
+    const order = await ctx.db.get(productionOrderId)
+    return ctx.db.insert('subcontractorTasks', {
+      productionOrderId,
+      keycrmOrderId: order?.keycrmOrderId,
+      userId,
+      name,
+      type,
+      quantity,
+      sentDate: sentDate ?? Date.now(),
+      expectedReturnDate,
+      status,
+      note,
+    })
+  },
+})
+
+export const splitOrderItem = mutation({
+  args: {
+    itemId:        v.id('productionOrderItems'),
+    splitQuantity: v.number(),
+  },
+  handler: async (ctx, { itemId, splitQuantity }) => {
+    const original = await ctx.db.get(itemId)
+    if (!original) throw new Error('Item not found')
+    if (splitQuantity < 1 || splitQuantity >= original.quantity)
+      throw new Error('Invalid split quantity')
+
+    const newKeycrmOrderId = original.keycrmOrderId
+      ? `${original.keycrmOrderId}-1`
+      : undefined
+
+    await ctx.db.patch(itemId, { quantity: original.quantity - splitQuantity })
+
+    await ctx.db.insert('productionOrderItems', {
+      ...omit(['_id', '_creationTime'], original),
+      quantity:      splitQuantity,
+      keycrmOrderId: newKeycrmOrderId,
+    })
+
+    await insertLog(ctx, {
+      productionOrderId:     original.productionOrderId,
+      keyCrmOrderId:         original.keycrmOrderId ?? '',
+      productionOrderItemId: itemId,
+      type:    'split',
+      changes: computeDiff(
+        { quantity: original.quantity },
+        { quantity: original.quantity - splitQuantity },
+      ),
+    })
+  },
+})
+
+export const updateOrderItemDestination = mutation({
+  args: {
+    itemId:      v.id('productionOrderItems'),
+    destination: v.union(v.literal('customer'), v.literal('warehouse'), v.literal('defects')),
+  },
+  handler: async (ctx, { itemId, destination }) => {
+    const item = await ctx.db.get(itemId)
+    if (!item) throw new Error('Item not found')
+    await ctx.db.patch(itemId, { destination })
+    await insertLog(ctx, {
+      productionOrderId:     item.productionOrderId,
+      keyCrmOrderId:         item.keycrmOrderId ?? '',
+      productionOrderItemId: itemId,
+      type:    'updated',
+      changes: computeDiff(
+        { destination: item.destination ?? null },
+        { destination },
+      ),
+    })
+  },
+})
+
+const brandingTypeValidator = v.array(v.union(
+  v.literal('dtf'),
+  v.literal('dtg'),
+  v.literal('flok'),
+  v.literal('embroidery'),
+  v.literal('sublimation'),
+))
+
+export const updateOrderItem = mutation({
+  args: {
+    itemId:              v.id('productionOrderItems'),
+    quantity:            v.number(),
+    shipmentType:        v.union(v.literal('manufacturing'), v.literal('warehouse'), v.null()),
+    brandingComment:     v.optional(v.nullable(v.string())),
+    sewingComment:       v.optional(v.nullable(v.string())),
+    brandingType:        v.optional(v.nullable(brandingTypeValidator)),
+    cuttingBrandingType: v.optional(v.nullable(brandingTypeValidator)),
+    destination:         v.optional(v.nullable(v.union(v.literal('customer'), v.literal('warehouse'), v.literal('defects')))),
+  },
+  handler: async (ctx, { itemId, ...fields }) => {
+    const item = await ctx.db.get(itemId)
+    if (!item) throw new Error('Item not found')
+    await ctx.db.patch(itemId, fields)
+    const before = Object.fromEntries(Object.keys(fields).map(k => [k, (item as any)[k] ?? null]))
+    await insertLog(ctx, {
+      productionOrderId:     item.productionOrderId,
+      keyCrmOrderId:         item.keycrmOrderId ?? '',
+      productionOrderItemId: itemId,
+      type:    'updated',
+      changes: computeDiff(before, fields),
+    })
+  },
+})
+
+export const getOrderLogs = query({
+  args: { productionOrderId: v.id('productionOrders') },
+  handler: async (ctx, { productionOrderId }) => {
+    const logs = await ctx.db
+      .query('productionOrderLogs')
+      .withIndex('by_productionOrder', q => q.eq('productionOrderId', productionOrderId))
+      .order('desc')
+      .collect()
+
+    return Promise.all(logs.map(async log => {
+      const user = await ctx.db.get(log.userId)
+      const item = log.productionOrderItemId ? await ctx.db.get(log.productionOrderItemId) : null
+      return {
+        ...log,
+        userName:  user?.name ?? '—',
+        itemName:  item?.name  ?? null,
+        itemColor: item?.color ?? null,
+        itemSize:  item?.size  ?? null,
+      }
+    }))
   },
 })
 

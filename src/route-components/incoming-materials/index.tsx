@@ -180,7 +180,6 @@ const InventoryMovement: FunctionComponent = () => {
   const handleComingMaterial = () => {
     openDialog({
       title: 'Прихід матеріалу',
-      isLoading: incomingMutation.isPending,
       content:
         <ComingMaterialForm
           type='incoming'

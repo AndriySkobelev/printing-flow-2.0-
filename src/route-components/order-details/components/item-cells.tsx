@@ -1,18 +1,20 @@
-import { useCallback } from 'react'
+import { useCallback, useContext } from 'react'
 import { type HeaderObject } from 'simple-table-core'
 import { type Id } from 'convex/_generated/dataModel'
-import { Pencil } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { MyPopover } from '@/components/my-popover'
+import { Pencil, Scissors, Warehouse, Trash2, SquareSplitHorizontal } from 'lucide-react'
+import { ActionsMenu } from '@/components/actions-menu'
+import { DialogContext } from '@/contexts/dialog'
 import {
-  useUpdateOrderItemBrandingType,
-  useUpdateOrderItemCuttingBrandingType,
   useUpdateOrderItemBrandingComment,
   useUpdateOrderItemSewingComment,
+  useSplitOrderItem,
+  useUpdateOrderItemDestination,
+  useUpdateOrderItem,
 } from '../actions'
 import { type OrderItem, type BrandingTypeValue, BRANDING_LABELS } from '../types'
 import { InlineEdit } from './inline-edit'
-import { BrandingSection } from './branding-section'
+import { SplitItemForm } from '../forms/split-item-form'
+import { EditItemForm } from '../forms/edit-item-form'
 
 // ─── Cells ────────────────────────────────────────────────────────────────────
 
@@ -80,48 +82,94 @@ const CuttingBrandingCell = ({ row }: { row: Record<string, unknown> }) => {
   )
 }
 
-const RowActionsCell = ({ row }: { row: Record<string, unknown> }) => {
+const destinationLabels: Record<string, { text: string, className: string }> = {
+  customer:  { text: 'Клієнт', className: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'       },
+  warehouse: { text: 'Склад',  className: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' },
+  defects:   { text: 'Брак',   className: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'           },
+}
+
+const DestinationCell = ({ row }: { row: Record<string, unknown> }) => {
   const item = row as OrderItem
   if (!item._id) return null
-  const { mutate: updateBrandingType }        = useUpdateOrderItemBrandingType()
-  const { mutate: updateCuttingBrandingType } = useUpdateOrderItemCuttingBrandingType()
+  const destination = item.destination ?? null
+  if (!destination) return <span className="text-xs text-muted-foreground">-</span>
+  const settings = destinationLabels[destination] ?? { text: destination, className: 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-300' }
+  return (
+    <span className={`px-2 py-0.5 rounded-full text-xs ${settings.className}`}>
+      {settings.text}
+    </span>
+  )
+}
 
-  const readyTypes   = item.brandingType        ?? []
-  const cuttingTypes = item.cuttingBrandingType ?? []
+const RowActionsCell = ({ row }: { row: Record<string, unknown> }) => {
+  const item = row as OrderItem
+  const { openDialog, closeDialog, setIsLoading } = useContext(DialogContext)
+  const { mutateAsync: split }             = useSplitOrderItem()
+  const { mutateAsync: updateDestination } = useUpdateOrderItemDestination()
+  const { mutate: updateItem }             = useUpdateOrderItem()
 
-  const toggle = useCallback((
-    current: BrandingTypeValue[],
-    type: BrandingTypeValue,
-    save: (next: BrandingTypeValue[] | undefined) => void
-  ) => {
-    const next = current.includes(type) ? current.filter(t => t !== type) : [...current, type]
-    save(next.length ? next : undefined)
-  }, [])
+  const cantSplit   = item.quantity <= 1
+  const atWarehouse = item.destination === 'warehouse'
 
-  const handleToggleReady = useCallback((type: BrandingTypeValue) =>
-    toggle(readyTypes, type, val =>
-      updateBrandingType({ itemId: item._id as Id<'productionOrderItems'>, brandingType: val })
-    ), [readyTypes, item._id, updateBrandingType, toggle])
+  const handleEdit = useCallback(() => {
+    openDialog({
+      title:   'Редагувати товар',
+      content: (
+        <EditItemForm
+          item={item}
+          onSubmit={(values) => {
+            updateItem({ itemId: item._id as Id<'productionOrderItems'>, ...values })
+            closeDialog()
+          }}
+        />
+      ),
+    })
+  }, [item, openDialog, closeDialog, updateItem])
 
-  const handleToggleCutting = useCallback((type: BrandingTypeValue) =>
-    toggle(cuttingTypes, type, val =>
-      updateCuttingBrandingType({ itemId: item._id as Id<'productionOrderItems'>, cuttingBrandingType: val })
-    ), [cuttingTypes, item._id, updateCuttingBrandingType, toggle])
+  const handleSplit = useCallback(() => {
+    const id = openDialog({
+      title:   'Розділити товар',
+      content: (
+        <SplitItemForm
+          item={item}
+          onSubmit={(splitQuantity) => {
+            split({ itemId: item._id as Id<'productionOrderItems'>, splitQuantity })
+            closeDialog(id)
+          }}
+        />
+      ),
+    })
+  }, [item, openDialog, closeDialog, split])
+
+  const handleMoveToWarehouse = useCallback(() => {
+    const id = openDialog({
+      title:        'Перемістити на склад',
+      withForm:     true,
+      outerClose:   true,
+      content: (
+        <p className="text-sm text-muted-foreground">
+          Переміщення <span className="font-medium text-foreground">{item.name}</span> ({item.color} / {item.size}) на склад.
+        </p>
+      ),
+      actionSubmit: () => {
+        setIsLoading(true)
+        updateDestination({ itemId: item._id as Id<'productionOrderItems'>, destination: 'warehouse' })
+        setIsLoading(false)
+        closeDialog(id)
+      },
+    })
+  }, [item, openDialog, closeDialog, updateDestination, setIsLoading])
+
+  if (!item._id) return null
 
   return (
-    <MyPopover
-      align="end"
-      trigger={
-        <Button variant="ghost" size="icon" className="size-5 text-muted-foreground hover:text-foreground">
-          <Pencil className="size-3" />
-        </Button>
-      }
-      content={
-        <div className="flex flex-col gap-3 p-1 min-w-42.5">
-          <BrandingSection label="На готовому" active={readyTypes}   onToggle={handleToggleReady} />
-          <BrandingSection label="На кроях"    active={cuttingTypes} onToggle={handleToggleCutting} />
-        </div>
-      }
+    <ActionsMenu
+      items={[
+        { label: 'Редагувати',           icon: <Pencil                className="size-3" />, onClick: handleEdit },
+        { label: 'Розділити',            icon: <SquareSplitHorizontal className="size-3" />, onClick: handleSplit,          disabled: cantSplit   },
+        { label: 'Перемістити на склад', icon: <Warehouse             className="size-3" />, onClick: handleMoveToWarehouse, disabled: atWarehouse },
+        { label: 'Видалити',             icon: <Trash2                className="size-3" />, onClick: () => {},             destructive: true     },
+      ]}
     />
   )
 }
@@ -172,7 +220,7 @@ export const itemNestedHeaders: HeaderObject[] = [
   },
   {
     accessor:       'shipmentType',
-    label:          'Тип',
+    label:          'Звідки',
     width:          110,
     minWidth:       80,
     type:           'string',
@@ -209,11 +257,19 @@ export const itemNestedHeaders: HeaderObject[] = [
   {
     accessor:       'cuttingBrandingType',
     label:          'На кроях',
+    width:          100,
+    type:           'string',
+    headerRenderer: renderHeader,
+    cellRenderer:   CuttingBrandingCell,
+  },
+  {
+    accessor:       'destination',
+    label:          'Призначення',
     width:          150,
     minWidth:       100,
     type:           'string',
     headerRenderer: renderHeader,
-    cellRenderer:   CuttingBrandingCell,
+    cellRenderer:   DestinationCell,
   },
   {
     accessor:       '_actions',
@@ -245,8 +301,16 @@ export const itemHeaders: (nestedRef: any, nestedSelectRows: any) => HeaderObjec
     },
     cellRenderer:   ({ row }) => {
       const name = (row as OrderItem).name
+      const totalQyt = Array.isArray(row?.data) ? row.data.reduce((prev, cur) => prev + cur.quantity, 0) : 0;
       if (!name) return null
-      return <span className="text-xs wrap-break-word whitespace-normal">{name}</span>
+      return (
+          <div className="flex items-center gap-2">
+            <span className="text-xs wrap-break-word whitespace-normal">{name}</span>
+            <span className="px-2 py-0.5 rounded-full border text-muted-foreground text-xs">
+              {totalQyt}
+            </span>
+          </div>
+      )
     },
   }
 ]

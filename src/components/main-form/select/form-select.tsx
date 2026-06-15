@@ -111,7 +111,7 @@ const FormSelect: FunctionComponent<FormSelectProps> = ({ options, label, disabl
   }, [field.handleChange]);
   const errors = useMemo(() => field.state.meta.errors as Array<{ message: string }> | undefined, [field.state.meta.errors]);
   const isValid = useMemo(() => field.state.meta.isValid as boolean | undefined, [field.state.meta.isValid]);
-  
+
   return (
     <div className={clsx('flex flex-col gap-1 w-full', className)}>
       <label className="text-sm ml-2 text-[#bbbfc7]">{label}</label>

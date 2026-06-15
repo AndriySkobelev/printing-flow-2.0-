@@ -23,6 +23,7 @@ export const InputDate = ({ placeholder, label, className, onChange, otherValue 
   const isValid = useMemo(() => field.state.meta.isValid as boolean | undefined, [field.state.meta.isValid]);
   return (
     <div className={clsx("flex flex-col justify-start gap-1 w-full", className)}>
+      <label className="text-sm ml-2 text-[#bbbfc7]">{label}</label>
       <DatePicker onChange={fieldOnChange} />
       {!isValid && <div className="text-sm text-red-500 ml-2">{errors?.[0]?.message}</div>}
     </div>

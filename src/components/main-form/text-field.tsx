@@ -44,10 +44,12 @@ export const TextField = ({
     <div className={clsx("flex flex-col gap-1 w-full", className)}>
       {label ? <div className="text-sm text-[#bbbfc7] capitalize ml-2">{label}</div> : null}
       <Input
+        min={min}
         type={type}
         name={name}
         value={value}
-        min={min}
+        pattern="[0-9]*"
+        inputMode="numeric"
         onChange={onChange}
         placeholder={placeholder}
         title={`${error?.[0]?.message ?? ''}`}
@@ -65,7 +67,7 @@ export const TextField = ({
 export const FormTextField = ({ type = 'text', placeholder, label, className, onChange, otherValue }: FormTextFieldProps) => { 
   const field = useFieldContext();
   const name = useMemo(() => field.name, [field.name]);
-  const value = useMemo(() => field.state.value as string | number | ReadonlyArray<string> | undefined, [field.state.value]);
+  const value = useMemo(() => type === 'number' ? Number(field.state.value) : field.state.value as string | number | ReadonlyArray<string> | undefined, [field.state.value]);
   const fieldOnChange = useMemo(() => (e: React.ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.value;
     if (onChange) {
@@ -77,6 +79,7 @@ export const FormTextField = ({ type = 'text', placeholder, label, className, on
 
   const errors = useMemo(() => field.state.meta.errors as Array<{ message: string }> | undefined, [field.state.meta.errors]);
   const isValid = useMemo(() => field.state.meta.isValid as boolean | undefined, [field.state.meta.isValid]);
+  console.log('render text field', { value, errors, isValid })
   return (
     <div className={clsx("flex flex-col gap-1 w-full", className)}>
       {label ? <div className="text-sm text-[#bbbfc7] capitalize ml-2">{label}</div> : null}

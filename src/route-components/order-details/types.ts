@@ -20,6 +20,7 @@ export type OrderItem = {
   brandingComment?: string | null
   sewingComment?: string | null
   shipmentType?: 'manufacturing' | 'warehouse' | null
+  destination?: 'customer' | 'warehouse' | 'defects' | null
   brandingType?: BrandingTypeValue[] | null
   cuttingBrandingType?: BrandingTypeValue[] | null
 }

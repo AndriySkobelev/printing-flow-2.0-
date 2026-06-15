@@ -43,9 +43,37 @@ export const useUpdateSelectedOrderItemsBrandingType = () =>
     onSuccess: () => toast.success('Застосовано до вибраних'),
   })
 
+export const useUpdateOrderItemDestination = () =>
+  useMutation({
+    mutationFn: useConvexMutation(api.queries.orders.updateOrderItemDestination),
+    onError: (e: Error) => toast.error(e.message),
+    onSuccess: () => toast.success('Збережено'),
+  })
+
+export const useSplitOrderItem = () =>
+  useMutation({
+    mutationFn: useConvexMutation(api.queries.orders.splitOrderItem),
+    onError: (e: Error) => toast.error(e.message),
+    onSuccess: () => toast.success('Товар розділено'),
+  })
+
 export const useAddProductionOrderItems = () =>
   useMutation({
     mutationFn: useConvexMutation(api.queries.orders.addProductionOrderItems),
     onError: (e: Error) => toast.error(e.message),
     onSuccess: () => toast.success('Товари додано'),
+  })
+
+export const useUpdateOrderItem = () =>
+  useMutation({
+    mutationFn: useConvexMutation(api.queries.orders.updateOrderItem),
+    onError: (e: Error) => toast.error(e.message),
+    onSuccess: () => toast.success('Збережено'),
+  })
+
+export const useCreateSubcontractorTask = () =>
+  useMutation({
+    mutationFn: useConvexMutation(api.queries.orders.createSubcontractorTask),
+    onError: (e: Error) => toast.error(e.message),
+    onSuccess: () => toast.success('Завдання створено'),
   })

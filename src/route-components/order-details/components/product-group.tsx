@@ -14,16 +14,15 @@ import clsx from 'clsx'
 
 const combineGroupItems = (items: any) => {
   const arrayOfItems = values(items);
-  const some = arrayOfItems.map((el) => {
-    const clearName = el.map((el2: any) => omit(['name'], el2));
+  const combine = arrayOfItems.map((el) => {
     let firstItem = pick(['name'], el[0]) as OrderItem;
     return {
       ...firstItem,
-      data: clearName,
+      data: el,
     }
   })
 
-  return some;
+  return combine;
 }
 
 export const ProductGroup = memo(({ items }: { items: OrderItem[] }) => {
@@ -35,8 +34,6 @@ export const ProductGroup = memo(({ items }: { items: OrderItem[] }) => {
   const { openDialog, closeDialog } = useContext(DialogContext)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const { mutateAsync: updateSelected } = useUpdateSelectedOrderItemsBrandingType()
-
-  const totalQty = useMemo(() => items.reduce((s, i) => s + i.quantity, 0), [items])
 
   const handleSelectionChange = useCallback(({ selectedRows }: RowSelectionChangeProps) => {
     setSelectedIds(new Set(selectedRows))
