@@ -1,6 +1,6 @@
 import { query, mutation, internalMutation } from "../_generated/server";
 import { Id } from "../_generated/dataModel";
-import { storeMovementsSchema  } from "../schema";
+import { storeMovementsSchema  } from  "../schemas/storage";
 
 
 export const getMovements = query({

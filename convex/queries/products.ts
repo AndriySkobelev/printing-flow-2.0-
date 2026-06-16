@@ -2,7 +2,8 @@ import { query, mutation, QueryCtx, internalQuery } from "../_generated/server";
 import { paginationOptsValidator } from "convex/server";
 import { groupBy, prop, keys, pick } from 'ramda';
 import { getAll } from 'convex-helpers/server/relationships'
-import { Fabrics, Materials, materialsSchema,   } from "../schema";
+import { materialsSchema,   } from  "../schemas/storage";
+import { Fabrics, Materials } from '../schema'
 import { v } from "convex/values";
 import { productSizes } from '../../src/constants';
 import { Id } from "../_generated/dataModel";

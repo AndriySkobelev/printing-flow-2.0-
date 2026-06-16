@@ -1,11 +1,12 @@
-import { useMemo, useCallback, useContext } from 'react'
+import { useMemo, useCallback, useContext, useState } from 'react'
+import { useAction } from 'convex/react'
 import { groupBy, values, set, lensProp, keys, omit, pick } from 'ramda';
 import { useQuery } from '@tanstack/react-query'
 import { convexQuery } from '@convex-dev/react-query'
 import { api } from 'convex/_generated/api'
 import { type Id } from 'convex/_generated/dataModel'
 import { useUpdateAllOrderItemsBrandingType, useAddProductionOrderItems, useCreateSubcontractorTask } from './actions'
-import { ArrowLeft, Truck, Scissors, Package, Palette, Wand2, Plus, ClipboardList } from 'lucide-react'
+import { ArrowLeft, Truck, Scissors, Package, Palette, Wand2, Plus, ClipboardList, FileSpreadsheet } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { ImagesSection } from '@/route-components/branding/components/images-section'
@@ -54,6 +55,51 @@ const statusColors: Record<string, string> = {
   in_progress: 'bg-yellow-100 text-yellow-700',
   returned:    'bg-green-100 text-green-700',
   delayed:     'bg-red-100 text-red-700',
+}
+
+const SIZES = ['4XS', '3XS', 'XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL', '4XL']
+
+const buildSheetRows = (order: any, items: OrderItem[]): string[][] => {
+  const groups = new Map<string, OrderItem[]>()
+  for (const item of items) {
+    const key = `${item.name}__${item.color}`
+    if (!groups.has(key)) groups.set(key, [])
+    groups.get(key)!.push(item)
+  }
+
+  const dateStr = new Date(order.plannedShipDate).toLocaleDateString('uk-UA', {
+    day: '2-digit', month: '2-digit', year: 'numeric',
+  })
+
+  const allGroups = Array.from(groups.values())
+
+  return allGroups.map((groupItems, index) => {
+    const first = groupItems[0]
+    const sizeMap: Record<string, number> = {}
+    for (const item of groupItems) sizeMap[item.size] = item.quantity
+    const groupTotal = groupItems.reduce((s, i) => s + i.quantity, 0)
+    const orderId = allGroups.length > 1
+      ? `${order.keycrmOrderId}-(${index + 1})`
+      : order.keycrmOrderId
+
+    return [
+      orderId,                                               // № замовлення
+      dateStr,                                               // дата видачі
+      '',                                                    // година видачі
+      first.name,                                            // тип виробів
+      '-',                      // тип матеріалу
+      first.color,                                           // колір виробів
+      ...SIZES.map(s => String(sizeMap[s] ?? '')),          // size columns
+      String(groupTotal),                                    // к-сть виробів (шт)
+      first.keycrmProductComment ?? '',                      // примітка для крою
+      first.sewingComment ?? '',                             // примітка для пошиву
+      String(order.totalQty),                               // кількість виробів в замовленні
+      String(first.brandingType?.length ?? ''),             // кількість принтів на 1 виріб
+      first.brandingComment ?? '',                           // примітка для друку
+      first.cuttingBrandingType?.join(', ') ?? '',          // Брендування на кроях
+      '',                                                    // Очікувана готовність брендованих кроях
+    ]
+  })
 }
 
 const SubcontractorSection = ({ productionOrderId }: { productionOrderId: string }) => {
@@ -220,6 +266,9 @@ const ProductsSection = ({ items, productionOrderId }: { items: OrderItem[]; pro
 
 const OrderDetailsContent = ({ productionOrderId, onBack }: { productionOrderId: string; onBack?: () => void }) => {
   const { openDrawer } = useContext(DrawerContext)
+  const [exporting, setExporting] = useState(false)
+  const backupToSheet = useAction(api.http_actions.googleSheets.backupToSheet)
+
   const { data: order } = useQuery(
     convexQuery(api.queries.orders.getProductionOrderDetails, {
       productionOrderId: productionOrderId as Id<'productionOrders'>,
@@ -235,6 +284,17 @@ const OrderDetailsContent = ({ productionOrderId, onBack }: { productionOrderId:
       content: <OrderLogs productionOrderId={productionOrderId} />,
     })
   }, [productionOrderId, openDrawer])
+
+  const handleExportToSheet = useCallback(async () => {
+    if (!order) return
+    setExporting(true)
+    try {
+      const rows = buildSheetRows(order, order.items as OrderItem[])
+      await backupToSheet({ rows })
+    } finally {
+      setExporting(false)
+    }
+  }, [order, backupToSheet])
 
   if (!order) {
     return (
@@ -254,7 +314,7 @@ const OrderDetailsContent = ({ productionOrderId, onBack }: { productionOrderId:
 
         <div className="flex items-start gap-2 px-3 py-3 border-b shrink-0">
           {onBack && (
-            <Button variant="ghost" size="icon" onClick={onBack} className="-ml-1 size-8 md:hidden">
+            <Button variant="ghost" size="icon" onClick={onBack} className="-ml-1 size-8">
               <ArrowLeft />
             </Button>
           )}
@@ -268,6 +328,9 @@ const OrderDetailsContent = ({ productionOrderId, onBack }: { productionOrderId:
               <b className="text-foreground">{formatDate(order.plannedShipDate)}</b>
             </span>
           </div>
+          <Button variant="ghost" size="icon" onClick={handleExportToSheet} disabled={exporting} className="size-8 shrink-0">
+            <FileSpreadsheet size={15} />
+          </Button>
           <Button variant="ghost" size="icon" onClick={handleOpenLogs} className="size-8 shrink-0">
             <ClipboardList size={15} />
           </Button>

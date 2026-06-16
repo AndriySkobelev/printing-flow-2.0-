@@ -1,6 +1,6 @@
 import { getAll } from "convex-helpers/server/relationships";
 import { query, mutation } from "../_generated/server";
-import { materialsSchema } from "../schema";
+import { materialsSchema } from "../schemas/storage";
 import { v } from "convex/values";
 
 ///////// QUERY //////////

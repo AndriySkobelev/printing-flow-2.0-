@@ -1,6 +1,7 @@
 import { query, mutation } from "../_generated/server";
 import { getAll } from 'convex-helpers/server/relationships'
-import { Fabrics, Materials, productsSpecification } from "../schema";
+import { Fabrics, Materials } from "../schema";
+import { productsSpecification } from "../schemas/storage";
 import { pick, omit } from "ramda";
 import { v } from "convex/values";
 

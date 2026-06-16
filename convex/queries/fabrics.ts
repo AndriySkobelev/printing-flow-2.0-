@@ -1,6 +1,6 @@
 import { query, mutation } from "../_generated/server";
 import { pick, prop, uniq } from 'ramda';
-import { fabricsSchema } from "../schema";
+import { fabricsSchema } from "../schemas/storage";
 import { v } from "convex/values";
 
 ///////// QUERY //////////

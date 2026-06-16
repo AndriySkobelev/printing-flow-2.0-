@@ -1,5 +1,5 @@
 import { OrderDetails } from '@/route-components/order-details'
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
 
 export const Route = createFileRoute(
   '/_authenticated/app/production-orders_/$orderId',
@@ -7,7 +7,13 @@ export const Route = createFileRoute(
   component: RouteComponent,
 })
 
-function RouteComponent() {
-  const params = Route.useParams();
-  return <OrderDetails productionOrderId={params.orderId} />
+const RouteComponent = () => {
+  const params = Route.useParams()
+  const navigate = useNavigate()
+  return (
+    <OrderDetails
+      productionOrderId={params.orderId}
+      onBack={() => navigate({ to: '/app/production-orders' })}
+    />
+  )
 }

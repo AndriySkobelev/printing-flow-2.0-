@@ -3,7 +3,8 @@ import { Id } from "../_generated/dataModel";
 import { v } from 'convex/values';
 import { startOfMonth, endOfMonth, format } from 'date-fns'
 import { pick, omit, uniq, indexBy, prop, map } from 'ramda'
-import { ShiftReportsType, Specifications, shiftReports } from '../schema';
+import { ShiftReportsType, Specifications } from '../schema';
+import { shiftReports } from '../schemas/storage';
 import { getAll } from 'convex-helpers/server/relationships';
 
 

@@ -10,6 +10,7 @@
 
 import type * as auth from "../auth.js";
 import type * as http from "../http.js";
+import type * as http_actions_googleSheets from "../http_actions/googleSheets.js";
 import type * as http_actions_iventory_movements from "../http_actions/iventory_movements.js";
 import type * as http_actions_orders from "../http_actions/orders.js";
 import type * as queries_branding from "../queries/branding.js";
@@ -25,6 +26,9 @@ import type * as queries_sewing from "../queries/sewing.js";
 import type * as queries_shift_reports from "../queries/shift_reports.js";
 import type * as queries_specifications from "../queries/specifications.js";
 import type * as queries_users from "../queries/users.js";
+import type * as schemas_orders from "../schemas/orders.js";
+import type * as schemas_prdouction from "../schemas/prdouction.js";
+import type * as schemas_storage from "../schemas/storage.js";
 
 import type {
   ApiFromModules,
@@ -35,6 +39,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   http: typeof http;
+  "http_actions/googleSheets": typeof http_actions_googleSheets;
   "http_actions/iventory_movements": typeof http_actions_iventory_movements;
   "http_actions/orders": typeof http_actions_orders;
   "queries/branding": typeof queries_branding;
@@ -50,6 +55,9 @@ declare const fullApi: ApiFromModules<{
   "queries/shift_reports": typeof queries_shift_reports;
   "queries/specifications": typeof queries_specifications;
   "queries/users": typeof queries_users;
+  "schemas/orders": typeof schemas_orders;
+  "schemas/prdouction": typeof schemas_prdouction;
+  "schemas/storage": typeof schemas_storage;
 }>;
 
 /**
