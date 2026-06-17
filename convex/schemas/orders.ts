@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { defineTable } from "convex/server";
+import { brandingTypeV, destinationTypeV } from './constants'
 
 export const productionOrders = {
   startDate: v.number(),
@@ -41,6 +42,8 @@ export const productionOrderItems = {
   productionOrderId: v.id("productionOrders"),
   keycrmOrderId: v.optional(v.string()),
   keycrmProductId: v.optional(v.number()),
+  isNew: v.optional(v.boolean()),
+  inProduction: v.optional(v.boolean()),
   name: v.string(),
   sku: v.string(),
   color: v.string(),
@@ -68,23 +71,11 @@ export const productionOrderItems = {
   needsCutting: v.optional(v.boolean()),
   needsSewing: v.optional(v.boolean()),
   needsBranding: v.optional(v.boolean()),
-  destination: v.optional(v.nullable(v.union(v.literal("customer"), v.literal("warehouse"), v.literal('defects')))),
+  destination: v.optional(v.nullable(destinationTypeV)),
   needsSubcontractor: v.optional(v.boolean()),
   needsPackaging: v.optional(v.boolean()),
-  brandingType: v.optional(v.nullable(v.array(v.union(
-    v.literal('dtf'),
-    v.literal('dtg'),
-    v.literal('flok'),
-    v.literal('embroidery'),
-    v.literal('sublimation'),
-  )))),
-  cuttingBrandingType: v.optional(v.nullable(v.array(v.union(
-    v.literal('dtf'),
-    v.literal('dtg'),
-    v.literal('flok'),
-    v.literal('embroidery'),
-    v.literal('sublimation'),
-  )))),
+  brandingType: v.optional(v.nullable(v.array(brandingTypeV))),
+  cuttingBrandingType: v.optional(v.nullable(v.array(brandingTypeV))),
 };
 
 const productionOrdersTable = defineTable(productionOrders)

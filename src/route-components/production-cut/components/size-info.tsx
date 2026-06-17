@@ -11,10 +11,11 @@ const FORM_ID = 'cutting-size-log-form'
 
 type Props = {
   detail: SizeDetail
+  onViewLogs?: () => void
 }
 
-export function SizeInfo({ detail }: Props) {
-  const { _id, size, quantity, completedQty, logs = [] } = detail
+export function SizeInfo({ detail, onViewLogs }: Props) {
+  const { _id, size, quantity, completedQty, logs = [], quantityChange } = detail
   const { openDialog, closeDialog, setIsLoading } = useContext(DialogContext)
 
   const { mutate } = useAddCuttingTaskSizeLog(() => { setIsLoading(false); closeDialog() })
@@ -48,9 +49,19 @@ export function SizeInfo({ detail }: Props) {
     <div className="flex flex-col gap-2 min-w-[200px]">
       <div className="flex items-center justify-between gap-4">
         <span className="text-sm font-semibold">{size}</span>
-        <span className={clsx('text-xs font-medium', isDone ? 'text-green-600' : 'text-muted-foreground')}>
-          {completedQty} / {quantity}
-        </span>
+        <div className="flex items-center gap-1.5">
+          {quantityChange && (
+            <button
+              className="text-xs text-red-400 line-through cursor-pointer hover:text-red-600 transition-colors"
+              onClick={onViewLogs}
+            >
+              {quantityChange.oldQty}
+            </button>
+          )}
+          <span className={clsx('text-xs font-medium', isDone ? 'text-green-600' : 'text-muted-foreground')}>
+            {completedQty} / {quantity}
+          </span>
+        </div>
       </div>
 
       <div className="h-1.5 rounded-full bg-muted overflow-hidden">

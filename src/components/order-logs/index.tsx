@@ -1,8 +1,10 @@
 import { useQuery } from '@tanstack/react-query'
+import { useMutation } from 'convex/react'
 import { convexQuery } from '@convex-dev/react-query'
 import { api } from 'convex/_generated/api'
 import { type Id } from 'convex/_generated/dataModel'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { Eye, EyeOff } from 'lucide-react'
 
 type Diff = Record<string, { from: any; to: any }>
 
@@ -11,11 +13,12 @@ type Log = {
   type: 'split' | 'created' | 'deleted' | 'updated'
   timestamp: number
   keyCrmOrderId: string
-  userName:  string
-  itemName:  string | null
-  itemColor: string | null
-  itemSize:  string | null
-  changes?:  Diff
+  userName:      string
+  itemName:      string | null
+  itemColor:     string | null
+  itemSize:      string | null
+  changes?:      Diff
+  shownToUserId?: string
 }
 
 const TYPE_CONFIG: Record<string, { label: string; className: string }> = {
@@ -54,14 +57,21 @@ const formatDateTime = (ts: number) =>
     hour: '2-digit', minute: '2-digit',
   })
 
-type Props = { productionOrderId: string }
+type Props = {
+  productionOrderId: string
+  filter?: (log: Log) => boolean
+  currentUserId?: string
+}
 
-export const OrderLogs = ({ productionOrderId }: Props) => {
-  const { data: logs = [], isPending } = useQuery(
+export const OrderLogs = ({ productionOrderId, filter, currentUserId }: Props) => {
+  const { data: rawLogs = [], isPending } = useQuery(
     convexQuery(api.queries.orders.getOrderLogs, {
       productionOrderId: productionOrderId as Id<'productionOrders'>,
     })
   )
+  const markSeen = useMutation(api.queries.orders.markOrderLogSeen)
+
+  const logs = filter ? (rawLogs as Log[]).filter(filter) : (rawLogs as Log[])
 
   if (isPending) {
     return (
@@ -82,9 +92,10 @@ export const OrderLogs = ({ productionOrderId }: Props) => {
   return (
     <ScrollArea className="h-full">
       <div className="flex flex-col gap-2 p-4">
-        {(logs as Log[]).map(log => {
-          const cfg = TYPE_CONFIG[log.type] ?? { label: log.type, className: 'bg-muted text-muted-foreground' }
+        {logs.map(log => {
+          const cfg        = TYPE_CONFIG[log.type] ?? { label: log.type, className: 'bg-muted text-muted-foreground' }
           const diffEntries = Object.entries(log.changes ?? {})
+          const seen       = !!log.shownToUserId
           return (
             <div key={log._id} className="border rounded-md px-3 py-2.5 flex flex-col gap-1.5">
 
@@ -97,9 +108,23 @@ export const OrderLogs = ({ productionOrderId }: Props) => {
                     #{log.keyCrmOrderId}
                   </span>
                 </div>
-                <span className="text-[11px] text-muted-foreground shrink-0">
-                  {formatDateTime(log.timestamp)}
-                </span>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <span className="text-[11px] text-muted-foreground">
+                    {formatDateTime(log.timestamp)}
+                  </span>
+                  {currentUserId && (
+                    <button
+                      title={seen ? 'Переглянуто' : 'Позначити як переглянуте'}
+                      onClick={() => { if (!seen) markSeen({ logId: log._id as Id<'productionOrderLogs'> }) }}
+                      className={seen
+                        ? 'text-green-500 cursor-default'
+                        : 'text-muted-foreground hover:text-foreground transition-colors cursor-pointer'
+                      }
+                    >
+                      {seen ? <Eye size={13} /> : <EyeOff size={13} />}
+                    </button>
+                  )}
+                </div>
               </div>
 
               {log.itemName && (

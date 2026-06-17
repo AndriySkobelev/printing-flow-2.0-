@@ -26,6 +26,7 @@ import type * as queries_sewing from "../queries/sewing.js";
 import type * as queries_shift_reports from "../queries/shift_reports.js";
 import type * as queries_specifications from "../queries/specifications.js";
 import type * as queries_users from "../queries/users.js";
+import type * as schemas_constants from "../schemas/constants.js";
 import type * as schemas_orders from "../schemas/orders.js";
 import type * as schemas_prdouction from "../schemas/prdouction.js";
 import type * as schemas_storage from "../schemas/storage.js";
@@ -55,6 +56,7 @@ declare const fullApi: ApiFromModules<{
   "queries/shift_reports": typeof queries_shift_reports;
   "queries/specifications": typeof queries_specifications;
   "queries/users": typeof queries_users;
+  "schemas/constants": typeof schemas_constants;
   "schemas/orders": typeof schemas_orders;
   "schemas/prdouction": typeof schemas_prdouction;
   "schemas/storage": typeof schemas_storage;

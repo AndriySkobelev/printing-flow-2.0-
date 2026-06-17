@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { defineTable } from "convex/server";
+import { taskStatusV, extendedTaskStatusV, destinationTypeV } from './constants'
 
 export const cuttingTasks = {
   color: v.string(),
@@ -11,12 +12,7 @@ export const cuttingTasks = {
   orderIndex: v.optional(v.string()),
   planedEndDate: v.optional(v.number()),
   productionOrderId: v.id("productionOrders"),
-  status: v.union(
-    v.literal("new"),
-    v.literal("in_progress"),
-    v.literal("done"),
-    v.literal("delayed")
-  ),
+  status: taskStatusV,
   assignedTo: v.optional(v.id("users")),
   note: v.optional(v.string()),
 };
@@ -48,12 +44,7 @@ export const sewingTasks = {
   totalQuantity: v.number(),
   startDate: v.number(),
   endDate: v.number(),
-  status: v.union(
-    v.literal("new"),
-    v.literal("in_progress"),
-    v.literal("done"),
-    v.literal("delayed")
-  ),
+  status: taskStatusV,
   note: v.optional(v.string()),
 };
 
@@ -67,6 +58,7 @@ export const sewingSubTasks = {
   startDate: v.optional(v.number()),
   endDate: v.optional(v.number()),
   duration: v.optional(v.union(v.number(), v.string())),
+  destination: v.optional(destinationTypeV),
   status: v.union(
     v.literal("new"),
     v.literal("in_progress"),
@@ -100,13 +92,7 @@ export const brandingTasks = {
   identifierName: v.optional(v.string()),
   attachedFiles: v.optional(v.array(v.any())),
   productionOrderId: v.id("productionOrders"),
-  status: v.union(
-    v.literal("new"),
-    v.literal("in_progress"),
-    v.literal("done"),
-    v.literal("paused"),
-    v.literal("waiting")
-  ),
+  status: extendedTaskStatusV,
   tags: v.optional(v.array(v.object({ name: v.string(), color: v.string() }))),
 };
  
@@ -131,13 +117,7 @@ export const packagingTasks = {
   keycrmOrderId: v.string(),
   startDate: v.number(),
   endDate: v.number(),
-  status: v.union(
-    v.literal("new"),
-    v.literal("in_progress"),
-    v.literal("done"),
-    v.literal("paused"),
-    v.literal("waiting")
-  ),
+  status: extendedTaskStatusV,
   note: v.optional(v.string()),
 };
 

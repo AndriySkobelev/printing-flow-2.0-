@@ -1,6 +1,6 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useContext, useCallback } from 'react'
 import { useNavigate } from '@tanstack/react-router'
-import { CalendarIcon } from 'lucide-react'
+import { CalendarIcon, History } from 'lucide-react'
 import { type HeaderObject } from 'simple-table-core'
 import clsx from 'clsx'
 import { Button } from '@/components/ui/button'
@@ -13,6 +13,9 @@ import { MyPopover } from '@/components/my-popover'
 import { SizeInfo } from './components/size-info'
 import { SpecInfo, type SpecData } from './components/spec-info'
 import { OrderInfo } from './components/order-info'
+import { OrderLogs } from '@/components/order-logs'
+import { DrawerContext } from '@/contexts/drawer'
+import { AuthContext } from '@/contexts/auth'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -49,10 +52,12 @@ export type SizeDetail = {
   completedQty: number
   comment?: string
   logs?: SizeLog[]
+  quantityChange?: { logId: string; oldQty: number } | null
 }
 
 interface Order {
   id: string
+  productionOrderId: string
   number: string
   manager: string | null
   specName: string
@@ -64,6 +69,8 @@ interface Order {
   deadline: string
   status: Status
   note: string
+  relevantLogsCount: number
+  unseenLogsCount: number
 }
 
 type OrderRow = Order & { _total: number; [key: string]: any }
@@ -97,12 +104,19 @@ const toRow = (o: Order): OrderRow => ({
 
 // ─── Table headers ────────────────────────────────────────────────────────────
 
-const makeHeaders = (onSchedule: (row: OrderRow) => void): Array<HeaderObject> => [
-  { accessor: 'number', label: '№', width: 70, isSortable: true, type: 'string',
+const relevantLogFilter = (log: { type: string; changes?: Record<string, unknown> | null }) =>
+  log.type === 'created' ||
+  log.type === 'deleted' ||
+  (log.type === 'updated' && !!log.changes && 'quantity' in log.changes)
+
+const makeHeaders = (
+  onSchedule: (row: OrderRow) => void,
+  onOpenLogs: (row: OrderRow) => void,
+): Array<HeaderObject> => [
+  { accessor: 'number', label: '№', width: 90, isSortable: true, type: 'string',
     cellRenderer: ({ row }) => {
       const o = row as OrderRow
-      if (!o.manager) return <span className="text-sm">{o.number}</span>
-      return (
+      const numberEl = o.manager ? (
         <MyPopover
           align="start"
           withArrow
@@ -113,6 +127,28 @@ const makeHeaders = (onSchedule: (row: OrderRow) => void): Array<HeaderObject> =
           }
           content={<OrderInfo manager={o.manager} />}
         />
+      ) : (
+        <span className="text-sm">{o.number}</span>
+      )
+
+      const hasLogs    = o.relevantLogsCount > 0
+      const hasUnseen  = o.unseenLogsCount   > 0
+      const iconColor  = !hasLogs   ? 'text-muted-foreground/30'
+                       : hasUnseen  ? 'text-red-500 hover:text-red-600'
+                                    : 'text-gray-300 hover:text-gray-600'
+
+      return (
+        <div className="flex items-center gap-1.5">
+          {numberEl}
+          {hasLogs && (
+            <button
+              className={`transition-colors shrink-0 ${iconColor}`}
+              onClick={e => { e.stopPropagation(); onOpenLogs(o) }}
+            >
+              <History size={12} />
+            </button>
+          )}
+        </div>
       )
     },
   },
@@ -149,8 +185,9 @@ const makeHeaders = (onSchedule: (row: OrderRow) => void): Array<HeaderObject> =
       const n = o[`sz_${s}`] as number | null
       if (!n) return <span className="text-muted-foreground text-xs">—</span>
       const detail = o.sizeDetails?.find((d: SizeDetail) => d.size === s)
-      const hasComment = !!detail?.comment
-      const completed = detail?.completedQty ?? 0
+      const hasComment    = !!detail?.comment
+      const completed     = detail?.completedQty ?? 0
+      const quantityChange = detail?.quantityChange
       const bgClass = completed === 0
         ? 'bg-primary/20 hover:bg-primary/30'
         : completed > n
@@ -165,12 +202,18 @@ const makeHeaders = (onSchedule: (row: OrderRow) => void): Array<HeaderObject> =
           trigger={
             <Button variant="ghost" size="icon-sm" className={clsx('relative w-9 h-9 text-sm font-normal', bgClass)}>
               {n}
+              {quantityChange && (
+                <span className="absolute top-0 -right-1.5 min-w-4 h-4 px-0.5 rounded bg-red-500 text-white text-[9px] line-through font-semibold flex items-center justify-center leading-none">
+                  {quantityChange.oldQty}
+                </span>
+              )}
               {hasComment && <span className="absolute -top-1 -right-1 size-2 rounded-full bg-amber-400" />}
             </Button>
           }
           content={
             <SizeInfo
               detail={detail ?? { _id: '', size: s, quantity: n, completedQty: 0 }}
+              onViewLogs={quantityChange ? () => onOpenLogs(o) : undefined}
             />
           }
         />
@@ -230,43 +273,65 @@ const makeHeaders = (onSchedule: (row: OrderRow) => void): Array<HeaderObject> =
 type TypeFilter = 'all' | string
 
 export default function ProductionCut() {
-  const navigate = useNavigate()
+  const navigate    = useNavigate()
+  const { openDrawer } = useContext(DrawerContext)
+  const { user }    = useContext(AuthContext)
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all')
   const { data: rawTasks = [] } = useQuery(convexQuery(api.queries.cutting.getAllCuttingTasks, {}))
 
   const orders: Order[] = useMemo(() =>
     rawTasks.map(task => ({
-      id:       task._id,
-      number:   task?.orderIndex ?? '',
-      manager:  task.keycrmManager ?? null,
-      type:     deriveType(task.specName),
-      material: task.fabric,
-      color:    task.color,
-      specName:    task.specName,
-      spec:        (task.spec as SpecData | null) ?? null,
-      sizes:       task.sizesMap as Partial<Record<Size, number>>,
-      sizeDetails: task.sizes.map(s => ({
-        _id:          s._id,
-        size:         s.size,
-        quantity:     s.quantity,
-        completedQty: s.completedQty,
-        comment:      s.comment,
-        logs:         s.logs ?? [],
+      id:                task._id,
+      productionOrderId: task.productionOrderId,
+      number:            task?.orderIndex ?? '',
+      manager:           task.keycrmManager ?? null,
+      type:              deriveType(task.specName),
+      material:          task.fabric,
+      color:             task.color,
+      specName:          task.specName,
+      spec:              (task.spec as SpecData | null) ?? null,
+      sizes:             task.sizesMap as Partial<Record<Size, number>>,
+      sizeDetails:       task.sizes.map(s => ({
+        _id:            s._id,
+        size:           s.size,
+        quantity:       s.quantity,
+        completedQty:   s.completedQty,
+        comment:        s.comment,
+        logs:           s.logs ?? [],
+        quantityChange: (s as any).quantityChange ?? null,
       })),
-      deadline: formatDate(task.endDate),
-      status:   task.status as Status,
-      note:     task.note ?? '',
+      deadline:          formatDate(task.endDate),
+      status:            task.status as Status,
+      note:              task.note ?? '',
+      relevantLogsCount: task.relevantLogsCount ?? 0,
+      unseenLogsCount:   task.unseenLogsCount   ?? 0,
     })),
   [rawTasks])
 
-  const handleSchedule = (row: OrderRow) => {
+  const handleSchedule = useCallback((row: OrderRow) => {
     navigate({ to: '/app/planner', search: { orderId: row.id } as any })
-  }
+  }, [navigate])
+
+  const handleOpenLogs = useCallback((row: OrderRow) => {
+    openDrawer({
+      direction:  'right',
+      title:      `Журнал змін #${row.number}`,
+      outerClose: true,
+      className:  'w-120',
+      content: (
+        <OrderLogs
+          productionOrderId={row.productionOrderId}
+          filter={relevantLogFilter as any}
+          currentUserId={user?._id}
+        />
+      ),
+    })
+  }, [openDrawer, user])
 
   const specNames = useMemo(() => [...new Set(orders.map(o => o.specName))], [orders])
 
-  const headers = useMemo(() => makeHeaders(handleSchedule), [])
+  const headers = useMemo(() => makeHeaders(handleSchedule, handleOpenLogs), [handleSchedule, handleOpenLogs])
 
   const rows = useMemo(() => {
     const q = search.toLowerCase()

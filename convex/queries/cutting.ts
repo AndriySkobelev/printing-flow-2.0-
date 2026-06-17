@@ -76,14 +76,56 @@ export const getAllCuttingTasks = query({
           .filter(q => q.eq(q.field('name'), task.color))
           .first();
 
+        const allLogs = await ctx.db
+          .query('productionOrderLogs')
+          .withIndex('by_productionOrder', q => q.eq('productionOrderId', task.productionOrderId))
+          .collect()
+
+        const relevantLogs = allLogs.filter(log =>
+          log.type === 'created' ||
+          log.type === 'deleted' ||
+          (log.type === 'updated' && log.changes && 'quantity' in (log.changes as Record<string, unknown>))
+        )
+        const relevantLogsCount = relevantLogs.length
+        const unseenLogsCount   = relevantLogs.filter(log => !log.shownToUserId).length
+
+        // latest unseen quantity-change log per item
+        const unseenQtyChanges = new Map<string, { logId: string; oldQty: number; timestamp: number }>()
+        for (const log of allLogs) {
+          if (
+            log.type === 'updated' &&
+            !log.shownToUserId &&
+            log.productionOrderItemId &&
+            log.changes &&
+            'quantity' in (log.changes as Record<string, unknown>)
+          ) {
+            const key = String(log.productionOrderItemId)
+            const cur = unseenQtyChanges.get(key)
+            if (!cur || log.timestamp > cur.timestamp) {
+              unseenQtyChanges.set(key, {
+                logId:     log._id,
+                oldQty:    (log.changes as any).quantity.from,
+                timestamp: log.timestamp,
+              })
+            }
+          }
+        }
+
+        const sizesWithChanges = sizes.map(s => ({
+          ...s,
+          quantityChange: unseenQtyChanges.get(String(s.productionOrderItemId)) ?? null,
+        }))
+
         return {
           ...task,
           spec,
-          sizes,
+          sizes: sizesWithChanges,
           sizesMap,
           fabricColorHex: fabricColor?.hex ?? null,
           labelColorHex: fabricColor?.labelHex ?? null,
           keycrmManager: productionOrder?.keycrmManager ?? null,
+          relevantLogsCount,
+          unseenLogsCount,
         };
       })
     );

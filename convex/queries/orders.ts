@@ -749,6 +749,21 @@ export const updateOrderItem = mutation({
     const item = await ctx.db.get(itemId)
     if (!item) throw new Error('Item not found')
     await ctx.db.patch(itemId, fields)
+
+    if (fields.quantity !== item.quantity) {
+      const cuttingSizes = await ctx.db
+        .query('cuttingTaskSizes')
+        .withIndex('by_productionOrderItem', q => q.eq('productionOrderItemId', itemId))
+        .collect()
+      await Promise.all(cuttingSizes.map(s => ctx.db.patch(s._id, { quantity: fields.quantity })))
+
+      const sewingSubtasks = await ctx.db
+        .query('sewingSubTasks')
+        .withIndex('by_productionOrderItem', q => q.eq('productionOrderItemId', itemId))
+        .collect()
+      await Promise.all(sewingSubtasks.map(s => ctx.db.patch(s._id, { quantity: fields.quantity })))
+    }
+
     const before = Object.fromEntries(Object.keys(fields).map(k => [k, (item as any)[k] ?? null]))
     await insertLog(ctx, {
       productionOrderId:     item.productionOrderId,
@@ -780,6 +795,15 @@ export const getOrderLogs = query({
         itemSize:  item?.size  ?? null,
       }
     }))
+  },
+})
+
+export const markOrderLogSeen = mutation({
+  args: { logId: v.id('productionOrderLogs') },
+  handler: async (ctx, { logId }) => {
+    const userId = await getAuthUserId(ctx)
+    if (!userId) return
+    await ctx.db.patch(logId, { shownToUserId: userId })
   },
 })
 
