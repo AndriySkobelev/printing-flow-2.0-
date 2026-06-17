@@ -89,7 +89,7 @@ export const ProductGroup = memo(({ items }: { items: OrderItem[] }) => {
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="pl-4.5">
+      <div className="pl-0">
         <div className={
           clsx("flex items-center gap-2 px-2.5 py-1.5 mb-1.5 rounded-md bg-primary/5 border border-primary/20 opacity-30 transition-opacity",
             selectedIds.size > 0 && 'opacity-100'

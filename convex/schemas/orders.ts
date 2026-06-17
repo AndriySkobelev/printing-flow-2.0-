@@ -8,6 +8,8 @@ export const productionOrders = {
   keycrmManager: v.string(),
   plannedShipDate: v.number(),
   keycrmData: v.optional(v.any()),
+  attachedFiles: v.optional(v.array(v.any())),
+  inProduction: v.optional(v.boolean()),
   status: v.union(
     v.literal("in_progress"),
     v.literal("active"),

@@ -1,4 +1,4 @@
-import { useCallback, useContext, useMemo } from 'react'
+import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { convexQuery } from '@convex-dev/react-query'
 import { type HeaderObject, type CellClickProps } from 'simple-table-core'
@@ -6,30 +6,8 @@ import { Route as orderDetailsRoute } from '@/routes/_authenticated/app/producti
 import { Route as productionOrdersRoute } from '@/routes/_authenticated/app/production-orders'
 import { api } from 'convex/_generated/api'
 import AppTable from '@/components/ui/app-table'
-import { DialogContext } from '@/contexts/dialog'
 import { MyPopover } from '@/components/my-popover'
-import { Outlet, useNavigate } from '@tanstack/react-router'
-
-// ─── Progress bar cell ────────────────────────────────────────────────────────
-
-const mkProgressCell = (doneKey: string, totalKey: string, color: string) =>
-  ({ row }: { row: Record<string, unknown> }) => {
-    const done  = (row[doneKey]  as number) ?? 0
-    const total = (row[totalKey] as number) ?? 0
-    if (total === 0) return <span className="text-[10px] text-muted-foreground">—</span>
-    const pct = Math.min(100, Math.round((done / total) * 100))
-    return (
-      <div className="flex flex-col gap-0.5 w-full pr-2">
-        <div className="flex justify-between text-[10px] text-muted-foreground leading-none">
-          <span className="tabular-nums">{done}/{total}</span>
-          <span className="tabular-nums">{pct}%</span>
-        </div>
-        <div className="w-full h-1.5 rounded-full bg-border overflow-hidden">
-          <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: color }} />
-        </div>
-      </div>
-    )
-  }
+import { useNavigate } from '@tanstack/react-router'
 
 // ─── Products cell ────────────────────────────────────────────────────────────
 
@@ -54,7 +32,10 @@ const ProductsCell = ({ row }: { row: Record<string, unknown> }) => {
       <MyPopover
         align="start"
         trigger={
-          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary font-medium cursor-pointer shrink-0">
+          <span
+            className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary font-medium cursor-pointer shrink-0"
+            onClick={e => e.stopPropagation()}
+          >
             +{extra}
           </span>
         }
@@ -171,7 +152,7 @@ const headers: HeaderObject[] = [
     showWhen:   'parentCollapsed',
   },
   {
-    accessor:   'status',
+    accessor:   'executionTime',
     label:      'Час виконання',
     width:      120,
     minWidth:   70,
@@ -200,8 +181,6 @@ const ProductionOrdersPage = () => {
   const { data, isLoading } = useQuery(
     convexQuery(api.queries.orders.getAllProductionOrdersWithProgress, {})
   )
-  const { openDialog } = useContext(DialogContext)
-
   const rows = useMemo(() => data ?? [], [data])
 
   const orderCount = useMemo(
@@ -211,7 +190,7 @@ const ProductionOrdersPage = () => {
 
   const handleCellClick = ({ row }: CellClickProps) => {
     const r = row as any
-    if (!r.keycrmOrderId) return
+    if (!r._id || !Array.isArray(r.data)) return
     navigate({
       to: orderDetailsRoute.to,
       params: { orderId: r._id },

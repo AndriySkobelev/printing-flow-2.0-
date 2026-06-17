@@ -77,3 +77,10 @@ export const useCreateSubcontractorTask = () =>
     onError: (e: Error) => toast.error(e.message),
     onSuccess: () => toast.success('Завдання створено'),
   })
+
+export const useCreateProductionTasks = () =>
+  useMutation({
+    mutationFn: useConvexMutation(api.queries.orders.createProductionTasks),
+    onError: (e: Error) => toast.error(e.message),
+    onSuccess: () => toast.success('Завдання створено'),
+  })

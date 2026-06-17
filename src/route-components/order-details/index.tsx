@@ -1,19 +1,18 @@
-import { useMemo, useCallback, useContext, useState } from 'react'
+import { useCallback, useContext, useState } from 'react'
 import { useAction } from 'convex/react'
-import { groupBy, values, set, lensProp, keys, omit, pick } from 'ramda';
 import { useQuery } from '@tanstack/react-query'
 import { convexQuery } from '@convex-dev/react-query'
 import { api } from 'convex/_generated/api'
 import { type Id } from 'convex/_generated/dataModel'
-import { useUpdateAllOrderItemsBrandingType, useAddProductionOrderItems, useCreateSubcontractorTask } from './actions'
-import { ArrowLeft, Truck, Scissors, Package, Palette, Wand2, Plus, ClipboardList, FileSpreadsheet } from 'lucide-react'
+import { useUpdateAllOrderItemsBrandingType, useAddProductionOrderItems, useCreateSubcontractorTask, useCreateProductionTasks } from './actions'
+import { ArrowLeft, Truck, Plus, ClipboardList, FileSpreadsheet } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { ImagesSection } from '@/route-components/branding/components/images-section'
 import { DialogContext } from '@/contexts/dialog'
 import { DrawerContext } from '@/contexts/drawer'
-import { type OrderItem, type BrandingTypeValue } from './types'
-import { ProgressStat } from './components/progress-stat'
+import { type OrderItem } from './types'
+import { ProgressSection } from './components/progress-section'
 import { ProductGroup } from './components/product-group'
 import { BulkBrandingForm } from './forms/bulk-branding-form'
 import AddProductForm from './forms/add-product'
@@ -141,7 +140,7 @@ const SubcontractorSection = ({ productionOrderId }: { productionOrderId: string
         <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
           Підрядники ({tasks.length})
         </p>
-        <Button size="sm" variant="default" className="h-6 text-[11px] px-2" onClick={handleAdd}>
+        <Button size="sm" variant="secondary" className="h-6 text-[11px] px-2" onClick={handleAdd}>
           <Plus size={10} className="mr-1" /> Додати Підряд
         </Button>
       </div>
@@ -242,7 +241,7 @@ const ProductsSection = ({ items, productionOrderId }: { items: OrderItem[]; pro
           <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
             Товари ({items.length})
           </p>
-          <Button size="sm" variant="default" className="h-6 text-[11px] px-2" onClick={handleAddProduct}>
+          <Button size="sm" variant="secondary" className="h-6 text-[11px] px-2" onClick={handleAddProduct}>
             <Plus size={10} className="mr-1" /> Додати товари
           </Button>
         </div>
@@ -268,6 +267,7 @@ const OrderDetailsContent = ({ productionOrderId, onBack }: { productionOrderId:
   const { openDrawer } = useContext(DrawerContext)
   const [exporting, setExporting] = useState(false)
   const backupToSheet = useAction(api.http_actions.googleSheets.backupToSheet)
+  const { mutate: createTasks, isPending: creatingTasks } = useCreateProductionTasks()
 
   const { data: order } = useQuery(
     convexQuery(api.queries.orders.getProductionOrderDetails, {
@@ -339,14 +339,16 @@ const OrderDetailsContent = ({ productionOrderId, onBack }: { productionOrderId:
         <ScrollArea className="h-25 w-full" aria-orientation='horizontal'>
           <ImagesSection files={(order.attachedFiles ?? []) as any[]} />
         </ScrollArea>
-        <div className="flex flex-col gap-3 px-3 py-3">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-            Прогрес
-          </p>
-          <ProgressStat label="Розкрій"     done={order.cutDone}      total={order.cutTotal}      color="#0ea5e9" icon={<Scissors size={11} />} />
-          <ProgressStat label="Пошив"       done={order.sewDone}      total={order.sewTotal}      color="#8b5cf6" icon={<Wand2    size={11} />} />
-          <ProgressStat label="Брендування" done={order.brandingDone} total={order.brandingTotal} color="#f59e0b" icon={<Palette  size={11} />} />
-          <ProgressStat label="Пакування"   done={order.packingDone}  total={order.packingTotal}  color="#10b981" icon={<Package  size={11} />} />
+        <div className="border-t">
+          <ProgressSection
+            cutDone={order.cutDone}           cutTotal={order.cutTotal}
+            sewDone={order.sewDone}           sewTotal={order.sewTotal}
+            brandingDone={order.brandingDone} brandingTotal={order.brandingTotal}
+            packingDone={order.packingDone}   packingTotal={order.packingTotal}
+            inProduction={order?.inProduction}
+            onCreateTasks={() => createTasks({ productionOrderId: productionOrderId as any })}
+            creatingTasks={creatingTasks}
+          />
         </div>
         <div className="border-t px-3 py-3 shrink-0">
           <div className="flex justify-between items-center text-sm">

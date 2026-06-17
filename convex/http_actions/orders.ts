@@ -8,7 +8,7 @@ export const getOrdersKeyCrm = action({
     include: "products.offer,assigned,tags,shipping,custom_fields,manager",
   })
     const data = await res.json();
-    await ctx.runMutation(api.queries.orders.creatreProductionTask, {
+    await ctx.runMutation(api.queries.orders.creatreProductionOrder, {
       externalData: data ?? {},
     })
     return data;
@@ -26,7 +26,7 @@ export const brandingOrder = action(async (ctx) => {
   const orders = await res.json();
   for (const order of orders?.data || []) {
     const attachedFiles = await getAttaches(order.id)
-    await ctx.runMutation(api.queries.orders.creatreProductionTask, {
+    await ctx.runMutation(api.queries.orders.creatreProductionOrder, {
       externalData: order ?? {},
       attachedFiles: attachedFiles ?? [],
     })

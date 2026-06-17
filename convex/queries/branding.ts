@@ -86,8 +86,9 @@ export const getBrandingTaskById = query({
 
     return {
       ...task,
-      keycrmManager: productionOrder?.keycrmManager ?? null,
+      keycrmManager:   productionOrder?.keycrmManager   ?? null,
       plannedShipDate: productionOrder?.plannedShipDate ?? null,
+      attachedFiles:   productionOrder?.attachedFiles   ?? [],
       orderItems,
       logs: logsWithUsers,
     };
@@ -146,7 +147,6 @@ export const updateBrandingTask = mutation({
     manager: v.optional(v.string()),
     shippedDate: v.optional(v.number()),
     identifierName: v.optional(v.string()),
-    attachedFiles: v.optional(v.array(v.any())),
     tags: v.optional(v.array(v.object({ name: v.string(), color: v.string() }))),
   },
   handler: async (ctx, args) => {

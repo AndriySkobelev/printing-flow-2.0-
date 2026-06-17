@@ -90,7 +90,6 @@ export const brandingTasks = {
   manager: v.optional(v.string()),
   shippedDate: v.optional(v.number()),
   identifierName: v.optional(v.string()),
-  attachedFiles: v.optional(v.array(v.any())),
   productionOrderId: v.id("productionOrders"),
   status: extendedTaskStatusV,
   tags: v.optional(v.array(v.object({ name: v.string(), color: v.string() }))),

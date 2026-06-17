@@ -164,12 +164,11 @@ async function createSewingTasks(ctx: MutationCtx, { productionOrderId, plannedS
   }
 }
 
-async function createBrandingTasks(ctx: MutationCtx, { productionOrderId, keycrmOrderId, plannedShipDate, externalData, attachedFiles }: {
+async function createBrandingTasks(ctx: MutationCtx, { productionOrderId, keycrmOrderId, plannedShipDate, externalData }: {
   productionOrderId: any
   keycrmOrderId: string
   plannedShipDate: number
   externalData: any
-  attachedFiles?: any[]
 }) {
   const tags = (externalData.tags ?? [])
     .filter((t: any) => t?.name)
@@ -181,10 +180,9 @@ async function createBrandingTasks(ctx: MutationCtx, { productionOrderId, keycrm
     startDate: Date.now(),
     endDate: plannedShipDate,
     status: 'new',
-    manager:         externalData.manager?.full_name ?? undefined,
-    identifierName:  externalData.source_uuid        ?? undefined,
-    tags:            tags.length ? tags : undefined,
-    attachedFiles:   attachedFiles?.length ? attachedFiles : undefined,
+    manager:        externalData.manager?.full_name ?? undefined,
+    identifierName: externalData.source_uuid        ?? undefined,
+    tags:           tags.length ? tags : undefined,
   });
 }
 
@@ -362,12 +360,13 @@ export const getProductionOrderDetails = query({
       keycrmManager: order.keycrmManager,
       plannedShipDate: order.plannedShipDate,
       status: order.status,
+      inProduction: order.inProduction ?? false,
       totalQty,
       cutDone,      cutTotal,
       sewDone,      sewTotal,
       brandingDone, brandingTotal,
       packingDone,  packingTotal,
-      attachedFiles: brandingTask?.attachedFiles ?? [],
+      attachedFiles: order.attachedFiles ?? [],
       items: items.map(i => ({
         _id:                  i._id,
         name:                 i.name,
@@ -515,7 +514,7 @@ export const updateOrderItemSewingComment = mutation({
   },
 })
 
-export const creatreProductionTask = mutation({
+export const creatreProductionOrder = mutation({
   args: {
     externalData: v.any(),
     attachedFiles: v.optional(v.array(v.any())),
@@ -524,20 +523,14 @@ export const creatreProductionTask = mutation({
     const { externalData, attachedFiles } = args;
     const keycrmOrderId = String(externalData.id);
 
-    // 0. Guard against duplicates — but always sync attachedFiles onto the branding task
+    // 0. Guard against duplicates — sync attachedFiles onto existing order
     const existing = await ctx.db
       .query('productionOrders')
       .withIndex('by_keycrmOrderId', q => q.eq('keycrmOrderId', keycrmOrderId))
       .first();
     if (existing) {
       if (attachedFiles?.length) {
-        const existingBrandingTask = await ctx.db
-          .query('brandingTasks')
-          .withIndex('by_productionOrder', q => q.eq('productionOrderId', existing._id))
-          .first();
-        if (existingBrandingTask) {
-          await ctx.db.patch(existingBrandingTask._id, { attachedFiles });
-        }
+        await ctx.db.patch(existing._id, { attachedFiles });
       }
       return null;
     }
@@ -554,6 +547,7 @@ export const creatreProductionTask = mutation({
       startDate: Date.now(),
       keycrmData: externalData,
       keycrmManager: externalData?.manager?.full_name ?? '-',
+      attachedFiles: attachedFiles?.length ? attachedFiles : undefined,
     });
 
     // 2. Filter physical products — skip services (shipment_type === null or no size in properties)
@@ -611,16 +605,41 @@ export const creatreProductionTask = mutation({
       });
     }
 
-    // 4. Create cutting tasks for manufacturing items
-    const cuttingTaskIds = await createCuttingTasks(ctx, { productionOrderId, plannedShipDate, keycrmOrderId, orderItems });
-
-    // 5. Create sewing tasks + sub-tasks (mirroring cutting task structure)
-    await createSewingTasks(ctx, { productionOrderId, plannedShipDate, keycrmOrderId, orderItems, cuttingTaskIds });
-
-    // 6. Create branding task for the order
-    await createBrandingTasks(ctx, { productionOrderId, keycrmOrderId, plannedShipDate, externalData, attachedFiles });
-
     return { productionOrderId };
+  },
+})
+
+export const createProductionTasks = mutation({
+  args: { productionOrderId: v.id('productionOrders') },
+  handler: async (ctx, { productionOrderId }) => {
+    const order = await ctx.db.get(productionOrderId)
+    if (!order) throw new Error('Order not found')
+
+    const keycrmOrderId  = order.keycrmOrderId
+    const plannedShipDate = order.plannedShipDate
+    const externalData   = order.keycrmData ?? {}
+
+    const dbItems = await ctx.db
+      .query('productionOrderItems')
+      .withIndex('by_productionOrder', q => q.eq('productionOrderId', productionOrderId))
+      .collect()
+
+    const orderItems: OrderItemEntry[] = dbItems.map(item => ({
+      id:          item._id as unknown as string,
+      product:     { quantity: item.quantity, sku: item.sku, name: item.name },
+      color:       item.color,
+      size:        item.size,
+      needsCutting: item.needsCutting ?? false,
+    }))
+
+    const cuttingTaskIds = await createCuttingTasks(ctx, { productionOrderId, plannedShipDate, keycrmOrderId, orderItems })
+    await createSewingTasks(ctx, { productionOrderId, plannedShipDate, keycrmOrderId, orderItems, cuttingTaskIds })
+    await createBrandingTasks(ctx, { productionOrderId, keycrmOrderId, plannedShipDate, externalData })
+
+    await Promise.all([
+      ctx.db.patch(productionOrderId, { inProduction: true }),
+      ...dbItems.map(item => ctx.db.patch(item._id, { inProduction: true })),
+    ])
   },
 })
 
