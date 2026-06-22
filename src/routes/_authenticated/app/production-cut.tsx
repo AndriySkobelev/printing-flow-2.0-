@@ -6,8 +6,8 @@ import { api } from 'convex/_generated/api';
 const convex = new ConvexHttpClient(import.meta.env.VITE_CONVEX_URL);
 
 export const Route = createFileRoute('/_authenticated/app/production-cut')({
-  beforeLoad: async () => {
-    await convex.action(api.http_actions.orders.getOrdersKeyCrm)
-  },
+  // beforeLoad: async () => {
+  //   await convex.action(api.http_actions.orders.getOrdersKeyCrm)
+  // },
   component: ProductionCut,
 })
