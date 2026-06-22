@@ -12,7 +12,7 @@ export const productionOrders = {
   inProduction: v.optional(v.boolean()),
   status: v.union(
     v.literal("in_progress"),
-    v.literal("active"),
+    v.literal("new"),
     v.literal("dispatched"),
     v.literal("done"),
     v.literal("cancelled")

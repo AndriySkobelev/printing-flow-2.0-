@@ -1,5 +1,6 @@
 import { useContext } from 'react'
 import clsx from 'clsx'
+import { ProgressBar } from '@/components/progress-bar'
 import { PlusIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { DialogContext } from '@/contexts/dialog'
@@ -64,12 +65,7 @@ export function SizeInfo({ detail, onViewLogs }: Props) {
         </div>
       </div>
 
-      <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-        <div
-          className={clsx('h-full rounded-full transition-all', isDone ? 'bg-green-500' : 'bg-primary')}
-          style={{ width: `${Math.min(progress, 100)}%` }}
-        />
-      </div>
+      <ProgressBar done={completedQty} total={quantity} color={isDone ? 'bg-green-500' : undefined} />
 
       {logs.length > 0 && (
         <div className="flex flex-col gap-1 border-t pt-2 mt-0.5">

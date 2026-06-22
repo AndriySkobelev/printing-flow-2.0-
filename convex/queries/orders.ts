@@ -1,6 +1,7 @@
 import { v } from 'convex/values'
-import { query, mutation } from '../_generated/server'
+import { query, mutation, action } from '../_generated/server'
 import type { MutationCtx } from '../_generated/server'
+import { api } from '../_generated/api'
 import { getAuthUserId } from '@convex-dev/auth/server'
 import { omit } from 'ramda'
 
@@ -187,9 +188,28 @@ async function createBrandingTasks(ctx: MutationCtx, { productionOrderId, keycrm
 }
 
 export const getAllProductionOrdersWithProgress = query({
-  args: {},
-  handler: async (ctx) => {
-    const orders = await ctx.db.query('productionOrders').collect()
+  args: {
+    search: v.optional(v.string()),
+    status: v.optional(v.union(
+      v.literal('new'),
+      v.literal('in_progress'),
+      v.literal('dispatched'),
+      v.literal('done'),
+      v.literal('cancelled'),
+    )),
+  },
+  handler: async (ctx, { search, status }) => {
+    let orders = status
+      ? await ctx.db.query('productionOrders').withIndex('by_status', q => q.eq('status', status)).collect()
+      : await ctx.db.query('productionOrders').collect()
+
+    if (search) {
+      const s = search.toLowerCase()
+      orders = orders.filter(o =>
+        o.keycrmOrderId.toLowerCase().includes(s) ||
+        o.keycrmManager.toLowerCase().includes(s)
+      )
+    }
 
     const result = await Promise.all(orders.map(async (order) => {
       const items = await ctx.db
@@ -266,6 +286,7 @@ export const getAllProductionOrdersWithProgress = query({
         totalQty,
         cutDone,      cutTotal,
         sewDone,      sewTotal,
+        status: order.status,
         brandingDone, brandingTotal,
         packingDone,  packingTotal,
         data: items.map(i => ({
@@ -367,6 +388,7 @@ export const getProductionOrderDetails = query({
       brandingDone, brandingTotal,
       packingDone,  packingTotal,
       attachedFiles: order.attachedFiles ?? [],
+      keycrmCustomFields: (order.keycrmData?.custom_fields ?? []) as Array<{ name: string; value: unknown }>,
       items: items.map(i => ({
         _id:                  i._id,
         name:                 i.name,
@@ -541,9 +563,9 @@ export const creatreProductionOrder = mutation({
       : Date.now();
 
     const productionOrderId = await ctx.db.insert('productionOrders', {
+      status: 'new',
       keycrmOrderId,
       plannedShipDate,
-      status: 'active',
       startDate: Date.now(),
       keycrmData: externalData,
       keycrmManager: externalData?.manager?.full_name ?? '-',
@@ -637,9 +659,65 @@ export const createProductionTasks = mutation({
     await createBrandingTasks(ctx, { productionOrderId, keycrmOrderId, plannedShipDate, externalData })
 
     await Promise.all([
-      ctx.db.patch(productionOrderId, { inProduction: true }),
+      ctx.db.patch(productionOrderId, { inProduction: true, status: 'in_progress' }),
       ...dbItems.map(item => ctx.db.patch(item._id, { inProduction: true })),
     ])
+
+    await ctx.scheduler.runAfter(0, api.queries.orders.exportOrderToSheet, { productionOrderId })
+  },
+})
+
+const SIZES = ['4XS', '3XS', 'XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL', '4XL']
+
+const buildSheetRows = (
+  order: { keycrmOrderId: string; plannedShipDate: number; totalQty: number },
+  items: Array<{
+    name: string; color: string; size: string; quantity: number
+    keycrmProductComment?: string | null
+    sewingComment?: string | null
+    brandingType?: string[] | null
+    brandingComment?: string | null
+    cuttingBrandingType?: string[] | null
+  }>
+): string[][] => {
+  const groups = new Map<string, typeof items>()
+  for (const item of items) {
+    const key = `${item.name}__${item.color}`
+    if (!groups.has(key)) groups.set(key, [])
+    groups.get(key)!.push(item)
+  }
+  const dateStr = new Date(order.plannedShipDate).toLocaleDateString('uk-UA', {
+    day: '2-digit', month: '2-digit', year: 'numeric',
+  })
+  const allGroups = Array.from(groups.values())
+  return allGroups.map((groupItems, index) => {
+    const first = groupItems[0]
+    const sizeMap: Record<string, number> = {}
+    for (const item of groupItems) sizeMap[item.size] = item.quantity
+    const groupTotal = groupItems.reduce((s, i) => s + i.quantity, 0)
+    const orderId = allGroups.length > 1 ? `${order.keycrmOrderId}-(${index + 1})` : order.keycrmOrderId
+    return [
+      orderId, dateStr, '', first.name, '-', first.color,
+      ...SIZES.map(s => String(sizeMap[s] ?? '')),
+      String(groupTotal),
+      first.keycrmProductComment ?? '',
+      first.sewingComment ?? '',
+      String(order.totalQty),
+      String(first.brandingType?.length ?? ''),
+      first.brandingComment ?? '',
+      first.cuttingBrandingType?.join(', ') ?? '',
+      '',
+    ]
+  })
+}
+
+export const exportOrderToSheet = action({
+  args: { productionOrderId: v.id('productionOrders') },
+  handler: async (ctx, { productionOrderId }) => {
+    const order = await ctx.runQuery(api.queries.orders.getProductionOrderDetails, { productionOrderId })
+    if (!order) return
+    const rows = buildSheetRows(order, order.items as any[])
+    await ctx.runAction(api.http_actions.googleSheets.backupToSheet, { rows })
   },
 })
 

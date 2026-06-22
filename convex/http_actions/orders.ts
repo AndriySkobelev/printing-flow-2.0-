@@ -21,7 +21,7 @@ export const brandingOrder = action(async (ctx) => {
     page: 1,
     include: "products.offer,assigned,tags,shipping,custom_fields,manager",
     sort: 'id',
-    "filter[status_id]": 24,
+    "filter[status_id]": 5,
     })
   const orders = await res.json();
   for (const order of orders?.data || []) {

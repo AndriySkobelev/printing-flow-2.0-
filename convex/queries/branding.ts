@@ -24,8 +24,9 @@ export const getAllBrandingTasks = query({
 
         return {
           ...task,
-          keycrmManager: productionOrder?.keycrmManager ?? null,
+          keycrmManager:   productionOrder?.keycrmManager   ?? null,
           plannedShipDate: productionOrder?.plannedShipDate ?? null,
+          attachedFiles:   productionOrder?.attachedFiles   ?? [],
           orderItems,
           logs,
         };

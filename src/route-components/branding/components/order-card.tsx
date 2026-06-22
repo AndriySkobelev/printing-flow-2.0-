@@ -1,5 +1,6 @@
 import { Truck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { ProgressBar } from '@/components/progress-bar'
 import type { BrandingTask } from '../index'
 
 type Status = 'new' | 'in_progress' | 'done' | 'paused' | 'waiting'
@@ -15,38 +16,6 @@ export const STATUS_CONFIG: Record<Status, { label: string; color: string }> = {
 export const formatDate = (ts?: number | null) =>
   ts ? new Date(ts).toLocaleDateString('uk-UA', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '—'
 
-type ProgressBarProps = {
-  completed: number
-  total: number
-  compact?: boolean
-}
-
-const ProgressBar = ({ completed, total, compact }: ProgressBarProps) => {
-  const pct = total > 0 ? Math.min(100, Math.round((completed / total) * 100)) : 0
-  const fillColor =
-    pct === 0   ? 'bg-muted-foreground/30' :
-    pct < 40    ? 'bg-amber-400' :
-    pct < 80    ? 'bg-yellow-400' :
-    pct < 100   ? 'bg-lime-500' :
-                  'bg-green-500'
-
-  return (
-    <div className="w-full flex flex-col gap-0.5">
-      {!compact && (
-        <div className="flex justify-between text-[10px] text-muted-foreground">
-          <span>{completed} / {total} шт</span>
-          <span>{pct}%</span>
-        </div>
-      )}
-      <div className="w-full h-1.5 bg-primary/10 rounded-full overflow-hidden">
-        <div
-          className={`h-full rounded-full transition-all duration-300 ${fillColor}`}
-          style={{ width: `${pct}%` }}
-        />
-      </div>
-    </div>
-  )
-}
 
 type Props = {
   task: BrandingTask
@@ -82,7 +51,15 @@ export const OrderCard = ({ task, isSelected, compact = false, onSelect }: Props
       </div>
 
       {/* Row 2: progress bar */}
-      <ProgressBar completed={completedQty} total={totalQty} compact={compact} />
+      <div className="w-full flex flex-col gap-0.5">
+        {!compact && (
+          <div className="flex justify-between text-[10px] text-muted-foreground">
+            <span>{completedQty} / {totalQty} шт</span>
+            <span>{totalQty > 0 ? Math.min(100, Math.round((completedQty / totalQty) * 100)) : 0}%</span>
+          </div>
+        )}
+        <ProgressBar done={completedQty} total={totalQty} />
+      </div>
 
       {/* Row 3: qty + deadline */}
       <div className="flex items-center justify-between w-full">

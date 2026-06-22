@@ -1,11 +1,10 @@
-import { useCallback, useContext, useState } from 'react'
-import { useAction } from 'convex/react'
+import { useCallback, useContext } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { convexQuery } from '@convex-dev/react-query'
 import { api } from 'convex/_generated/api'
 import { type Id } from 'convex/_generated/dataModel'
-import { useUpdateAllOrderItemsBrandingType, useAddProductionOrderItems, useCreateSubcontractorTask, useCreateProductionTasks } from './actions'
-import { ArrowLeft, Truck, Plus, ClipboardList, FileSpreadsheet } from 'lucide-react'
+import { useUpdateAllOrderItemsBrandingType, useAddProductionOrderItems, useCreateSubcontractorTask } from './actions'
+import { ArrowLeft, Truck, Plus, ClipboardList } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { ImagesSection } from '@/route-components/branding/components/images-section'
@@ -13,6 +12,7 @@ import { DialogContext } from '@/contexts/dialog'
 import { DrawerContext } from '@/contexts/drawer'
 import { type OrderItem } from './types'
 import { ProgressSection } from './components/progress-section'
+import { KeycrmCustomFields } from './components/keycrm-custom-fields'
 import { ProductGroup } from './components/product-group'
 import { BulkBrandingForm } from './forms/bulk-branding-form'
 import AddProductForm from './forms/add-product'
@@ -29,6 +29,14 @@ export type Props = {
 
 const formatDate = (ts: number) =>
   new Date(ts).toLocaleDateString('uk-UA', { day: '2-digit', month: '2-digit', year: '2-digit' })
+
+const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
+  new:         { label: 'Нове',        className: 'bg-blue-100 text-blue-700' },
+  in_progress: { label: 'В роботі',    className: 'bg-amber-100 text-amber-700' },
+  dispatched:  { label: 'Відправлено', className: 'bg-purple-100 text-purple-700' },
+  done:        { label: 'Виконано',    className: 'bg-green-100 text-green-700' },
+  cancelled:   { label: 'Скасовано',   className: 'bg-gray-100 text-gray-500' },
+}
 
 // ─── SubcontractorSection ─────────────────────────────────────────────────────
 
@@ -54,51 +62,6 @@ const statusColors: Record<string, string> = {
   in_progress: 'bg-yellow-100 text-yellow-700',
   returned:    'bg-green-100 text-green-700',
   delayed:     'bg-red-100 text-red-700',
-}
-
-const SIZES = ['4XS', '3XS', 'XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL', '4XL']
-
-const buildSheetRows = (order: any, items: OrderItem[]): string[][] => {
-  const groups = new Map<string, OrderItem[]>()
-  for (const item of items) {
-    const key = `${item.name}__${item.color}`
-    if (!groups.has(key)) groups.set(key, [])
-    groups.get(key)!.push(item)
-  }
-
-  const dateStr = new Date(order.plannedShipDate).toLocaleDateString('uk-UA', {
-    day: '2-digit', month: '2-digit', year: 'numeric',
-  })
-
-  const allGroups = Array.from(groups.values())
-
-  return allGroups.map((groupItems, index) => {
-    const first = groupItems[0]
-    const sizeMap: Record<string, number> = {}
-    for (const item of groupItems) sizeMap[item.size] = item.quantity
-    const groupTotal = groupItems.reduce((s, i) => s + i.quantity, 0)
-    const orderId = allGroups.length > 1
-      ? `${order.keycrmOrderId}-(${index + 1})`
-      : order.keycrmOrderId
-
-    return [
-      orderId,                                               // № замовлення
-      dateStr,                                               // дата видачі
-      '',                                                    // година видачі
-      first.name,                                            // тип виробів
-      '-',                      // тип матеріалу
-      first.color,                                           // колір виробів
-      ...SIZES.map(s => String(sizeMap[s] ?? '')),          // size columns
-      String(groupTotal),                                    // к-сть виробів (шт)
-      first.keycrmProductComment ?? '',                      // примітка для крою
-      first.sewingComment ?? '',                             // примітка для пошиву
-      String(order.totalQty),                               // кількість виробів в замовленні
-      String(first.brandingType?.length ?? ''),             // кількість принтів на 1 виріб
-      first.brandingComment ?? '',                           // примітка для друку
-      first.cuttingBrandingType?.join(', ') ?? '',          // Брендування на кроях
-      '',                                                    // Очікувана готовність брендованих кроях
-    ]
-  })
 }
 
 const SubcontractorSection = ({ productionOrderId }: { productionOrderId: string }) => {
@@ -265,16 +228,12 @@ const ProductsSection = ({ items, productionOrderId }: { items: OrderItem[]; pro
 
 const OrderDetailsContent = ({ productionOrderId, onBack }: { productionOrderId: string; onBack?: () => void }) => {
   const { openDrawer } = useContext(DrawerContext)
-  const [exporting, setExporting] = useState(false)
-  const backupToSheet = useAction(api.http_actions.googleSheets.backupToSheet)
-  const { mutate: createTasks, isPending: creatingTasks } = useCreateProductionTasks()
 
   const { data: order } = useQuery(
     convexQuery(api.queries.orders.getProductionOrderDetails, {
       productionOrderId: productionOrderId as Id<'productionOrders'>,
     })
   )
-
   const handleOpenLogs = useCallback(() => {
     openDrawer({
       direction: 'right',
@@ -284,17 +243,6 @@ const OrderDetailsContent = ({ productionOrderId, onBack }: { productionOrderId:
       content: <OrderLogs productionOrderId={productionOrderId} />,
     })
   }, [productionOrderId, openDrawer])
-
-  const handleExportToSheet = useCallback(async () => {
-    if (!order) return
-    setExporting(true)
-    try {
-      const rows = buildSheetRows(order, order.items as OrderItem[])
-      await backupToSheet({ rows })
-    } finally {
-      setExporting(false)
-    }
-  }, [order, backupToSheet])
 
   if (!order) {
     return (
@@ -319,7 +267,12 @@ const OrderDetailsContent = ({ productionOrderId, onBack }: { productionOrderId:
             </Button>
           )}
           <div className="flex flex-col gap-1 min-w-0 flex-1">
-            <p className="text-sm font-semibold">#{order.keycrmOrderId}</p>
+            <div className='flex gap-2 items-center min-w-0'>
+              <p className="text-sm font-semibold">#{order.keycrmOrderId}</p>
+              <a href={`https://liube-golube.keycrm.app/app/orders/view/${order.keycrmOrderId}`} target="_blank" className="text-xs text-blue-400 underline">
+                KeyCRM
+              </a>
+            </div>
             {order.keycrmManager && (
               <span className="text-xs text-muted-foreground truncate">{order.keycrmManager}</span>
             )}
@@ -328,12 +281,16 @@ const OrderDetailsContent = ({ productionOrderId, onBack }: { productionOrderId:
               <b className="text-foreground">{formatDate(order.plannedShipDate)}</b>
             </span>
           </div>
-          <Button variant="ghost" size="icon" onClick={handleExportToSheet} disabled={exporting} className="size-8 shrink-0">
-            <FileSpreadsheet size={15} />
-          </Button>
-          <Button variant="ghost" size="icon" onClick={handleOpenLogs} className="size-8 shrink-0">
-            <ClipboardList size={15} />
-          </Button>
+          <div className="flex flex-col justify-between items-end gap-1.5 shrink-0 h-[stretch]">
+            {STATUS_CONFIG[order.status] && (
+              <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${STATUS_CONFIG[order.status].className}`}>
+                {STATUS_CONFIG[order.status].label}
+              </span>
+            )}
+            <Button variant='outline' onClick={handleOpenLogs} className="text-[10px] h-6 px-2 py-2 leading-none">
+              Журнал змін
+            </Button>
+          </div>
         </div>
 
         <ScrollArea className="h-25 w-full" aria-orientation='horizontal'>
@@ -341,21 +298,19 @@ const OrderDetailsContent = ({ productionOrderId, onBack }: { productionOrderId:
         </ScrollArea>
         <div className="border-t">
           <ProgressSection
+            productionOrderId={productionOrderId}
             cutDone={order.cutDone}           cutTotal={order.cutTotal}
             sewDone={order.sewDone}           sewTotal={order.sewTotal}
             brandingDone={order.brandingDone} brandingTotal={order.brandingTotal}
             packingDone={order.packingDone}   packingTotal={order.packingTotal}
             inProduction={order?.inProduction}
-            onCreateTasks={() => createTasks({ productionOrderId: productionOrderId as any })}
-            creatingTasks={creatingTasks}
           />
         </div>
-        <div className="border-t px-3 py-3 shrink-0">
-          <div className="flex justify-between items-center text-sm">
-            <span className="text-muted-foreground">Всього</span>
-            <span className="font-semibold">{order.totalQty} шт</span>
+        {order.keycrmCustomFields.length > 0 && (
+          <div className="border-t">
+            <KeycrmCustomFields fields={order.keycrmCustomFields} />
           </div>
-        </div>
+        )}
         <div className="border-t">
           <SubcontractorSection productionOrderId={productionOrderId} />
         </div>

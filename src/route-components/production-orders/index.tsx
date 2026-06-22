@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { convexQuery } from '@convex-dev/react-query'
 import { type HeaderObject, type CellClickProps } from 'simple-table-core'
@@ -8,6 +8,10 @@ import { api } from 'convex/_generated/api'
 import AppTable from '@/components/ui/app-table'
 import { MyPopover } from '@/components/my-popover'
 import { useNavigate } from '@tanstack/react-router'
+import { Search } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import Divider from '@/components/ui/divider'
 
 // ─── Products cell ────────────────────────────────────────────────────────────
 
@@ -54,6 +58,28 @@ const ProductsCell = ({ row }: { row: Record<string, unknown> }) => {
   )
 }
 
+// ─── Status badge ─────────────────────────────────────────────────────────────
+
+type StatusKey = 'new' | 'in_progress' | 'dispatched' | 'done' | 'cancelled'
+
+const STATUS_CONFIG: Record<StatusKey, { label: string; className: string }> = {
+  new:         { label: 'Нове',         className: 'bg-blue-100 text-blue-700' },
+  in_progress: { label: 'В роботі',     className: 'bg-amber-100 text-amber-700' },
+  dispatched:  { label: 'Відправлено',  className: 'bg-purple-100 text-purple-700' },
+  done:        { label: 'Виконано',     className: 'bg-green-100 text-green-700' },
+  cancelled:   { label: 'Скасовано',    className: 'bg-gray-100 text-gray-500' },
+}
+
+const StatusBadge = ({ status }: { status: string }) => {
+  const cfg = STATUS_CONFIG[status as StatusKey]
+  if (!cfg) return null
+  return (
+    <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${cfg.className}`}>
+      {cfg.label}
+    </span>
+  )
+}
+
 // ─── Headers ──────────────────────────────────────────────────────────────────
 const renderHeader = ({ header }: { header: HeaderObject }) => (
   <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground/50 px-2">
@@ -65,7 +91,6 @@ const formatDate = (ts: number) =>
   new Date(ts).toLocaleDateString('uk-UA', { day: '2-digit', month: '2-digit', year: '2-digit' })
 
 const headers: HeaderObject[] = [
-  // ── Group (order) row columns ──────────────────────────────────────────────
   {
     accessor:    'group',
     label:       '№ / Менеджер',
@@ -95,42 +120,6 @@ const headers: HeaderObject[] = [
     headerRenderer: renderHeader,
     cellRenderer: ({ row }) => <ProductsCell row={row} />,
   },
-  // {
-  //   accessor:     'cutProgress',
-  //   label:        'Розкрій',
-  //   width:        150,
-  //   minWidth:     100,
-  //   type:         'string',
-  //   cellRenderer: mkProgressCell('cutDone', 'cutTotal', '#0ea5e9'),
-  //   showWhen:     'parentCollapsed',
-  // },
-  // {
-  //   accessor:     'sewProgress',
-  //   label:        'Пошив',
-  //   width:        150,
-  //   minWidth:     100,
-  //   type:         'string',
-  //   cellRenderer: mkProgressCell('sewDone', 'sewTotal', '#8b5cf6'),
-  //   showWhen:     'parentCollapsed',
-  // },
-  // {
-  //   accessor:     'brandingProgress',
-  //   label:        'Брендування',
-  //   width:        150,
-  //   minWidth:     100,
-  //   type:         'string',
-  //   cellRenderer: mkProgressCell('brandingDone', 'brandingTotal', '#f59e0b'),
-  //   showWhen:     'parentCollapsed',
-  // },
-  // {
-  //   accessor:     'packingProgress',
-  //   label:        'Пакування',
-  //   width:        150,
-  //   minWidth:     100,
-  //   type:         'string',
-  //   cellRenderer: mkProgressCell('packingDone', 'packingTotal', '#10b981'),
-  //   showWhen:     'parentCollapsed',
-  // },
   {
     accessor:   'totalQty',
     label:      'Всього шт',
@@ -144,12 +133,13 @@ const headers: HeaderObject[] = [
   {
     accessor:   'status',
     label:      'Статус',
-    width:      90,
-    minWidth:   70,
-    type:       'number',
+    width:      110,
+    minWidth:   80,
+    type:       'string',
     isSortable: true,
     headerRenderer: renderHeader,
     showWhen:   'parentCollapsed',
+    cellRenderer: ({ row }) => <StatusBadge status={row.status as string} />,
   },
   {
     accessor:   'executionTime',
@@ -174,12 +164,30 @@ const headers: HeaderObject[] = [
   }
 ]
 
+// ─── Status filter pills ───────────────────────────────────────────────────────
+
+const STATUS_FILTERS: Array<{ key: StatusKey | null; label: string }> = [
+  { key: null,          label: 'Усі' },
+  { key: 'new',         label: 'Нові' },
+  { key: 'in_progress', label: 'В роботі' },
+  { key: 'dispatched',  label: 'Відправлено' },
+  { key: 'done',        label: 'Виконано' },
+  { key: 'cancelled',   label: 'Скасовано' },
+]
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 const ProductionOrdersPage = () => {
-  const navigate = useNavigate({ from: productionOrdersRoute.to});
+  const navigate = useNavigate({ from: productionOrdersRoute.to })
+  const [inputValue, setInputValue] = useState('')
+  const [search, setSearch] = useState<string | undefined>(undefined)
+  const [status, setStatus] = useState<StatusKey | null>(null)
+
   const { data, isLoading } = useQuery(
-    convexQuery(api.queries.orders.getAllProductionOrdersWithProgress, {})
+    convexQuery(api.queries.orders.getAllProductionOrdersWithProgress, {
+      search: search || undefined,
+      status: status ?? undefined,
+    })
   )
   const rows = useMemo(() => data ?? [], [data])
 
@@ -187,6 +195,8 @@ const ProductionOrdersPage = () => {
     () => new Set(rows.map((r) => r.keycrmOrderId)).size,
     [rows],
   )
+
+  const handleSearch = () => setSearch(inputValue.trim() || undefined)
 
   const handleCellClick = ({ row }: CellClickProps) => {
     const r = row as any
@@ -203,6 +213,42 @@ const ProductionOrdersPage = () => {
         <h1 className="text-base font-semibold">Виробничі замовлення</h1>
         <span className="text-xs text-muted-foreground">{orderCount} замовлень</span>
       </div>
+
+      <div className="flex items-center gap-2 shrink-0 flex-wrap">
+      <form
+          className="flex items-center gap-1"
+          onSubmit={e => { e.preventDefault(); handleSearch() }}
+        >
+          <Input
+            value={inputValue}
+            onChange={e => setInputValue(e.target.value)}
+            placeholder="№ замовлення"
+            className="h-7 text-xs w-52"
+          />
+          <Button type="submit" variant="secondary" size="sm" className="h-7 px-2">
+            <Search size={14} />
+          </Button>
+        </form>
+        <Divider type="vertical" className="h-4 mx-4" />
+        {/* Status filter */}
+        <div className="flex items-center gap-1">
+          {STATUS_FILTERS.map(({ key, label }) => (
+            <button
+              key={String(key)}
+              type="button"
+              onClick={() => setStatus(key)}
+              className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${
+                status === key
+                  ? 'bg-primary text-primary-foreground border-primary'
+                  : 'border-border text-muted-foreground hover:text-foreground hover:border-foreground/30'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <AppTable
         editColumns
         expandAll={false}
@@ -213,7 +259,7 @@ const ProductionOrdersPage = () => {
         isLoading={isLoading}
         defaultHeaders={headers}
         getRowId={({ row }) => (row._id ?? row.sku) as string}
-        height="calc(100vh - 140px)"
+        height="calc(100vh - 180px)"
         onCellClick={handleCellClick}
       />
     </div>

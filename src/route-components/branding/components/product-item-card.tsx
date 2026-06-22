@@ -1,5 +1,6 @@
 import { useContext } from 'react'
 import { Separator } from 'radix-ui'
+import { ProgressBar } from '@/components/progress-bar'
 import { Plus, Scissors, Boxes, CircleQuestionMarkIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { DialogContext } from '@/contexts/dialog'
@@ -77,14 +78,7 @@ export const ProductItemCard = ({ item, completedQty, defectQty, brandingTaskId 
   const { openDialog, closeDialog } = useContext(DialogContext)
 
   const pct = item.quantity > 0 ? Math.min(100, Math.round((completedQty / item.quantity) * 100)) : 0
-  const restQuantity = item.quantity - completedQty;
-
-  const barColor =
-    pct === 0  ? 'bg-muted-foreground/30' :
-    pct < 40   ? 'bg-amber-400' :
-    pct < 80   ? 'bg-yellow-400' :
-    pct < 100  ? 'bg-lime-500'   :
-                 'bg-green-500'
+  const restQuantity = item.quantity - completedQty
 
   const handleAddLog = () => {
     openDialog({
@@ -141,12 +135,7 @@ export const ProductItemCard = ({ item, completedQty, defectQty, brandingTaskId 
       </div>
 
       {/* Progress bar */}
-      <div className="h-1.5 w-full bg-primary/10 rounded-full overflow-hidden">
-        <div
-          className={`h-full rounded-full transition-all duration-300 ${barColor}`}
-          style={{ width: `${pct}%` }}
-        />
-      </div>
+      <ProgressBar done={completedQty} total={item.quantity} />
     </div>
   )
 }

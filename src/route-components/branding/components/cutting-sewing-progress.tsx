@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { ProgressBar } from '@/components/progress-bar'
 import { useQuery } from '@tanstack/react-query'
 import { convexQuery } from '@convex-dev/react-query'
 import { api } from 'convex/_generated/api'
@@ -53,9 +54,13 @@ const SewingLogsPanel = ({ logs }: { logs: Progress['sewing']['logs'] }) => {
   )
 }
 
-type Props = { productionOrderId: string }
+type Props = {
+  productionOrderId: string
+  brandingDone: number
+  brandingTotal: number
+}
 
-export const CuttingSewingProgress = ({ productionOrderId }: Props) => {
+export const CuttingSewingProgress = ({ productionOrderId, brandingDone, brandingTotal }: Props) => {
   const [openPanel, setOpenPanel] = useState<'cutting' | 'sewing' | null>(null)
 
   const { data } = useQuery(
@@ -67,52 +72,45 @@ export const CuttingSewingProgress = ({ productionOrderId }: Props) => {
   if (!data) return null
 
   const { cutting, sewing } = data
-  const cutPct = cutting.total > 0 ? Math.min(100, Math.round((cutting.done / cutting.total) * 100)) : 0
-  const sewPct = sewing.total  > 0 ? Math.min(100, Math.round((sewing.done  / sewing.total)  * 100)) : 0
 
   const toggle = (panel: 'cutting' | 'sewing') =>
     setOpenPanel(prev => prev === panel ? null : panel)
 
   return (
     <div className="px-3 py-2 border-b flex flex-col gap-2 w-full">
-      {/* Cutting row */}
       <div className='flex gap-2 items-center w-full'>
+        {/* Cutting */}
         <div className="flex flex-col gap-0.5 w-full">
           <div className="flex items-center justify-between text-[10px] text-muted-foreground">
             <span>Розкрій</span>
             <span className="tabular-nums">{cutting.done}/{cutting.total} шт</span>
           </div>
-          <button
-            type="button"
-            className="w-full h-2 rounded-full bg-border overflow-hidden cursor-pointer"
-            onClick={() => toggle('cutting')}
-            title="Переглянути записи розкрою"
-          >
-            <div
-              className="h-full rounded-full transition-all hover:brightness-110 bg-sky-500"
-              style={{ width: `${cutPct}%` }}
-            />
+          <button type="button" className="w-full" onClick={() => toggle('cutting')} title="Переглянути записи розкрою">
+            <ProgressBar done={cutting.done} total={cutting.total} size="md" color="bg-sky-500" />
           </button>
         </div>
 
-        {/* Sewing row */}
+        {/* Sewing */}
         <div className="flex flex-col w-full gap-0.5">
           <div className="flex items-center justify-between text-[10px] text-muted-foreground">
             <span>Пошив</span>
             <span className="tabular-nums">{sewing.done}/{sewing.total} шт</span>
           </div>
-          <button
-            type="button"
-            className="w-full h-2 rounded-full bg-border overflow-hidden cursor-pointer"
-            onClick={() => toggle('sewing')}
-            title="Переглянути записи пошиву"
-          >
-            <div
-              className="h-full rounded-full transition-all hover:brightness-110 bg-violet-500"
-              style={{ width: `${sewPct}%` }}
-            />
+          <button type="button" className="w-full" onClick={() => toggle('sewing')} title="Переглянути записи пошиву">
+            <ProgressBar done={sewing.done} total={sewing.total} size="md" color="bg-violet-500" />
           </button>
         </div>
+
+        {/* Branding */}
+        {brandingTotal > 0 && (
+          <div className="flex flex-col w-full gap-0.5">
+            <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+              <span>Брендування</span>
+              <span className="tabular-nums">{brandingDone}/{brandingTotal} шт</span>
+            </div>
+            <ProgressBar done={brandingDone} total={brandingTotal} size="md" />
+          </div>
+        )}
       </div>
 
       {/* Logs panel */}

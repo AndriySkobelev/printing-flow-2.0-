@@ -53,7 +53,11 @@ export const OrderDetail = ({ task, onBack }: Props) => {
         completedTotal={completedTotal}
       />
 
-      <CuttingSewingProgress productionOrderId={task.productionOrderId as string} />
+      <CuttingSewingProgress
+        productionOrderId={task.productionOrderId as string}
+        brandingDone={completedTotal}
+        brandingTotal={totalQty}
+      />
 
       <div className="flex-1 overflow-y-auto">
 

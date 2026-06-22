@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { ProgressBar } from '@/components/progress-bar'
 import { useQuery } from '@tanstack/react-query'
 import { convexQuery, useConvexMutation } from '@convex-dev/react-query'
 import { api } from 'convex/_generated/api'
@@ -298,16 +299,8 @@ const SewingTaskCard = ({ task, isSelected, isExpanded, sewerUsers, onSelect, on
               <span>Розкрій</span>
               <span className="tabular-nums">{completedQty}/{totalQty} шт</span>
             </div>
-            <button
-              type="button"
-              className="w-full h-2 rounded-full bg-border overflow-hidden cursor-pointer"
-              onClick={(e) => { e.stopPropagation(); setLogsOpen((v) => !v) }}
-              title="Переглянути записи розкрою"
-            >
-              <div
-                className="h-full rounded-full transition-all hover:brightness-110"
-                style={{ width: `${pct}%`, backgroundColor: accent }}
-              />
+            <button type="button" className="w-full" onClick={(e) => { e.stopPropagation(); setLogsOpen((v) => !v) }} title="Переглянути записи розкрою">
+              <ProgressBar done={completedQty} total={totalQty} size="md" hex={accent} />
             </button>
           </div>
         </div>

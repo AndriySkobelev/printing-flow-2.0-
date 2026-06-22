@@ -1,9 +1,13 @@
 import { memo, useState } from 'react'
-import { Scissors, Wand2, Palette, Package, PlusIcon, ChevronDown, ChevronUp, CheckCheck } from 'lucide-react'
+import { type Id } from 'convex/_generated/dataModel'
+import { Scissors, Wand2, Palette, Package, PlusIcon, ChevronDown, ChevronUp, CheckCheck, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { ProgressBar } from '@/components/progress-bar'
 import { ProgressStat } from './progress-stat'
+import { useCreateProductionTasks } from '../actions'
 
 type Props = {
+  productionOrderId: string
   cutDone: number
   cutTotal: number
   sewDone: number
@@ -13,24 +17,28 @@ type Props = {
   packingDone: number
   packingTotal: number
   inProduction?: boolean
-  onCreateTasks: () => void
-  creatingTasks?: boolean
 }
 
 export const ProgressSection = memo(({
+  productionOrderId,
   cutDone, cutTotal,
   sewDone, sewTotal,
   brandingDone, brandingTotal,
   packingDone, packingTotal,
   inProduction,
-  onCreateTasks,
-  creatingTasks,
 }: Props) => {
   const [expanded, setExpanded] = useState(false)
+  const { mutate: createTasks, isPending } = useCreateProductionTasks()
 
   const totalDone = cutDone + sewDone + brandingDone + packingDone
   const totalItems = cutTotal + sewTotal + brandingTotal + packingTotal
   const overallPct = totalItems > 0 ? Math.min(100, Math.round((totalDone / totalItems) * 100)) : 0
+
+  const handleCreate = () => {
+    createTasks(
+      { productionOrderId: productionOrderId as Id<'productionOrders'> },
+    )
+  }
 
   return (
     <div className="flex flex-col gap-2 px-3 py-3">
@@ -42,43 +50,37 @@ export const ProgressSection = memo(({
           <span className="text-[11px] font-semibold tabular-nums text-primary">{overallPct}%</span>
         </div>
         <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1">
           <Button
+            key={`${isPending}-${inProduction}`}
             size="sm"
-            variant={inProduction ? 'secondary' : 'default'}
-            onClick={onCreateTasks}
-            disabled={creatingTasks || inProduction}
-            className="h-6 text-[11px] px-2"
+            onClick={handleCreate}
+            disabled={isPending || inProduction}
+            className={`h-6 text-[11px] px-2 ${inProduction ? 'bg-green-600 hover:bg-green-600 text-white' : ''}`}
           >
-            {creatingTasks || inProduction
-              ? <CheckCheck size={10} className="mr-1" />
-              : <PlusIcon size={10} className="mr-1" />
+            {isPending
+              ? <Loader2 size={10} className="mr-1 animate-spin" />
+              : inProduction
+                ? <CheckCheck size={10} className="mr-1" />
+                : <PlusIcon size={10} className="mr-1" />
             }
             Виробництво
           </Button>
-          <Button
-            size="icon"
-            variant="ghost"
-            className="h-6 w-6"
-            onClick={() => setExpanded(v => !v)}
-          >
-            {expanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+          <Button onClick={() => setExpanded(prev => !prev)} size="sm" variant="outline" className="h-6">
+            {expanded ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
           </Button>
+        </div>
         </div>
       </div>
 
-      <div className="w-full h-2 rounded-full bg-border overflow-hidden">
-        <div
-          className="h-full rounded-full transition-all bg-primary"
-          style={{ width: `${overallPct}%` }}
-        />
-      </div>
+      <ProgressBar done={totalDone} total={totalItems} size="md" />
 
       {expanded && (
         <div className="flex flex-col gap-2 mt-1">
-          <ProgressStat label="Розкрій"     done={cutDone}      total={cutTotal}      color="#0ea5e9" icon={<Scissors size={11} />} />
-          <ProgressStat label="Пошив"       done={sewDone}      total={sewTotal}      color="#8b5cf6" icon={<Wand2    size={11} />} />
-          <ProgressStat label="Брендування" done={brandingDone} total={brandingTotal} color="#f59e0b" icon={<Palette  size={11} />} />
-          <ProgressStat label="Пакування"   done={packingDone}  total={packingTotal}  color="#10b981" icon={<Package  size={11} />} />
+          <ProgressStat label="Розкрій"     done={cutDone}      total={cutTotal}      icon={<Scissors size={11} />} />
+          <ProgressStat label="Пошив"       done={sewDone}      total={sewTotal}      icon={<Wand2    size={11} />} />
+          <ProgressStat label="Брендування" done={brandingDone} total={brandingTotal} icon={<Palette  size={11} />} />
+          <ProgressStat label="Пакування"   done={packingDone}  total={packingTotal}  icon={<Package  size={11} />} />
         </div>
       )}
     </div>
