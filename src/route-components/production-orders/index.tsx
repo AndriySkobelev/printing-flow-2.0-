@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useContext } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { convexQuery } from '@convex-dev/react-query'
 import { type HeaderObject, type CellClickProps } from 'simple-table-core'
@@ -8,10 +8,15 @@ import { api } from 'convex/_generated/api'
 import AppTable from '@/components/ui/app-table'
 import { MyPopover } from '@/components/my-popover'
 import { useNavigate } from '@tanstack/react-router'
-import { Search } from 'lucide-react'
+import { Search, Plus, Trash2, RefreshCw, Loader2 } from 'lucide-react'
+import { useCreateProductionOrder, useDeleteProductionOrder, useSyncKeyCrmOrders } from './actions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import Divider from '@/components/ui/divider'
+import { DialogContext } from '@/contexts/dialog'
+import { ActionsMenu } from '@/components/actions-menu'
+import CreateOrderForm from './forms/create-order'
+import { cn } from '@/lib/utils'
 
 // ─── Products cell ────────────────────────────────────────────────────────────
 
@@ -77,6 +82,26 @@ const StatusBadge = ({ status }: { status: string }) => {
     <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${cfg.className}`}>
       {cfg.label}
     </span>
+  )
+}
+
+// ─── Actions cell ─────────────────────────────────────────────────────────────
+
+const ActionsCell = ({ orderId }: { orderId: string }) => {
+  const { mutate: deleteOrder, isPending } = useDeleteProductionOrder()
+
+  return (
+    <div onClick={e => e.stopPropagation()}>
+      <ActionsMenu
+        items={[{
+          label: 'Видалити',
+          icon: <Trash2 size={12} />,
+          destructive: true,
+          disabled: isPending,
+          onClick: () => deleteOrder({ productionOrderId: orderId as any }),
+        }]}
+      />
+    </div>
   )
 }
 
@@ -161,7 +186,16 @@ const headers: HeaderObject[] = [
     headerRenderer: renderHeader,
     valueFormatter: ({ value }) => value ? formatDate(value as number) : '—',
     showWhen:       'parentCollapsed',
-  }
+  },
+  {
+    accessor:    'actions',
+    label:       '',
+    width:       40,
+    minWidth:    40,
+    type:        'string',
+    showWhen:    'parentCollapsed',
+    cellRenderer: ({ row }) => row._id ? <ActionsCell orderId={row._id as string} /> : null,
+  },
 ]
 
 // ─── Status filter pills ───────────────────────────────────────────────────────
@@ -179,9 +213,31 @@ const STATUS_FILTERS: Array<{ key: StatusKey | null; label: string }> = [
 
 const ProductionOrdersPage = () => {
   const navigate = useNavigate({ from: productionOrdersRoute.to })
+  const { openDialog, closeDialog } = useContext(DialogContext)
   const [inputValue, setInputValue] = useState('')
   const [search, setSearch] = useState<string | undefined>(undefined)
   const [status, setStatus] = useState<StatusKey | null>(null)
+
+  const { mutate: createOrder } = useCreateProductionOrder(closeDialog)
+  const { mutate: syncOrders, isPending: isSyncing } = useSyncKeyCrmOrders()
+
+  const handleOpenCreate = () => {
+    openDialog({
+      title: 'Нове замовлення',
+      withForm: true,
+      formId: 'create-order-form',
+      content: (
+        <CreateOrderForm
+          formId="create-order-form"
+          actionSubmit={values => createOrder({
+            keycrmOrderId:   values.keycrmOrderId,
+            keycrmManager:   values.keycrmManager || undefined,
+            plannedShipDate: values.plannedShipDate ?? Date.now(),
+          })}
+        />
+      ),
+    })
+  }
 
   const { data, isLoading } = useQuery(
     convexQuery(api.queries.orders.getAllProductionOrdersWithProgress, {
@@ -190,11 +246,6 @@ const ProductionOrdersPage = () => {
     })
   )
   const rows = useMemo(() => data ?? [], [data])
-
-  const orderCount = useMemo(
-    () => new Set(rows.map((r) => r.keycrmOrderId)).size,
-    [rows],
-  )
 
   const handleSearch = () => setSearch(inputValue.trim() || undefined)
 
@@ -211,7 +262,15 @@ const ProductionOrdersPage = () => {
     <div className="flex flex-col h-full p-3 gap-3">
       <div className="flex items-center justify-between shrink-0">
         <h1 className="text-base font-semibold">Виробничі замовлення</h1>
-        <span className="text-xs text-muted-foreground">{orderCount} замовлень</span>
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="outline" className="h-7 px-2" disabled={isSyncing} onClick={() => syncOrders()}>
+            <RefreshCw size={14} className={cn(isSyncing ? 'animate-spin' : '')}/>
+            KeyCRM
+          </Button>
+          <Button size="sm" className="h-7 px-2" onClick={handleOpenCreate}>
+            <Plus size={14} /> Додати замовлення
+          </Button>
+        </div>
       </div>
 
       <div className="flex items-center gap-2 shrink-0 flex-wrap">

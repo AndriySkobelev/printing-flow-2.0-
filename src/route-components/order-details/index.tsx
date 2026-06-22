@@ -4,10 +4,10 @@ import { convexQuery } from '@convex-dev/react-query'
 import { api } from 'convex/_generated/api'
 import { type Id } from 'convex/_generated/dataModel'
 import { useUpdateAllOrderItemsBrandingType, useAddProductionOrderItems, useCreateSubcontractorTask } from './actions'
-import { ArrowLeft, Truck, Plus, ClipboardList } from 'lucide-react'
+import { ArrowLeft, Truck, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { ImagesSection } from '@/route-components/branding/components/images-section'
+import { OrderImages } from './components/order-images'
 import { DialogContext } from '@/contexts/dialog'
 import { DrawerContext } from '@/contexts/drawer'
 import { type OrderItem } from './types'
@@ -151,8 +151,8 @@ const ProductsSection = ({ items, productionOrderId }: { items: OrderItem[]; pro
       title:   'Налаштувати всі',
       content: (
         <BulkBrandingForm
-          onSubmit={async ({ brandingType, cuttingBrandingType, brandingComment, sewingComment }) => {
-            await updateAll({
+          onSubmit={({ brandingType, cuttingBrandingType, brandingComment, sewingComment }) => {
+            updateAll({
               productionOrderId:   productionOrderId as Id<'productionOrders'>,
               brandingType:        brandingType.length        ? brandingType        : undefined,
               cuttingBrandingType: cuttingBrandingType.length ? cuttingBrandingType : undefined,
@@ -228,7 +228,6 @@ const ProductsSection = ({ items, productionOrderId }: { items: OrderItem[]; pro
 
 const OrderDetailsContent = ({ productionOrderId, onBack }: { productionOrderId: string; onBack?: () => void }) => {
   const { openDrawer } = useContext(DrawerContext)
-
   const { data: order } = useQuery(
     convexQuery(api.queries.orders.getProductionOrderDetails, {
       productionOrderId: productionOrderId as Id<'productionOrders'>,
@@ -293,9 +292,11 @@ const OrderDetailsContent = ({ productionOrderId, onBack }: { productionOrderId:
           </div>
         </div>
 
-        <ScrollArea className="h-25 w-full" aria-orientation='horizontal'>
-          <ImagesSection files={(order.attachedFiles ?? []) as any[]} />
-        </ScrollArea>
+        <OrderImages
+          productionOrderId={productionOrderId}
+          keycrmOrderId={order.keycrmOrderId}
+          files={(order.attachedFiles ?? []) as any[]}
+        />
         <div className="border-t">
           <ProgressSection
             productionOrderId={productionOrderId}
@@ -304,6 +305,7 @@ const OrderDetailsContent = ({ productionOrderId, onBack }: { productionOrderId:
             brandingDone={order.brandingDone} brandingTotal={order.brandingTotal}
             packingDone={order.packingDone}   packingTotal={order.packingTotal}
             inProduction={order?.inProduction}
+            itemsCount={items.length}
           />
         </div>
         {order.keycrmCustomFields.length > 0 && (

@@ -15,7 +15,7 @@ export const getOrdersKeyCrm = action({
   }
 })
 
-export const brandingOrder = action(async (ctx) => {
+export const getKeyCrmOrders = action(async (ctx) => {
   const res = await keyRequest(`/order`, 'get', {
     limit: 150,
     page: 1,

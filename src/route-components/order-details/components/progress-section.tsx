@@ -17,6 +17,7 @@ type Props = {
   packingDone: number
   packingTotal: number
   inProduction?: boolean
+  itemsCount?: number
 }
 
 export const ProgressSection = memo(({
@@ -26,6 +27,7 @@ export const ProgressSection = memo(({
   brandingDone, brandingTotal,
   packingDone, packingTotal,
   inProduction,
+  itemsCount = 0,
 }: Props) => {
   const [expanded, setExpanded] = useState(false)
   const { mutate: createTasks, isPending } = useCreateProductionTasks()
@@ -55,7 +57,7 @@ export const ProgressSection = memo(({
             key={`${isPending}-${inProduction}`}
             size="sm"
             onClick={handleCreate}
-            disabled={isPending || inProduction}
+            disabled={isPending || inProduction || itemsCount === 0}
             className={`h-6 text-[11px] px-2 ${inProduction ? 'bg-green-600 hover:bg-green-600 text-white' : ''}`}
           >
             {isPending
@@ -66,9 +68,13 @@ export const ProgressSection = memo(({
             }
             Виробництво
           </Button>
-          <Button onClick={() => setExpanded(prev => !prev)} size="sm" variant="outline" className="h-6">
-            {expanded ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
-          </Button>
+          {
+            inProduction && (
+              <Button onClick={() => setExpanded(prev => !prev)} size="sm" variant="outline" className="h-6">
+                {expanded ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
+              </Button>
+            )
+          }
         </div>
         </div>
       </div>

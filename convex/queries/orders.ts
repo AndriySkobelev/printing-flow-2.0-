@@ -63,6 +63,7 @@ type OrderItemEntry = {
   color: string;
   size: string;
   needsCutting: boolean;
+  shipmentType: 'manufacturing' | 'warehouse' | null;
 };
 
 async function createCuttingTasks(ctx: MutationCtx, { productionOrderId, plannedShipDate, keycrmOrderId, orderItems }: {
@@ -72,7 +73,7 @@ async function createCuttingTasks(ctx: MutationCtx, { productionOrderId, planned
   orderItems: OrderItemEntry[]
 }): Promise<Map<string, string>> {
   const cuttingGroups = new Map<string, OrderItemEntry[]>();
-  for (const item of orderItems.filter(i => i.needsCutting)) {
+  for (const item of orderItems.filter(i => i.shipmentType === 'manufacturing')) {
     const key = `${item.product.name}__${item.color}`;
     if (!cuttingGroups.has(key)) cuttingGroups.set(key, []);
     cuttingGroups.get(key)!.push(item);
@@ -122,7 +123,7 @@ async function createSewingTasks(ctx: MutationCtx, { productionOrderId, plannedS
   cuttingTaskIds: Map<string, string>
 }) {
   const sewingGroups = new Map<string, OrderItemEntry[]>()
-  for (const item of orderItems.filter(i => i.needsCutting)) {
+  for (const item of orderItems.filter(i => i.shipmentType === 'manufacturing')) {
     const key = `${item.product.name}__${item.color}`
     if (!sewingGroups.has(key)) sewingGroups.set(key, [])
     sewingGroups.get(key)!.push(item)
@@ -552,7 +553,15 @@ export const creatreProductionOrder = mutation({
       .first();
     if (existing) {
       if (attachedFiles?.length) {
-        await ctx.db.patch(existing._id, { attachedFiles });
+        const existingFiles: any[] = existing.attachedFiles ?? []
+        const existingUrls = new Set(existingFiles.map((f: any) => typeof f === 'string' ? f : f?.url))
+        const newFiles = attachedFiles.filter((f: any) => {
+          const url = typeof f === 'string' ? f : f?.url
+          return url && !existingUrls.has(url)
+        })
+        if (newFiles.length > 0) {
+          await ctx.db.patch(existing._id, { attachedFiles: [...existingFiles, ...newFiles] })
+        }
       }
       return null;
     }
@@ -619,10 +628,11 @@ export const creatreProductionOrder = mutation({
       });
 
       orderItems.push({
-        id: itemId as unknown as string,
+        id:           itemId as unknown as string,
         product,
         needsCutting,
-        size: productDoc?.size ?? size,
+        shipmentType,
+        size:  productDoc?.size  ?? size,
         color: productDoc?.color ?? color,
       });
     }
@@ -647,16 +657,25 @@ export const createProductionTasks = mutation({
       .collect()
 
     const orderItems: OrderItemEntry[] = dbItems.map(item => ({
-      id:          item._id as unknown as string,
-      product:     { quantity: item.quantity, sku: item.sku, name: item.name },
-      color:       item.color,
-      size:        item.size,
+      id:           item._id as unknown as string,
+      product:      { quantity: item.quantity, sku: item.sku, name: item.name },
+      color:        item.color,
+      size:         item.size,
       needsCutting: item.needsCutting ?? false,
+      shipmentType: item.shipmentType,
     }))
 
     const cuttingTaskIds = await createCuttingTasks(ctx, { productionOrderId, plannedShipDate, keycrmOrderId, orderItems })
     await createSewingTasks(ctx, { productionOrderId, plannedShipDate, keycrmOrderId, orderItems, cuttingTaskIds })
-    await createBrandingTasks(ctx, { productionOrderId, keycrmOrderId, plannedShipDate, externalData })
+
+    const BRANDING_TYPES = new Set(['dtf', 'flok'])
+    const needsBranding = dbItems.some(item => {
+      const types = [...(item.brandingType ?? []), ...(item.cuttingBrandingType ?? [])]
+      return types.some(t => BRANDING_TYPES.has(t))
+    })
+    if (needsBranding) {
+      await createBrandingTasks(ctx, { productionOrderId, keycrmOrderId, plannedShipDate, externalData })
+    }
 
     await Promise.all([
       ctx.db.patch(productionOrderId, { inProduction: true, status: 'in_progress' }),
@@ -941,5 +960,63 @@ export const addProductionOrderItems = mutation({
         needsPackaging: true,
       })
     }
+  },
+})
+
+export const createManualProductionOrder = mutation({
+  args: {
+    keycrmOrderId: v.string(),
+    keycrmManager: v.optional(v.string()),
+    plannedShipDate: v.number(),
+  },
+  handler: async (ctx, { keycrmOrderId, keycrmManager, plannedShipDate }) => {
+    const existing = await ctx.db
+      .query('productionOrders')
+      .withIndex('by_keycrmOrderId', q => q.eq('keycrmOrderId', keycrmOrderId))
+      .first()
+    if (existing) throw new Error(`Замовлення #${keycrmOrderId} вже існує`)
+
+    return ctx.db.insert('productionOrders', {
+      status: 'new',
+      keycrmOrderId,
+      keycrmManager: keycrmManager ?? '—',
+      plannedShipDate,
+      startDate: Date.now(),
+    })
+  },
+})
+
+export const generateOrderFileUploadUrl = mutation({
+  args: {},
+  handler: async (ctx) => ctx.storage.generateUploadUrl(),
+})
+
+export const addAttachedFile = mutation({
+  args: {
+    productionOrderId: v.id('productionOrders'),
+    storageId:         v.string(),
+    name:              v.string(),
+    contentType:       v.optional(v.string()),
+  },
+  handler: async (ctx, { productionOrderId, storageId, name, contentType }) => {
+    const url = await ctx.storage.getUrl(storageId as any)
+    if (!url) throw new Error('File not found in storage')
+    const order = await ctx.db.get(productionOrderId)
+    if (!order) throw new Error('Order not found')
+    const files = [...(order.attachedFiles ?? []), { url, name, contentType }]
+    await ctx.db.patch(productionOrderId, { attachedFiles: files })
+    return { url, name, contentType }
+  },
+})
+
+export const deleteProductionOrder = mutation({
+  args: { productionOrderId: v.id('productionOrders') },
+  handler: async (ctx, { productionOrderId }) => {
+    const items = await ctx.db
+      .query('productionOrderItems')
+      .withIndex('by_productionOrder', q => q.eq('productionOrderId', productionOrderId))
+      .collect()
+    await Promise.all(items.map(i => ctx.db.delete(i._id)))
+    await ctx.db.delete(productionOrderId)
   },
 })

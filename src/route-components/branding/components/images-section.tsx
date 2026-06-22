@@ -2,19 +2,21 @@ import { useState, memo, useMemo, useContext } from 'react'
 import { ZoomIn } from 'lucide-react'
 import { DialogContext } from '@/contexts/dialog'
 
-type AttachedFile = { url?: string; name?: string } | string
+type AttachedFile = { url?: string; name?: string; contentType?: string } | string
 
 const imageRegex = /\.(png|jpe?g|gif|bmp|tiff?|ico|webp|svg|heic|heif)(\?.*)?$/i
 
 const getUrl = (file: AttachedFile): string =>
   typeof file === 'string' ? file : (file?.url ?? '')
 
-// const isImage = (file: AttachedFile): boolean => {
-//   const src = getUrl(file)
-//   const ext = src.split('?')[0].split('.').pop()?.toLowerCase() ?? ''
-//   return imageTypes.includes(ext)
-// }
-const isImage = (file: AttachedFile) => imageRegex.test(getUrl(file))
+const getContentType = (file: AttachedFile): string | undefined =>
+  typeof file === 'string' ? undefined : file?.contentType
+
+const isImage = (file: AttachedFile) => {
+  const ct = getContentType(file)
+  if (ct) return ct.startsWith('image/')
+  return imageRegex.test(getUrl(file))
+}
 
 const LightboxContent = ({ url }: { url: string }) => {
   const [loaded, setLoaded] = useState(false)
@@ -54,8 +56,8 @@ export const ImagesSection = memo(({ files }: Props) => {
   }
 
   return (
-    <section className="px-3 pt-3">
-      <div className="flex gap-2 overflow-x-auto pb-1">
+    <section className="px-3">
+      <div className="flex gap-2 overflow-x-auto">
         {images.map((file, index) => {
           const url = getUrl(file)
           return (
