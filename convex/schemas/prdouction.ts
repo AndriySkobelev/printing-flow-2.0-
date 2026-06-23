@@ -137,34 +137,6 @@ export const packagingLogs = {
  
 // ─── ПІДРЯДНИКИ ─────────────────────────────────────────────────────────────
 
-
-export const subcontractorTasks = {
-  productionOrderId: v.id("productionOrders"),
-  keycrmOrderId: v.optional(v.string()),
-  userId: v.id("users"),
-  name: v.string(),
-  quantity: v.optional(v.number()),
-  sentDate: v.number(),
-  expectedReturnDate: v.number(),
-  type: v.union(
-    v.literal("sublimation"),
-    v.literal("embroidery"),
-    v.literal("silkscreen"),
-    v.literal("dtg"),
-    v.literal("dtf"),
-    v.literal("other"),
-  ),
-  actualReturnDate: v.optional(v.number()),
-  status: v.union(
-    v.literal("sent"),
-    v.literal("in_progress"),
-    v.literal("returned"),
-    v.literal("delayed"),
-    v.literal("waiting_to_sent")
-  ),
-  note: v.optional(v.string()),
-};
-
 const cuttingTasksTable = defineTable(cuttingTasks)
   .index("by_productionOrder", ["productionOrderId"])
   .index("by_status", ["status"])
@@ -172,9 +144,6 @@ const cuttingTasksTable = defineTable(cuttingTasks)
 const cuttingTaskSizesTable = defineTable(cuttingTaskSizes)
   .index("by_cuttingTask", ["cuttingTaskId"])
   .index("by_productionOrderItem", ["productionOrderItemId"]);
-const subcontractorTasksTable = defineTable(subcontractorTasks)
-  .index("by_productionOrder", ["productionOrderId"])
-  .index("by_status", ["status"]);
 const packagingLogsTable = defineTable(packagingLogs)
   .index("by_packagingTask", ["packagingTaskId"])
   .index("by_productionOrderItem", ["productionOrderItemId"])
@@ -202,14 +171,13 @@ const sewingTasksTable = defineTable(sewingTasks)
   .index("by_status", ["status"]);
 
 export {
-  cuttingTasksTable,
-  cuttingTaskSizesTable,
-  sewingTasksTable,
-  sewingSubTasksTable,
   sewingLogsTable,
-  brandingTasksTable,
+  sewingTasksTable,
   brandingLogsTable,
-  packagingTasksTable,
+  cuttingTasksTable,
+  brandingTasksTable,
   packagingLogsTable,
-  subcontractorTasksTable,
+  sewingSubTasksTable,
+  packagingTasksTable,
+  cuttingTaskSizesTable,
 }

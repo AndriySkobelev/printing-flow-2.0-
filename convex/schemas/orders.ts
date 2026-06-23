@@ -80,6 +80,34 @@ export const productionOrderItems = {
   cuttingBrandingType: v.optional(v.nullable(v.array(brandingTypeV))),
 };
 
+export const subcontractorTasks = {
+  productionOrderId: v.id("productionOrders"),
+  keycrmOrderId: v.optional(v.string()),
+  userId: v.id("users"),
+  name: v.string(),
+  quantity: v.optional(v.number()),
+  expectedSentDate: v.number(),
+  actualSentDate: v.optional(v.number()),
+  expectedReturnDate: v.number(),
+  type: v.union(
+    v.literal("sublimation"),
+    v.literal("embroidery"),
+    v.literal("silkscreen"),
+    v.literal("dtg"),
+    v.literal("dtf"),
+    v.literal("other"),
+  ),
+  actualReturnDate: v.optional(v.number()),
+  status: v.union(
+    v.literal("sent"),
+    v.literal("in_progress"),
+    v.literal("returned"),
+    v.literal("delayed"),
+    v.literal("waiting_to_sent")
+  ),
+  note: v.optional(v.string()),
+};
+
 const productionOrdersTable = defineTable(productionOrders)
   .index("by_keycrmOrderId", ["keycrmOrderId"])
   .index("by_status", ["status"]);
@@ -90,9 +118,13 @@ const productionOrderItemsTable = defineTable(productionOrderItems)
 const productionOrderLogsTable = defineTable(productionOrderLogs)
   .index("by_productionOrder", ["productionOrderId"])
   .index("by_productionOrderItem", ["productionOrderItemId"]);
+const subcontractorTasksTable = defineTable(subcontractorTasks)
+  .index("by_productionOrder", ["productionOrderId"])
+  .index("by_status", ["status"]);
 
 export {
   productionOrdersTable,
-  productionOrderItemsTable,
+  subcontractorTasksTable,
   productionOrderLogsTable,
+  productionOrderItemsTable,
 }

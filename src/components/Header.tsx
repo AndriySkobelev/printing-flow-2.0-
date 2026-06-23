@@ -15,6 +15,7 @@ import {
   Waypoints,
   ScissorsLineDashedIcon,
   Settings,
+  Wand2,
   CalendarRange,
   ShoppingBag,
   Users,
@@ -108,6 +109,7 @@ const navConfig: NavItem[] = [
       { to: '/app/planner',         label: 'Планер пошиву',          icon: Waypoints               },
       { to: '/app/production-cut',  label: 'Виробництво крою',       icon: ScissorsLineDashedIcon  },
       { to: '/app/branding',        label: 'Брендування',            icon: PaintRoller             },
+      { to: '/app/sewing-tasks',    label: 'Мої завдання',           icon: Wand2, roles: ['seamstress', 'tailor'] },
     ],
   },
   {

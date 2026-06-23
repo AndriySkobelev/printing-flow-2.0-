@@ -3,12 +3,13 @@ import { revalidateLogic } from '@tanstack/react-form'
 import { Loader2 } from 'lucide-react'
 import { useAppForm } from '@/components/main-form'
 import { Button } from '@/components/ui/button'
+import { UTCDate } from '@date-fns/utc'
 
 const schema = z.object({
   name:               z.string().min(1, { message: "Обов'язкове поле" }),
   type:               z.union([z.literal('sublimation'), z.literal('embroidery'), z.literal('silkscreen'), z.literal('dtg'), z.literal('dtf'), z.literal('other')]),
   quantity:           z.string().optional(),
-  sentDate:           z.number().optional(),
+  expectedSentDate:   z.number(),
   expectedReturnDate: z.number({ error: "Обов'язкове поле" }),
   status:             z.union([z.literal('sent'), z.literal('in_progress'), z.literal('returned'), z.literal('delayed'), z.literal('waiting_to_sent')]),
   note:               z.string().optional(),
@@ -43,14 +44,15 @@ export const SubcontractorTaskForm = ({ onSubmit, defaultValues }: Props) => {
     validationLogic: revalidateLogic(),
     validators: { onDynamic: schema },
     defaultValues: {
-      name:               '',
-      type:               'other' as const,
-      expectedReturnDate: Date.now(),
-      status:             'sent' as const,
+      name:             '',
+      type:             'other' as const,
+      expectedSentDate: new UTCDate().valueOf(),
+      expectedReturnDate: new UTCDate().valueOf(),
+      status:           'sent' as const,
       ...defaultValues,
     },
-    onSubmit: async ({ value }) => {
-      await onSubmit(value)
+    onSubmit: ({ value }) => {
+      onSubmit(value)
       form.reset()
     },
   })
@@ -70,8 +72,8 @@ export const SubcontractorTaskForm = ({ onSubmit, defaultValues }: Props) => {
       </div>
 
       <div className="grid grid-cols-2 gap-3">
-        <form.AppField name="sentDate"           children={f => <f.InputDate label="Дата відправки" />} />
-        <form.AppField name="expectedReturnDate" children={f => <f.InputDate label="Очікувана дата отримання" />} />
+        <form.AppField name="expectedSentDate"   children={f => <f.InputDate label="Очікувана відправка" />} />
+        <form.AppField name="expectedReturnDate" children={f => <f.InputDate label="Очікуване отримання" />} />
       </div>
 
       <form.AppField name="note"   children={f => <f.TextAreaField placeholder="Примітка…" />} />

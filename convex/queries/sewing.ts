@@ -198,6 +198,28 @@ export const getPlannerSubTasks = query({
   },
 })
 
+export const getMySubTasks = query({
+  args: { userId: v.id('users') },
+  handler: async (ctx, { userId }) => {
+    const subTasks = await ctx.db
+      .query('sewingSubTasks')
+      .withIndex('by_assignedTo', q => q.eq('assignedTo', userId))
+      .collect()
+
+    return Promise.all(subTasks.map(async (st) => {
+      const task = await ctx.db.get(st.sewingTaskId)
+      return {
+        ...st,
+        keycrmOrderId: task?.keycrmOrderId ?? null,
+        orderIndex:    task?.orderIndex    ?? null,
+        specName:      task?.specName      ?? null,
+        color:         task?.color         ?? null,
+        taskEndDate:   task?.endDate       ?? null,
+      }
+    }))
+  },
+})
+
 export const getSewerUsers = query({
   handler: async (ctx) => {
     const users = await ctx.db.query('users').collect()
@@ -314,6 +336,15 @@ export const updateSewingSubTaskDates = mutation({
       startDate: args.startDate,
       endDate:   args.endDate,
     })
+  },
+})
+
+export const completeSewingSubTask = mutation({
+  args: { sewingSubTaskId: v.id('sewingSubTasks') },
+  handler: async (ctx, { sewingSubTaskId }) => {
+    const sub = await ctx.db.get(sewingSubTaskId)
+    if (!sub) throw new Error('sewingSubTask not found')
+    await ctx.db.patch(sewingSubTaskId, { status: 'done', completedQty: sub.quantity })
   },
 })
 

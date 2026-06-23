@@ -19,7 +19,7 @@ export const OrderImages = ({ productionOrderId, keycrmOrderId, files }: Props) 
   }
 
   return (
-    <div className="flex gap-2 items-center w-full rounded-md border px-3 py-3">
+    <div className="flex gap-2 items-center w-full px-3 py-3">
       <FileInput onUpload={handleUpload} multiple>
         {({ isUploading, open }) => (
           <button

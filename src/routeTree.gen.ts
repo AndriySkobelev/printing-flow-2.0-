@@ -18,6 +18,7 @@ import { Route as AuthenticatedAppWorkloadRouteImport } from './routes/_authenti
 import { Route as AuthenticatedAppUsersRouteImport } from './routes/_authenticated/app/users'
 import { Route as AuthenticatedAppStoreRouteImport } from './routes/_authenticated/app/store'
 import { Route as AuthenticatedAppSpecificationsRouteImport } from './routes/_authenticated/app/specifications'
+import { Route as AuthenticatedAppSewingTasksRouteImport } from './routes/_authenticated/app/sewing-tasks'
 import { Route as AuthenticatedAppRegisterRouteImport } from './routes/_authenticated/app/register'
 import { Route as AuthenticatedAppProfileRouteImport } from './routes/_authenticated/app/profile'
 import { Route as AuthenticatedAppProductsRouteImport } from './routes/_authenticated/app/products'
@@ -76,6 +77,12 @@ const AuthenticatedAppSpecificationsRoute =
   AuthenticatedAppSpecificationsRouteImport.update({
     id: '/specifications',
     path: '/specifications',
+    getParentRoute: () => AuthenticatedAppRouteRoute,
+  } as any)
+const AuthenticatedAppSewingTasksRoute =
+  AuthenticatedAppSewingTasksRouteImport.update({
+    id: '/sewing-tasks',
+    path: '/sewing-tasks',
     getParentRoute: () => AuthenticatedAppRouteRoute,
   } as any)
 const AuthenticatedAppRegisterRoute =
@@ -170,6 +177,7 @@ export interface FileRoutesByFullPath {
   '/app/products': typeof AuthenticatedAppProductsRoute
   '/app/profile': typeof AuthenticatedAppProfileRoute
   '/app/register': typeof AuthenticatedAppRegisterRoute
+  '/app/sewing-tasks': typeof AuthenticatedAppSewingTasksRoute
   '/app/specifications': typeof AuthenticatedAppSpecificationsRoute
   '/app/store': typeof AuthenticatedAppStoreRoute
   '/app/users': typeof AuthenticatedAppUsersRoute
@@ -193,6 +201,7 @@ export interface FileRoutesByTo {
   '/app/products': typeof AuthenticatedAppProductsRoute
   '/app/profile': typeof AuthenticatedAppProfileRoute
   '/app/register': typeof AuthenticatedAppRegisterRoute
+  '/app/sewing-tasks': typeof AuthenticatedAppSewingTasksRoute
   '/app/specifications': typeof AuthenticatedAppSpecificationsRoute
   '/app/store': typeof AuthenticatedAppStoreRoute
   '/app/users': typeof AuthenticatedAppUsersRoute
@@ -218,6 +227,7 @@ export interface FileRoutesById {
   '/_authenticated/app/products': typeof AuthenticatedAppProductsRoute
   '/_authenticated/app/profile': typeof AuthenticatedAppProfileRoute
   '/_authenticated/app/register': typeof AuthenticatedAppRegisterRoute
+  '/_authenticated/app/sewing-tasks': typeof AuthenticatedAppSewingTasksRoute
   '/_authenticated/app/specifications': typeof AuthenticatedAppSpecificationsRoute
   '/_authenticated/app/store': typeof AuthenticatedAppStoreRoute
   '/_authenticated/app/users': typeof AuthenticatedAppUsersRoute
@@ -243,6 +253,7 @@ export interface FileRouteTypes {
     | '/app/products'
     | '/app/profile'
     | '/app/register'
+    | '/app/sewing-tasks'
     | '/app/specifications'
     | '/app/store'
     | '/app/users'
@@ -266,6 +277,7 @@ export interface FileRouteTypes {
     | '/app/products'
     | '/app/profile'
     | '/app/register'
+    | '/app/sewing-tasks'
     | '/app/specifications'
     | '/app/store'
     | '/app/users'
@@ -290,6 +302,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/products'
     | '/_authenticated/app/profile'
     | '/_authenticated/app/register'
+    | '/_authenticated/app/sewing-tasks'
     | '/_authenticated/app/specifications'
     | '/_authenticated/app/store'
     | '/_authenticated/app/users'
@@ -366,6 +379,13 @@ declare module '@tanstack/react-router' {
       path: '/specifications'
       fullPath: '/app/specifications'
       preLoaderRoute: typeof AuthenticatedAppSpecificationsRouteImport
+      parentRoute: typeof AuthenticatedAppRouteRoute
+    }
+    '/_authenticated/app/sewing-tasks': {
+      id: '/_authenticated/app/sewing-tasks'
+      path: '/sewing-tasks'
+      fullPath: '/app/sewing-tasks'
+      preLoaderRoute: typeof AuthenticatedAppSewingTasksRouteImport
       parentRoute: typeof AuthenticatedAppRouteRoute
     }
     '/_authenticated/app/register': {
@@ -475,6 +495,7 @@ interface AuthenticatedAppRouteRouteChildren {
   AuthenticatedAppProductsRoute: typeof AuthenticatedAppProductsRoute
   AuthenticatedAppProfileRoute: typeof AuthenticatedAppProfileRoute
   AuthenticatedAppRegisterRoute: typeof AuthenticatedAppRegisterRoute
+  AuthenticatedAppSewingTasksRoute: typeof AuthenticatedAppSewingTasksRoute
   AuthenticatedAppSpecificationsRoute: typeof AuthenticatedAppSpecificationsRoute
   AuthenticatedAppStoreRoute: typeof AuthenticatedAppStoreRoute
   AuthenticatedAppUsersRoute: typeof AuthenticatedAppUsersRoute
@@ -497,6 +518,7 @@ const AuthenticatedAppRouteRouteChildren: AuthenticatedAppRouteRouteChildren = {
   AuthenticatedAppProductsRoute: AuthenticatedAppProductsRoute,
   AuthenticatedAppProfileRoute: AuthenticatedAppProfileRoute,
   AuthenticatedAppRegisterRoute: AuthenticatedAppRegisterRoute,
+  AuthenticatedAppSewingTasksRoute: AuthenticatedAppSewingTasksRoute,
   AuthenticatedAppSpecificationsRoute: AuthenticatedAppSpecificationsRoute,
   AuthenticatedAppStoreRoute: AuthenticatedAppStoreRoute,
   AuthenticatedAppUsersRoute: AuthenticatedAppUsersRoute,

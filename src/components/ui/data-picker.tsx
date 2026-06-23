@@ -13,7 +13,9 @@ import { UTCDate } from "@date-fns/utc"
 const representComponents = {
   input: (date: number) => (
     <div className="flex justify-between items-center border h-9.5 rounded-md py-1.25 px-4 text-primary/80 cursor-pointer">
-      {date ? format(date, "PPP", { locale: uk  }) : <span className="text-primary/60 text-md">Виберіть дату</span>}
+      <span className={date ? '' : 'text-primary/60 text-md'}>
+        {date ? format(date, "PPP", { locale: uk }) : 'Виберіть дату'}
+      </span>
       <ChevronDownIcon size={22} color="#ccc"/>
     </div>
   ),
@@ -28,27 +30,28 @@ const representComponents = {
 }
 
 type DatePickerProps = {
-  onChange: (date: number) => void
+  onChange: (date: number | null) => void
+  value?: number | null
   triggerMode?: 'input' | 'iconText',
   position?: "center" | "start" | "end" | undefined
 }
 
-export function DatePicker({ onChange, triggerMode = 'input', position = 'start' }: DatePickerProps) {
-  const [date, setDate] = React.useState<Date>(new UTCDate())
+export function DatePicker({ onChange, value, triggerMode = 'input', position = 'start' }: DatePickerProps) {
+  const [date, setDate] = React.useState<Date | undefined>(value ? new UTCDate(value) : undefined)
   const [open, setOpen] = React.useState<boolean>(false)
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger>
-        {representComponents[triggerMode](date as any | number)}
+    <Popover open={open} onOpenChange={setOpen} modal={false}>
+      <PopoverTrigger asChild>
+        {representComponents[triggerMode](date as any)}
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0" align={position}>
         <Calendar
           mode="single"
           selected={date}
           onSelect={(e) => {
-            setDate(e as Date)
-            onChange(new Date(e as any).valueOf())
+            setDate(e)
+            onChange(e ? new Date(e).valueOf() : null)
             setOpen(false)
           }}
           defaultMonth={date}

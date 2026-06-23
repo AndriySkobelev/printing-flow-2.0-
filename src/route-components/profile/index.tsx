@@ -1,5 +1,6 @@
 import { useContext } from 'react'
-import { Briefcase, Calendar, Clock, Mail, Pencil, Phone, Shield, User } from 'lucide-react'
+import { Briefcase, Calendar, Clock, LogOut, Mail, Pencil, Phone, Shield, User } from 'lucide-react'
+import { useAuthActions } from '@convex-dev/auth/react'
 import { useAuth } from '@/hooks/auth-hooks'
 import { ROLE_LABELS, type UserRole } from '@/constants/roles'
 import Divider from '@/components/ui/divider'
@@ -29,6 +30,7 @@ function FieldRow({ icon, label, value = '-' }: Field) {
 
 export default function ProfileCard() {
   const { user } = useAuth()
+  const { signOut } = useAuthActions()
   const { openDialog, closeDialog } = useContext(DialogContext)
   const { mutate: updateProfile } = useUpdateProfile()
 
@@ -106,6 +108,18 @@ export default function ProfileCard() {
               <FieldRow {...field} />
             </div>
           ))}
+        </div>
+
+        {/* Footer */}
+        <div className="px-5 pb-4 pt-2 border-t">
+          <Button
+            variant="ghost"
+            className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10"
+            onClick={() => signOut()}
+          >
+            <LogOut size={14} />
+            Вийти
+          </Button>
         </div>
 
       </div>

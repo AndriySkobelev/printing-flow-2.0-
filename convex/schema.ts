@@ -4,8 +4,9 @@ import { authTables } from "@convex-dev/auth/server";
 import type { Doc } from "../convex/_generated/dataModel";
 import {
   productionOrdersTable,
+  subcontractorTasksTable,
   productionOrderLogsTable,
-  productionOrderItemsTable
+  productionOrderItemsTable,
 } from './schemas/orders';
 import {
   cuttingTasksTable,
@@ -17,7 +18,6 @@ import {
   brandingLogsTable,
   packagingTasksTable,
   packagingLogsTable,
-  subcontractorTasksTable
 } from './schemas/prdouction';
 import {
   fabricsTable,

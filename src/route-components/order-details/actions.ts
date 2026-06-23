@@ -79,6 +79,26 @@ export const useCreateSubcontractorTask = () =>
     onSuccess: () => toast.success('Завдання створено'),
   })
 
+export const useUpdateSubcontractorTaskActualDates = () =>
+  useMutation({
+    mutationFn: useConvexMutation(api.queries.orders.updateSubcontractorTaskActualDates),
+    onError: (e: Error) => toast.error(e.message),
+    onSuccess: () => toast.success('Дати збережено'),
+  })
+
+export const useDeleteSubcontractorTask = () =>
+  useMutation({
+    mutationFn: useConvexMutation(api.queries.orders.deleteSubcontractorTask),
+    onError: (e: Error) => toast.error(e.message),
+    onSuccess: () => toast.success('Завдання видалено'),
+  })
+
+export const useUpdateSubcontractorTaskStatus = () =>
+  useMutation({
+    mutationFn: useConvexMutation(api.queries.orders.updateSubcontractorTaskStatus),
+    onError: (e: Error) => toast.error(e.message),
+  })
+
 export const useCreateProductionTasks = () =>
   useMutation({
     mutationFn: useConvexMutation(api.queries.orders.createProductionTasks),

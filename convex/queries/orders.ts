@@ -760,12 +760,13 @@ export const createSubcontractorTask = mutation({
     name:               v.string(),
     type:               v.union(v.literal('sublimation'), v.literal('embroidery'), v.literal('silkscreen'), v.literal('dtg'), v.literal('dtf'), v.literal('other')),
     quantity:           v.optional(v.number()),
-    sentDate:           v.optional(v.number()),
+    expectedSentDate:   v.optional(v.number()),
+    actualSentDate:     v.optional(v.number()),
     expectedReturnDate: v.number(),
     status:             v.union(v.literal('sent'), v.literal('in_progress'), v.literal('returned'), v.literal('delayed'), v.literal('waiting_to_sent')),
     note:               v.optional(v.string()),
   },
-  handler: async (ctx, { productionOrderId, name, type, quantity, sentDate, expectedReturnDate, status, note }) => {
+  handler: async (ctx, { productionOrderId, name, type, quantity, expectedSentDate, actualSentDate, expectedReturnDate, status, note }) => {
     const userId = await getAuthUserId(ctx)
     if (!userId) throw new Error('Not authenticated')
     const order = await ctx.db.get(productionOrderId)
@@ -776,10 +777,48 @@ export const createSubcontractorTask = mutation({
       name,
       type,
       quantity,
-      sentDate: sentDate ?? Date.now(),
+      expectedSentDate: expectedSentDate ?? Date.now(),
+      actualSentDate,
       expectedReturnDate,
       status,
       note,
+    })
+  },
+})
+
+export const deleteSubcontractorTask = mutation({
+  args: { taskId: v.id('subcontractorTasks') },
+  handler: async (ctx, { taskId }) => {
+    await ctx.db.delete(taskId)
+  },
+})
+
+export const updateSubcontractorTaskStatus = mutation({
+  args: {
+    taskId: v.id('subcontractorTasks'),
+    status: v.union(
+      v.literal('sent'),
+      v.literal('in_progress'),
+      v.literal('returned'),
+      v.literal('delayed'),
+      v.literal('waiting_to_sent'),
+    ),
+  },
+  handler: async (ctx, { taskId, status }) => {
+    await ctx.db.patch(taskId, { status })
+  },
+})
+
+export const updateSubcontractorTaskActualDates = mutation({
+  args: {
+    taskId:           v.id('subcontractorTasks'),
+    actualSentDate:   v.optional(v.number()),
+    actualReturnDate: v.optional(v.union(v.number(), v.null())),
+  },
+  handler: async (ctx, { taskId, actualSentDate, actualReturnDate }) => {
+    await ctx.db.patch(taskId, {
+      actualSentDate,
+      actualReturnDate: actualReturnDate === null ? undefined : actualReturnDate,
     })
   },
 })
