@@ -1,8 +1,9 @@
 import { useCallback, useContext } from 'react'
 import { type HeaderObject } from 'simple-table-core'
 import { type Id } from 'convex/_generated/dataModel'
-import { Pencil, Scissors, Warehouse, Trash2, SquareSplitHorizontal } from 'lucide-react'
+import { MessageSquare, Pencil, Scissors, Warehouse, Trash2, SquareSplitHorizontal } from 'lucide-react'
 import { ActionsMenu } from '@/components/actions-menu'
+import { MyPopover } from '@/components/my-popover'
 import { DialogContext } from '@/contexts/dialog'
 import {
   useUpdateOrderItemBrandingComment,
@@ -28,26 +29,77 @@ const ShipmentTypeCell = ({ row }: { row: Record<string, unknown> }) => {
   return null
 }
 
-const BrandingCommentCell = ({ row }: { row: Record<string, unknown> }) => {
+const CommentsCell = ({ row }: { row: Record<string, unknown> }) => {
   const item = row as OrderItem
-  const { mutate: updateComment } = useUpdateOrderItemBrandingComment()
-  const handleSave = useCallback((val: string) =>
-    updateComment({ itemId: item._id as Id<'productionOrderItems'>, brandingComment: val || undefined }),
-    [item._id, updateComment]
+  const { mutate: updateBranding } = useUpdateOrderItemBrandingComment()
+  const { mutate: updateSewing }   = useUpdateOrderItemSewingComment()
+  const handleBranding = useCallback((val: string) =>
+    updateBranding({ itemId: item._id as Id<'productionOrderItems'>, brandingComment: val || undefined }),
+    [item._id, updateBranding]
+  )
+  const handleSewing = useCallback((val: string) =>
+    updateSewing({ itemId: item._id as Id<'productionOrderItems'>, sewingComment: val || undefined }),
+    [item._id, updateSewing]
   )
   if (!item._id) return null
-  return <InlineEdit value={item.brandingComment ?? ''} onSave={handleSave} placeholder="Коментар брендування…" />
+  const hasAny = !!(item.brandingComment || item.sewingComment)
+  return (
+    <MyPopover
+      align="start"
+      trigger={
+        <button className={`flex items-center gap-1 text-xs transition-colors ${hasAny ? 'text-primary' : 'text-muted-foreground/40 hover:text-muted-foreground'}`}>
+          <MessageSquare size={13} />
+          {hasAny && <span className="size-1.5 rounded-full bg-primary" />}
+        </button>
+      }
+      content={
+        <div className="flex flex-col gap-3 p-3 w-64">
+          <div className="flex flex-col gap-1">
+            <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Брендування</span>
+            <InlineEdit value={item.brandingComment ?? ''} onSave={handleBranding} placeholder="Коментар брендування…" />
+          </div>
+          <div className="flex flex-col gap-1">
+            <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Пошив</span>
+            <InlineEdit value={item.sewingComment ?? ''} onSave={handleSewing} placeholder="Коментар пошиву…" />
+          </div>
+        </div>
+      }
+    />
+  )
 }
 
-const SewingCommentCell = ({ row }: { row: Record<string, unknown> }) => {
+const CustomCell = ({ row }: { row: Record<string, unknown> }) => {
   const item = row as OrderItem
-  const { mutate: updateComment } = useUpdateOrderItemSewingComment()
-  const handleSave = useCallback((val: string) =>
-    updateComment({ itemId: item._id as Id<'productionOrderItems'>, sewingComment: val || undefined }),
-    [item._id, updateComment]
+  const hasCustom = item.isCustomCut || item.isCustomSewing
+  if (!hasCustom) return <span className="text-muted-foreground/30 text-xs">—</span>
+  return (
+    <MyPopover
+      align="start"
+      trigger={
+        <button className="flex items-center gap-1 text-primary hover:opacity-70 transition-opacity">
+          <Scissors size={13} />
+        </button>
+      }
+      content={
+        <div className="flex flex-col gap-2 p-3 w-56">
+          {item.isCustomCut && (
+            <div className="flex flex-col gap-0.5">
+              <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Крій</span>
+              <span className="text-xs font-medium text-primary">Індивідуальний</span>
+              {item.customCutComment && <p className="text-xs text-muted-foreground">{item.customCutComment}</p>}
+            </div>
+          )}
+          {item.isCustomSewing && (
+            <div className="flex flex-col gap-0.5">
+              <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Пошив</span>
+              <span className="text-xs font-medium text-primary">Індивідуальний</span>
+              {item.customSewingComment && <p className="text-xs text-muted-foreground">{item.customSewingComment}</p>}
+            </div>
+          )}
+        </div>
+      }
+    />
   )
-  if (!item._id) return null
-  return <InlineEdit value={item.sewingComment ?? ''} onSave={handleSave} placeholder="Коментар пошиву…" />
 }
 
 const BrandingCell = ({ row }: { row: Record<string, unknown> }) => {
@@ -229,21 +281,21 @@ export const itemNestedHeaders: HeaderObject[] = [
   },
   {
     accessor:       'brandingComment',
-    label:          'Коментар (брендування)',
-    width:          180,
-    minWidth:       100,
+    label:          'Коментарі',
+    width:          100,
+    minWidth:       50,
     type:           'string',
     headerRenderer: renderHeader,
-    cellRenderer:   BrandingCommentCell,
+    cellRenderer:   CommentsCell,
   },
   {
-    accessor:       'sewingComment',
-    label:          'Коментар (пошив)',
-    width:          180,
-    minWidth:       100,
+    accessor:       'isCustomCut',
+    label:          'Кастом',
+    width:          70,
+    minWidth:       50,
     type:           'string',
     headerRenderer: renderHeader,
-    cellRenderer:   SewingCommentCell,
+    cellRenderer:   CustomCell,
   },
   {
     accessor:       'brandingType',

@@ -171,6 +171,16 @@ export const getCuttingTaskById = query({
 
 // ─── MUTATIONS ───────────────────────────────────────────────────────────────
 
+export const updateCuttingTaskPlanedEndDate = mutation({
+  args: {
+    cuttingTaskId: v.id('cuttingTasks'),
+    planedEndDate: v.optional(v.number()),
+  },
+  handler: async (ctx, { cuttingTaskId, planedEndDate }) => {
+    await ctx.db.patch(cuttingTaskId, { planedEndDate })
+  },
+})
+
 export const updateCuttingTaskStatus = mutation({
   args: {
     cuttingTaskId: v.id('cuttingTasks'),
@@ -178,7 +188,8 @@ export const updateCuttingTaskStatus = mutation({
       v.literal('new'),
       v.literal('in_progress'),
       v.literal('done'),
-      v.literal('delayed')
+      v.literal('paused'),
+      v.literal('waiting'),
     ),
     note: v.optional(v.string()),
   },

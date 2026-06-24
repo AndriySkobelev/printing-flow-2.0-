@@ -50,6 +50,10 @@ export const productionOrderItems = {
   sku: v.string(),
   color: v.string(),
   size: v.string(),
+  isCustomCut: v.optional(v.boolean()),
+  isCustomSewing: v.optional(v.boolean()),
+  customCutComment: v.optional(v.string()),
+  customSewingComment: v.optional(v.string()),
   quantity: v.number(),
   shipmentType: v.union(
     v.literal("manufacturing"),

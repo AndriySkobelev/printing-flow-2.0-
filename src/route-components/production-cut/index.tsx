@@ -9,13 +9,17 @@ import AppTable from '@/components/ui/app-table'
 import { useQuery } from '@tanstack/react-query'
 import { convexQuery } from '@convex-dev/react-query'
 import { api } from 'convex/_generated/api'
+import { type Id } from 'convex/_generated/dataModel'
 import { MyPopover } from '@/components/my-popover'
+import { Calendar } from '@/components/ui/calendar'
+import { UTCDate } from '@date-fns/utc'
 import { SizeInfo } from './components/size-info'
 import { SpecInfo, type SpecData } from './components/spec-info'
 import { OrderInfo } from './components/order-info'
 import { OrderLogs } from '@/components/order-logs'
 import { DrawerContext } from '@/contexts/drawer'
 import { AuthContext } from '@/contexts/auth'
+import { useUpdateCuttingTaskPlanedEndDate, useUpdateCuttingTaskStatus } from './actions'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -31,10 +35,11 @@ const ORDER_TYPES = {
 type OrderType = keyof typeof ORDER_TYPES
 
 const STATUSES = {
-  new:         { label: 'Нове',      color: '#378ADD' },
-  in_progress: { label: 'В роботі', color: '#1D9E75' },
-  done:        { label: 'Готово',    color: '#639922' },
-  delayed:     { label: 'Затримка', color: '#D85A30' },
+  new:         { label: 'Нове',             className: 'bg-blue-100 text-blue-700'   },
+  in_progress: { label: 'В роботі',         className: 'bg-amber-100 text-amber-700' },
+  paused:      { label: 'На паузі',         className: 'bg-gray-100 text-gray-600'   },
+  waiting:     { label: 'Очікуєм Тканину',  className: 'bg-purple-100 text-purple-700' },
+  done:        { label: 'Виконано',         className: 'bg-green-100 text-green-700' },
 } as const
 type Status = keyof typeof STATUSES
 
@@ -67,6 +72,7 @@ interface Order {
   sizes: Partial<Record<Size, number>>
   sizeDetails: SizeDetail[]
   deadline: string
+  planedEndDate?: number
   status: Status
   note: string
   relevantLogsCount: number
@@ -102,6 +108,66 @@ const toRow = (o: Order): OrderRow => ({
   ...Object.fromEntries(SIZES.map(s => [`sz_${s}`, o.sizes[s] ?? null])),
 })
 
+// ─── Inline cell components ───────────────────────────────────────────────────
+
+const PlanedDateCell = ({ row, onUpdate }: { row: OrderRow; onUpdate: (id: string, date: number | null) => void }) => {
+  const [open, setOpen] = useState(false)
+  const d = row.planedEndDate
+  return (
+    <MyPopover
+      open={open}
+      onOpenChange={setOpen}
+      align="start"
+      trigger={
+        <button className="text-sm hover:text-primary transition-colors text-left">
+          {d ? formatDate(d) : <span className="text-muted-foreground/40">Запланувати...</span>}
+        </button>
+      }
+      content={
+        <Calendar
+          mode="single"
+          selected={d ? new UTCDate(d) : undefined}
+          defaultMonth={d ? new UTCDate(d) : new UTCDate()}
+          onSelect={date => { onUpdate(row.id, date ? new UTCDate(date).valueOf() : null); setOpen(false) }}
+        />
+      }
+    />
+  )
+}
+
+const StatusCell = ({ row, onUpdate }: { row: OrderRow; onUpdate: (id: string, status: Status) => void }) => {
+  const [open, setOpen] = useState(false)
+  const s = row.status
+  return (
+    <MyPopover
+      open={open}
+      onOpenChange={setOpen}
+      align="start"
+      trigger={
+        <button className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full hover:opacity-80 transition-opacity ${STATUSES[s].className}`}>
+          {STATUSES[s].label}
+        </button>
+      }
+      content={
+        <div className="flex flex-col p-1 min-w-36">
+          {(Object.entries(STATUSES) as [Status, { label: string; className: string }][]).map(([key, cfg]) => (
+            <button
+              key={key}
+              disabled={key === s}
+              onClick={() => { onUpdate(row.id, key); setOpen(false) }}
+              className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted disabled:opacity-40 disabled:cursor-default"
+            >
+              <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${cfg.className}`}>
+                {cfg.label}
+              </span>
+            </button>
+          ))}
+        </div>
+      }
+    />
+  )
+}
+
 // ─── Table headers ────────────────────────────────────────────────────────────
 
 const relevantLogFilter = (log: { type: string; changes?: Record<string, unknown> | null }) =>
@@ -112,6 +178,8 @@ const relevantLogFilter = (log: { type: string; changes?: Record<string, unknown
 const makeHeaders = (
   onSchedule: (row: OrderRow) => void,
   onOpenLogs: (row: OrderRow) => void,
+  onUpdateDate: (id: string, date: number | null) => void,
+  onUpdateStatus: (id: string, status: Status) => void,
 ): Array<HeaderObject> => [
   { accessor: 'number', label: '№', width: 90, isSortable: true, type: 'string',
     cellRenderer: ({ row }) => {
@@ -225,12 +293,8 @@ const makeHeaders = (
     cellRenderer: ({ row }) => <span className="font-medium text-sm">{(row as OrderRow)._total}</span>,
   },
   {
-    accessor: 'deadline', label: 'Видача крою', width: 150, isSortable: true, type: 'string',
-    cellRenderer: ({ row }) => {
-      const d = (row as OrderRow).deadline
-      const urgent = daysUntil(d) < 7 && (row as OrderRow).status !== 'done'
-      return <span className={clsx('text-sm', urgent && 'text-red-500 font-medium')}>{d}</span>
-    },
+    accessor: 'planedEndDate', label: 'Видача крою', width: 150, isSortable: true, type: 'string',
+    cellRenderer: ({ row }) => <PlanedDateCell row={row as OrderRow} onUpdate={onUpdateDate} />,
   },
     {
     accessor: 'deadline', label: 'Дата здачі', width: 110, isSortable: true, type: 'string',
@@ -242,28 +306,12 @@ const makeHeaders = (
   },
   {
     accessor: 'status', label: 'Статус', width: 110, isSortable: true, type: 'string',
-    cellRenderer: ({ row }) => {
-      const s = (row as OrderRow).status as Status
-      return (
-        <span className="flex items-center gap-1.5">
-          <span className="size-2 rounded-full flex-shrink-0" style={{ backgroundColor: STATUSES[s].color }} />
-          <span className="text-sm">{STATUSES[s].label}</span>
-        </span>
-      )
-    },
+    cellRenderer: ({ row }) => <StatusCell row={row as OrderRow} onUpdate={onUpdateStatus} />,
   },
   {
     accessor: 'note', label: 'Примітка', width: 180, type: 'string',
     cellRenderer: ({ row }) => (
       <span className="text-sm text-muted-foreground truncate">{(row as OrderRow).note || '—'}</span>
-    ),
-  },
-  {
-    accessor: 'actions', label: '', width: 60, type: 'string',
-    cellRenderer: ({ row }) => (
-      <Button size="icon-sm" variant="ghost" title="Запланувати" onClick={e => { e.stopPropagation(); onSchedule(row as OrderRow) }}>
-        <CalendarIcon size={14} />
-      </Button>
     ),
   },
 ]
@@ -279,6 +327,8 @@ export default function ProductionCut() {
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all')
   const { data: rawTasks = [] } = useQuery(convexQuery(api.queries.cutting.getAllCuttingTasks, {}))
+  const { mutate: updateDate }   = useUpdateCuttingTaskPlanedEndDate()
+  const { mutate: updateStatus } = useUpdateCuttingTaskStatus()
 
   const orders: Order[] = useMemo(() =>
     rawTasks.map(task => ({
@@ -302,12 +352,21 @@ export default function ProductionCut() {
         quantityChange: (s as any).quantityChange ?? null,
       })),
       deadline:          formatDate(task.endDate),
+      planedEndDate:     task.planedEndDate,
       status:            task.status as Status,
       note:              task.note ?? '',
       relevantLogsCount: task.relevantLogsCount ?? 0,
       unseenLogsCount:   task.unseenLogsCount   ?? 0,
     })),
   [rawTasks])
+
+  const handleUpdateDate = useCallback((id: string, date: number | null) => {
+    updateDate({ cuttingTaskId: id as Id<'cuttingTasks'>, planedEndDate: date ?? undefined })
+  }, [updateDate])
+
+  const handleUpdateStatus = useCallback((id: string, status: Status) => {
+    updateStatus({ cuttingTaskId: id as Id<'cuttingTasks'>, status })
+  }, [updateStatus])
 
   const handleSchedule = useCallback((row: OrderRow) => {
     navigate({ to: '/app/planner', search: { orderId: row.id } as any })
@@ -331,7 +390,10 @@ export default function ProductionCut() {
 
   const specNames = useMemo(() => [...new Set(orders.map(o => o.specName))], [orders])
 
-  const headers = useMemo(() => makeHeaders(handleSchedule, handleOpenLogs), [handleSchedule, handleOpenLogs])
+  const headers = useMemo(
+    () => makeHeaders(handleSchedule, handleOpenLogs, handleUpdateDate, handleUpdateStatus),
+    [handleSchedule, handleOpenLogs, handleUpdateDate, handleUpdateStatus],
+  )
 
   const rows = useMemo(() => {
     const q = search.toLowerCase()

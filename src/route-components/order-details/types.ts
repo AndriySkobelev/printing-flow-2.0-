@@ -19,6 +19,10 @@ export type OrderItem = {
   keycrmProductComment?: string | null
   brandingComment?: string | null
   sewingComment?: string | null
+  isCustomCut?: boolean | null
+  isCustomSewing?: boolean | null
+  customCutComment?: string | null
+  customSewingComment?: string | null
   shipmentType?: 'manufacturing' | 'warehouse' | null
   destination?: 'customer' | 'warehouse' | 'defects' | null
   brandingType?: BrandingTypeValue[] | null

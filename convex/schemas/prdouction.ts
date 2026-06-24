@@ -12,7 +12,7 @@ export const cuttingTasks = {
   orderIndex: v.optional(v.string()),
   planedEndDate: v.optional(v.number()),
   productionOrderId: v.id("productionOrders"),
-  status: taskStatusV,
+  status: extendedTaskStatusV,
   assignedTo: v.optional(v.id("users")),
   note: v.optional(v.string()),
 };

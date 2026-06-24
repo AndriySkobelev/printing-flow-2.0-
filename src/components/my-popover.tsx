@@ -5,10 +5,12 @@ import {
 } from "@/components/ui/popover"
 
 type MyPopoverProps = {
-  withArrow?: boolean,
-  trigger: React.ReactNode;
-  content: React.ReactNode;
-  align?: "start" | "center" | "end";
+  withArrow?: boolean
+  trigger: React.ReactNode
+  content: React.ReactNode
+  align?: "start" | "center" | "end"
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
 }
 
 export function MyPopover({
@@ -16,9 +18,11 @@ export function MyPopover({
   trigger,
   content,
   withArrow = false,
+  open,
+  onOpenChange,
 }: MyPopoverProps) {
   return (
-    <Popover>
+    <Popover open={open} onOpenChange={onOpenChange}>
       <PopoverTrigger asChild>
         {trigger}
       </PopoverTrigger>
