@@ -1,9 +1,10 @@
-import { useCallback, useContext } from 'react'
+import { useCallback, useContext, useState } from 'react'
 import { type HeaderObject } from 'simple-table-core'
 import { type Id } from 'convex/_generated/dataModel'
-import { MessageSquare, Pencil, Scissors, Warehouse, Trash2, SquareSplitHorizontal } from 'lucide-react'
+import { MessageSquare, Pencil, Scissors, Warehouse, Trash2, SquareSplitHorizontal, Save } from 'lucide-react'
 import { ActionsMenu } from '@/components/actions-menu'
 import { MyPopover } from '@/components/my-popover'
+import { Textarea } from '@/components/ui/text-area'
 import { DialogContext } from '@/contexts/dialog'
 import {
   useUpdateOrderItemBrandingComment,
@@ -13,11 +14,31 @@ import {
   useUpdateOrderItem,
 } from '../actions'
 import { type OrderItem, type BrandingTypeValue, BRANDING_LABELS } from '../types'
-import { InlineEdit } from './inline-edit'
 import { SplitItemForm } from '../forms/split-item-form'
 import { EditItemForm } from '../forms/edit-item-form'
 
 // ─── Cells ────────────────────────────────────────────────────────────────────
+
+const CommentField = ({ value, onSave, placeholder }: { value: string; onSave: (val: string) => void; placeholder?: string }) => {
+  const [draft, setDraft] = useState(value)
+  return (
+    <div className="relative">
+      <Textarea
+        value={draft}
+        onChange={e => setDraft(e.target.value)}
+        placeholder={placeholder}
+        className="text-xs min-h-[60px] resize-none pr-7"
+      />
+      <button
+        onClick={() => onSave(draft.trim())}
+        className="absolute bottom-1.5 right-1.5 p-0.5 text-muted-foreground hover:text-primary transition-colors"
+        title="Зберегти"
+      >
+        <Save size={13} />
+      </button>
+    </div>
+  )
+}
 
 const ShipmentTypeCell = ({ row }: { row: Record<string, unknown> }) => {
   const item = row as OrderItem
@@ -56,11 +77,11 @@ const CommentsCell = ({ row }: { row: Record<string, unknown> }) => {
         <div className="flex flex-col gap-3 p-3 w-64">
           <div className="flex flex-col gap-1">
             <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Брендування</span>
-            <InlineEdit value={item.brandingComment ?? ''} onSave={handleBranding} placeholder="Коментар брендування…" />
+            <CommentField value={item.brandingComment ?? ''} onSave={handleBranding} placeholder="Коментар брендування…" />
           </div>
           <div className="flex flex-col gap-1">
             <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Пошив</span>
-            <InlineEdit value={item.sewingComment ?? ''} onSave={handleSewing} placeholder="Коментар пошиву…" />
+            <CommentField value={item.sewingComment ?? ''} onSave={handleSewing} placeholder="Коментар пошиву…" />
           </div>
         </div>
       }
@@ -76,8 +97,9 @@ const CustomCell = ({ row }: { row: Record<string, unknown> }) => {
     <MyPopover
       align="start"
       trigger={
-        <button className="flex items-center gap-1 text-primary hover:opacity-70 transition-opacity">
-          <Scissors size={13} />
+        <button className="flex items-center gap-1 hover:opacity-70 transition-opacity">
+          {item.isCustomCut    && <span className="px-1.5 py-0.5 rounded-full bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300 text-[11px] font-medium">Крій</span>}
+          {item.isCustomSewing && <span className="px-1.5 py-0.5 rounded-full bg-amber-100  text-amber-700  dark:bg-amber-900/30  dark:text-amber-300  text-[11px] font-medium">Пошив</span>}
         </button>
       }
       content={
@@ -166,6 +188,7 @@ const RowActionsCell = ({ row }: { row: Record<string, unknown> }) => {
   const handleEdit = useCallback(() => {
     openDialog({
       title:   'Редагувати товар',
+      className: "sm:w-150 sm:max-w-150",
       content: (
         <EditItemForm
           item={item}
@@ -291,7 +314,7 @@ export const itemNestedHeaders: HeaderObject[] = [
   {
     accessor:       'isCustomCut',
     label:          'Кастом',
-    width:          70,
+    width:          120,
     minWidth:       50,
     type:           'string',
     headerRenderer: renderHeader,

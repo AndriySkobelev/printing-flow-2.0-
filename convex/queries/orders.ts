@@ -278,12 +278,16 @@ export const getAllProductionOrdersWithProgress = query({
         packingDone = logs.filter(l => l.type === 'completed').reduce((s, l) => s + l.quantity, 0)
       }
 
+      const customFields = (order.keycrmData?.custom_fields ?? []) as Array<{ uuid: string; name: string; value: unknown }>
+      const indicator = customFields.find(f => f.uuid === 'OR_1010')?.value ?? null
+
       return {
         _id:             order._id,
         group:           `#${order.keycrmOrderId}`,
         keycrmOrderId:   order.keycrmOrderId,
         keycrmManager:   order.keycrmManager,
         plannedShipDate: order.plannedShipDate,
+        indicator,
         totalQty,
         cutDone,      cutTotal,
         sewDone,      sewTotal,
@@ -405,6 +409,10 @@ export const getProductionOrderDetails = query({
         brandingType:         i.brandingType ?? null,
         cuttingBrandingType:  i.cuttingBrandingType ?? null,
         destination:          i.destination ?? null,
+        isCustomCut:          i.isCustomCut  ?? null,
+        isCustomSewing:       i.isCustomSewing ?? null,
+        customCutComment:     i.customCutComment ?? null,
+        customSewingComment:  i.customSewingComment ?? null,
       })),
     }
   },
@@ -899,11 +907,21 @@ export const updateOrderItem = mutation({
     brandingType:        v.optional(v.nullable(brandingTypeValidator)),
     cuttingBrandingType: v.optional(v.nullable(brandingTypeValidator)),
     destination:         v.optional(v.nullable(v.union(v.literal('customer'), v.literal('warehouse'), v.literal('defects')))),
+    isCustomCut:         v.optional(v.boolean()),
+    isCustomSewing:      v.optional(v.boolean()),
+    customCutComment:    v.optional(v.string()),
+    customSewingComment: v.optional(v.string()),
   },
-  handler: async (ctx, { itemId, ...fields }) => {
+  handler: async (ctx, { itemId, isCustomCut, isCustomSewing, customCutComment, customSewingComment, ...fields }) => {
     const item = await ctx.db.get(itemId)
     if (!item) throw new Error('Item not found')
-    await ctx.db.patch(itemId, fields)
+    await ctx.db.patch(itemId, {
+      ...fields,
+      ...(isCustomCut   != null ? { isCustomCut }   : {}),
+      ...(isCustomSewing != null ? { isCustomSewing } : {}),
+      ...(customCutComment    != null ? { customCutComment }    : {}),
+      ...(customSewingComment != null ? { customSewingComment } : {}),
+    })
 
     if (fields.quantity !== item.quantity) {
       const cuttingSizes = await ctx.db

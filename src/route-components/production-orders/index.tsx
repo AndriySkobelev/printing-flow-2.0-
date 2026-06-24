@@ -136,6 +136,20 @@ const headers: HeaderObject[] = [
     ),
   },
   {
+    accessor:       'indicator',
+    label:          'Індифікатор',
+    width:          120,
+    minWidth:       80,
+    type:           'string',
+    showWhen:       'parentCollapsed',
+    headerRenderer: renderHeader,
+    cellRenderer: ({ row }) => {
+      const val = row.indicator
+      if (val == null) return <span className="text-muted-foreground/40 text-xs">—</span>
+      return <span className="text-xs">{String(val)}</span>
+    },
+  },
+  {
     accessor:     'products',
     label:        'Товари',
     width:        200,

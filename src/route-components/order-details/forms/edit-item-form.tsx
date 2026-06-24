@@ -4,6 +4,7 @@ import { revalidateLogic, useStore } from '@tanstack/react-form'
 import { Loader2 } from 'lucide-react'
 import { useAppForm } from '@/components/main-form'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/check-box'
 import { type OrderItem, type BrandingTypeValue } from '../types'
 import { BrandingSection } from '../components/branding-section'
 
@@ -28,6 +29,10 @@ const editItemFormSchema = z.object({
   brandingType:        z.array(z.any()).nullable().optional(),
   cuttingBrandingType: z.array(z.any()).nullable().optional(),
   destination:         z.union([z.literal('customer'), z.literal('warehouse'), z.literal('defects'), z.literal(null)]).optional(),
+  isCustomCut:         z.boolean().nullable().optional(),
+  isCustomSewing:      z.boolean().nullable().optional(),
+  customCutComment:    z.string().nullable().optional(),
+  customSewingComment: z.string().nullable().optional(),
 })
 
 export type EditItemFormValues = {
@@ -38,6 +43,10 @@ export type EditItemFormValues = {
   brandingType:        BrandingTypeValue[] | null
   cuttingBrandingType: BrandingTypeValue[] | null
   destination:         'customer' | 'warehouse' | 'defects' | null
+  isCustomCut:         boolean
+  isCustomSewing:      boolean
+  customCutComment:    string | undefined
+  customSewingComment: string | undefined
 }
 
 type Props = {
@@ -69,6 +78,10 @@ export const EditItemForm = ({ item, onSubmit }: Props) => {
         cuttingBrandingType: value.cuttingBrandingType as BrandingTypeValue[],
         brandingComment:     value.brandingComment ?? '',
         sewingComment:       value.sewingComment ?? '',
+        isCustomCut:         value.isCustomCut ?? false,
+        isCustomSewing:      value.isCustomSewing ?? false,
+        customCutComment:    value.customCutComment ?? undefined,
+        customSewingComment: value.customSewingComment ?? undefined,
       })
     },
   })
@@ -113,16 +126,49 @@ export const EditItemForm = ({ item, onSubmit }: Props) => {
           </div>
         )}
       </form.Subscribe>
+      
+      <div className='flex gap-2 w-full'>
+        <div className="flex flex-col gap-1 w-full">
+          <label className="text-sm ml-2 text-[#bbbfc7]">Коментар (брендування)</label>
+          <form.AppField name="brandingComment" children={f => <f.TextAreaField placeholder="Коментар…" />} />
+        </div>
 
-      <div className="flex flex-col gap-1">
-        <label className="text-sm ml-2 text-[#bbbfc7]">Коментар (брендування)</label>
-        <form.AppField name="brandingComment" children={f => <f.TextAreaField placeholder="Коментар…" />} />
+        <div className="flex flex-col gap-1 w-full">
+          <label className="text-sm ml-2 text-[#bbbfc7]">Коментар (пошив)</label>
+          <form.AppField name="sewingComment" children={f => <f.TextAreaField placeholder="Коментар…" />} />
+        </div>
       </div>
 
-      <div className="flex flex-col gap-1">
-        <label className="text-sm ml-2 text-[#bbbfc7]">Коментар (пошив)</label>
-        <form.AppField name="sewingComment" children={f => <f.TextAreaField placeholder="Коментар…" />} />
-      </div>
+      <form.Subscribe selector={s => [s.values.isCustomCut, s.values.isCustomSewing] as const}>
+        {([isCustomCut, isCustomSewing]) => (
+          <div className="flex gap-2 justify-between">
+            <div className="flex flex-col gap-2 w-full">
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <Checkbox
+                  checked={!!isCustomCut}
+                  onCheckedChange={v => form.setFieldValue('isCustomCut', !!v)}
+                />
+                <span className="text-sm text-muted-foreground">Індивідуальний крій</span>
+              </label>
+              {isCustomCut && (
+                <form.AppField name="customCutComment" children={f => <f.TextAreaField placeholder="Коментар крою…" />} />
+              )}
+            </div>
+            <div className="flex flex-col gap-2 w-full">
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <Checkbox
+                  checked={!!isCustomSewing}
+                  onCheckedChange={v => form.setFieldValue('isCustomSewing', !!v)}
+                />
+                <span className="text-sm text-muted-foreground">Індивідуальний пошив</span>
+              </label>
+              {isCustomSewing && (
+                <form.AppField name="customSewingComment" children={f => <f.TextAreaField placeholder="Коментар пошиву…" />} />
+              )}
+            </div>
+          </div>
+        )}
+      </form.Subscribe>
 
       <form.Subscribe selector={s => [s.canSubmit, s.isSubmitting] as const}>
         {([canSubmit, isSubmitting]) => (
