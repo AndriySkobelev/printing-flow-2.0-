@@ -2,25 +2,32 @@ import {
   HeadContent,
   Scripts,
   createRootRouteWithContext,
+  useRouter
 } from '@tanstack/react-router'
-import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
-import { TanStackDevtools } from '@tanstack/react-devtools'
-
-import Header from '../components/Header'
+import { useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
+import appCss from '../styles.css?url'
+import { type QueryClient } from '@tanstack/react-query'
+import { type ConvexReactClient } from 'convex/react'
+import { Toaster } from '@/components/ui/sonner'
+import { setSSRLanguage } from '@/lib/i18n'
+import { AuthPropsType } from '@/contexts/auth';
 
 import TanStackQueryDevtools from '../integrations/tanstack-query/devtools'
-
 import StoreDevtools from '../lib/demo-store-devtools'
-
-import appCss from '../styles.css?url'
-
-import type { QueryClient } from '@tanstack/react-query'
+import { TanStackDevtools } from '@tanstack/react-devtools'
+import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 
 interface MyRouterContext {
+  auth: AuthPropsType | null
   queryClient: QueryClient
+  convexClient: ConvexReactClient
 }
 
 export const Route = createRootRouteWithContext<MyRouterContext>()({
+  beforeLoad: async ({ context }) => {
+    await setSSRLanguage();
+  },
   head: () => ({
     meta: [
       {
@@ -41,20 +48,34 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
       },
     ],
   }),
-
   shellComponent: RootDocument,
 })
 
 function RootDocument({ children }: { children: React.ReactNode }) {
+  const { i18n } = useTranslation()
+  const router = useRouter();
+
+  useEffect(() => {
+    const handler = () => {
+      router.invalidate()
+    }
+    i18n.on("languageChanged", handler)
+    return () => {
+      i18n.off("languageChanged", handler)
+    }
+  }, [router])
   return (
-    <html lang="en">
+    <html lang={i18n.language} suppressHydrationWarning>
       <head>
         <HeadContent />
+        <link rel="preconnect" href="https://fonts.googleapis.com"/>
+        <link rel="preconnect" href="https://fonts.gstatic.com"/>
+        <link href="https://fonts.googleapis.com/css2?family=Google+Sans:ital,opsz,wght@0,17..18,400..700;1,17..18,400..700&display=swap" rel="stylesheet"/>
       </head>
       <body>
-        <Header />
+        <Toaster />
         {children}
-        <TanStackDevtools
+        {/* <TanStackDevtools
           config={{
             position: 'bottom-right',
           }}
@@ -66,7 +87,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
             TanStackQueryDevtools,
             StoreDevtools,
           ]}
-        />
+        /> */}
         <Scripts />
       </body>
     </html>
