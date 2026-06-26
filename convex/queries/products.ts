@@ -21,14 +21,26 @@ const addToAll = (value: any, data: Array<any>) => {
 }
 
 export const getFabricsByNameAndColors = async (ctx: QueryCtx, fabricName: string, colors?: Array<string>) => {
-  const getFabric = await ctx.db.query('fabrics').filter(q => q.eq(q.field('fabricName'), fabricName)).collect();
-  const sortedFabrics = getFabric.sort((a, b) => a.skuNumber - b.skuNumber);
-  const getFabrics= sortedFabrics.map((el) => (pick(['color', '_id', 'processingType'], el)));
-  let filteredFabrics = getFabrics;
-  if (colors) {
-    filteredFabrics = getFabrics.filter(el => colors.includes(el.color));
-  }
-  return filteredFabrics;
+  const parent = await ctx.db
+    .query('fabrics')
+    .filter(q => q.eq(q.field('name'), fabricName))
+    .first();
+  if (!parent) return [];
+
+  const variants = await ctx.db
+    .query('fabricVariants')
+    .withIndex('by_parentId', q => q.eq('parentId', parent._id))
+    .collect();
+
+  const sorted = variants.sort((a, b) => a.skuNumber - b.skuNumber);
+  const result = sorted.map(v => ({
+    color: v.color,
+    _id: v._id,
+    processingType: parent.processingType,
+    fabricParentId: parent._id,
+  }));
+
+  return colors ? result.filter(v => colors.includes(v.color)) : result;
 }
 
 export const getSpecWithMaterials = async (ctx: QueryCtx, specId: Id<'specifications'>) => {
@@ -40,7 +52,7 @@ export const getSpecWithMaterials = async (ctx: QueryCtx, specId: Id<'specificat
       data = await ctx.db.get('fabrics', material.fabricId) as Fabrics
       return {
         ...material,
-        name: data?.fabricName
+        name: data?.name
       };
     }
     if (material.materialId) {
@@ -67,6 +79,32 @@ export const getProducts = query({
     const materials = await ctx.db.query("materials").collect();
     return materials;
   }
+})
+
+export const getProductsBySpec = query({
+  args: { specificationId: v.id('specifications') },
+  handler: async (ctx, { specificationId }) => {
+    return ctx.db
+      .query('products')
+      .withIndex('by_parentId', q => q.eq('parentId', specificationId))
+      .collect();
+  },
+})
+
+export const getSpecBaseFabricColors = query({
+  args: { specificationId: v.id('specifications') },
+  handler: async (ctx, { specificationId }) => {
+    const spec = await ctx.db.get(specificationId);
+    if (!spec) return [];
+
+    const baseMaterial = spec.materials.find(m => m.type === 'base' && m.fabricId);
+    if (!baseMaterial?.fabricId) return [];
+
+    const baseFabric = await ctx.db.get('fabrics', baseMaterial.fabricId);
+    if (!baseFabric?.name) return [];
+
+    return getFabricsByNameAndColors(ctx, baseFabric.name);
+  },
 })
 
 export const createProduct = mutation({
@@ -154,9 +192,9 @@ export const createProductsBySpecification = mutation({
       throw new Error(`Specification with id ${args.specification} not found`);
     }
   
-    let skuNumber = 1;
+    let skuNumber = spec?.lastVariantIndex ?? 0;
     const combineProducts = fabricsByColors?.flatMap((fabric, colIndex) => sizes?.map((size, sIndex) => {
-      const numberSku = skuNumber++
+      const numberSku = ++skuNumber
       const data = {
         size,
         color: fabric?.color,
@@ -165,7 +203,7 @@ export const createProductsBySpecification = mutation({
         processingType: fabric?.processingType,
         searchText: `${spec?.name}.${size}.${fabric?.color}`,
         materials: [
-          { fabricId: fabric._id, multiplier: 1, overwriteMaterialId: specFabric?.fabricId },
+          { fabricVariantId: fabric._id as any, multiplier: 1, overwriteMaterialId: specFabric?.fabricId },
         ],
         sku: `${spec?.skuPrefix}-${String(numberSku).padStart(5, '0')}`,
       }
@@ -173,9 +211,45 @@ export const createProductsBySpecification = mutation({
     }))
     const addedData = combineProducts || [];
     await Promise.all(addedData?.map(async (value) => { await ctx.db.insert('products', value as any) }))
+    await ctx.db.patch(args.specification, { lastVariantIndex: skuNumber });
 
     return combineProducts;
   }
+})
+
+export const createSpecVariants = mutation({
+  args: {
+    specificationId: v.id('specifications'),
+    variants: v.array(v.object({ color: v.string(), size: v.string() })),
+  },
+  handler: async (ctx, { specificationId, variants }) => {
+    const spec = await ctx.db.get(specificationId);
+    if (!spec) throw new Error('Специфікацію не знайдено');
+
+    let skuNumber = spec.lastVariantIndex ?? 0;
+
+    const existing = await ctx.db
+      .query('products')
+      .withIndex('by_parentId', q => q.eq('parentId', specificationId))
+      .collect();
+
+    for (const { color, size } of variants) {
+      const template = existing.find(p => p.color === color);
+      const numberSku = ++skuNumber;
+      await ctx.db.insert('products', {
+        size,
+        color,
+        parentId: specificationId,
+        skuNumber: numberSku,
+        processingType: template?.processingType ?? null,
+        searchText: `${spec.name}.${size}.${color}`,
+        materials: template?.materials,
+        sku: `${spec.skuPrefix}-${String(numberSku).padStart(5, '0')}`,
+      });
+    }
+
+    await ctx.db.patch(specificationId, { lastVariantIndex: skuNumber });
+  },
 })
 
 export const getProductsWithResolvedMaterials = query({
@@ -205,7 +279,7 @@ export const getProductsWithResolvedMaterials = query({
       const resolvedMaterials = await Promise.all(effectiveMaterials.map(async (material: any) => {
         if (material.fabricId) {
           const fabric = await ctx.db.get(material.fabricId) as Fabrics | null;
-          return { ...material, name: fabric?.fabricName, color: fabric?.color, units: fabric?.units };
+          return { ...material, name: fabric?.name, color: fabric, units: fabric?.units };
         }
         if (material.materialId) {
           const mat = await ctx.db.get(material.materialId) as Materials | null;

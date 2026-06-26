@@ -1,90 +1,48 @@
 import z from 'zod'
 import { type FunctionComponent } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { useAppForm } from "@/components/main-form";
 import { revalidateLogic } from "@tanstack/react-form";
-import { convexQuery } from "@convex-dev/react-query";
-import { api } from "convex/_generated/api";
-import { unitsOptions } from "@/route-components/specifications/forms/create-specefication";
+import { unitsOptions } from "@/route-components/specifications/forms/create-specification";
 
 const formSchema = z.object({
-  name: z.string(),
-  skuPrefix: z.string(),
-  units: z.string(),
-  processingType: z.string().nullable(),
-  colors: z.array(z.object({ value: z.string(), label: z.string() })),
+  name: z.string().min(1),
+  skuPrefix: z.string().min(1),
+  units: z.string().min(1),
+  processingType: z.string().nullable().optional(),
 })
 
 type FormValuesType = z.infer<typeof formSchema>;
 
-type valuesSubmitType = {
-  colors: Array<string>
+interface CreateFabricFormProps {
+  formId: string
+  defaultValues?: Partial<FormValuesType>
+  actionSubmit: (values: FormValuesType) => void
 }
 
-interface CreateFabricFormProps {
-  formId: string,
-  defaultValues?: FormValuesType,
-  actionSubmit: (values: valuesSubmitType) => void
-}
- 
-const CreateFabricForm: FunctionComponent<CreateFabricFormProps> = ({
-  formId,
-  defaultValues,
-  actionSubmit
-}) => {
-  const { data } = useQuery(convexQuery(api.queries.specifications.getSpecificationsWithMaterials));
-  
+const CreateFabricForm: FunctionComponent<CreateFabricFormProps> = ({ formId, defaultValues, actionSubmit }) => {
   const form = useAppForm({
     validationLogic: revalidateLogic(),
-    validators: {
-      onDynamic: formSchema,
-    },
-    defaultValues: defaultValues || {
-      colors: [],
-    },
-    onSubmit: ({ value }) => {
-      const clearColors = value.colors.map((color) => color.value);
-      actionSubmit({ ...value, colors: clearColors })
-    }
+    validators: { onDynamic: formSchema },
+    defaultValues:  defaultValues ?? { name: '', skuPrefix: '', units: '', processingType: null },
+    onSubmit: ({ value }) => actionSubmit(value as FormValuesType),
   })
 
-  return (
-    <>
-      <form
-        id={formId}
-        onSubmit={(e) => {
-          e.preventDefault();
-          form.handleSubmit();
-        }}
-        className="flex flex-col gap-3"
-      >
-        <div className='flex gap-2 items-end'>
-          <form.AppField
-            name="name"
-            children={(field) => <field.FormTextField label="Назва" />}
-          />
-          <form.AppField
-            name="processingType"
-            children={(field) => <field.FormTextField label="Обробка" />}
-          />
-        </div>
-        <div className="flex flex-row gap-2 items-end">
-          <form.AppField
-            name="skuPrefix"
-            children={(field) => <field.FormTextField label="SKU префікс" />}
-          />
-           <form.AppField
-            name="units"
-            children={(field) => <field.FormSelect options={unitsOptions} label="Одиниці вим." />}
-          />
-        </div>
-        <form.AppField
-          name='colors'
-          children={(field) => <field.FormCreatableSelect isMulti={true} options={[]} label="Кольори" />}
-        />
-      </form>
-    </>
-  );
+  return ( 
+    <form
+      id={formId}
+      onSubmit={(e) => { e.preventDefault(); form.handleSubmit() }}
+      className="flex flex-col gap-3"
+    >
+      <div className="flex gap-2 items-end">
+        <form.AppField name="name" children={(f) => <f.FormTextField label="Назва" />} />
+        <form.AppField name="processingType" children={(f) => <f.FormTextField label="Обробка" />} />
+      </div>
+      <div className="flex gap-2 items-end">
+        <form.AppField name="skuPrefix" children={(f) => <f.FormTextField label="SKU префікс" />} />
+        <form.AppField name="units" children={(f) => <f.FormSelect options={unitsOptions} label="Одиниці вим." />} />
+      </div>
+    </form>
+  )
 }
- 
-export default CreateFabricForm;
+
+export default CreateFabricForm

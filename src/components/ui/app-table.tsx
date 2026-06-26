@@ -19,6 +19,7 @@ interface AppTableProps {
   enableRowSelection?: boolean;
   ref?: React.Ref<any>;
   hideHeader?: boolean;
+  className?: string;
   enableStickyParents?: boolean;
   defaultHeaders: HeaderObject[];
   quickFilter?: QuickFilterConfig,
@@ -30,7 +31,7 @@ interface AppTableProps {
   onPageChange?: (page: number) => void;
 }
 
-const AppTable = ({ fallback, defaultHeaders, height, rows, isLoading, getRowId, ...props }: AppTableProps) => (
+const AppTable = ({ fallback, className, defaultHeaders, height, rows, isLoading, getRowId, ...props }: AppTableProps) => (
   <Suspense fallback={fallback ?? <div className="flex items-center justify-center w-full h-32"><Spinner className="w-5 h-5" /></div>}>
     <SimpleTable
       rows={rows}
@@ -39,6 +40,7 @@ const AppTable = ({ fallback, defaultHeaders, height, rows, isLoading, getRowId,
       getRowId={getRowId}
       isLoading={isLoading}
       theme={'modern-light'}
+      className={className}
       customTheme={{ rowHeight: 40, headerHeight: 50 }}
       {...props}  />
   </Suspense>

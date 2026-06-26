@@ -75,6 +75,7 @@ interface Order {
   planedEndDate?: number
   status: Status
   note: string
+  customCutComment: string | null
   relevantLogsCount: number
   unseenLogsCount: number
 }
@@ -245,7 +246,7 @@ const makeHeaders = (
     accessor: `sz_${s}`,
     label: s,
     align: 'center',
-    width: 52,
+    width: 51,
     isSortable: true,
     type: 'number',
     cellRenderer: ({ row }) => {
@@ -293,7 +294,7 @@ const makeHeaders = (
     cellRenderer: ({ row }) => <span className="font-medium text-sm">{(row as OrderRow)._total}</span>,
   },
   {
-    accessor: 'planedEndDate', label: 'Видача крою', width: 150, isSortable: true, type: 'string',
+    accessor: 'planedEndDate', label: 'Видача крою', width: 120, isSortable: true, type: 'string',
     cellRenderer: ({ row }) => <PlanedDateCell row={row as OrderRow} onUpdate={onUpdateDate} />,
   },
     {
@@ -305,7 +306,7 @@ const makeHeaders = (
     },
   },
   {
-    accessor: 'status', label: 'Статус', width: 110, isSortable: true, type: 'string',
+    accessor: 'status', label: 'Статус', width: 90, isSortable: true, type: 'string',
     cellRenderer: ({ row }) => <StatusCell row={row as OrderRow} onUpdate={onUpdateStatus} />,
   },
   {
@@ -313,6 +314,18 @@ const makeHeaders = (
     cellRenderer: ({ row }) => (
       <span className="text-sm text-muted-foreground truncate">{(row as OrderRow).note || '—'}</span>
     ),
+  },
+  {
+    accessor: 'customCutComment', label: 'Кастом крій', width: 200, type: 'string',
+    cellRenderer: ({ row }) => {
+      const comment = (row as OrderRow).customCutComment
+      if (!comment) return <span className="text-muted-foreground/30 text-xs">—</span>
+      return (
+        <span className="text-xs text-violet-700 dark:text-violet-300 truncate" title={comment}>
+          {comment}
+        </span>
+      )
+    },
   },
 ]
 
@@ -355,6 +368,7 @@ export default function ProductionCut() {
       planedEndDate:     task.planedEndDate,
       status:            task.status as Status,
       note:              task.note ?? '',
+      customCutComment:  (task as any).customCutComment ?? null,
       relevantLogsCount: task.relevantLogsCount ?? 0,
       unseenLogsCount:   task.unseenLogsCount   ?? 0,
     })),

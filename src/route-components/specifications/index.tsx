@@ -2,16 +2,19 @@ import { type FunctionComponent, memo, useContext } from "react";
 import { useQuery } from '@tanstack/react-query'
 import { convexQuery } from '@convex-dev/react-query'
 import { api } from "convex/_generated/api";
-import { type HeaderObject } from "simple-table-core";
+import { type HeaderObject, type CellClickProps } from "simple-table-core";
+import { useNavigate } from '@tanstack/react-router'
+import { Route as specificationsRoute } from '@/routes/_authenticated/app/specifications'
+import { Route as specDetailsRoute } from '@/routes/_authenticated/app/specifications_.$specId'
 import { DialogContext } from '@/contexts/dialog'
 import { useCreateSpecification } from "./utils/queries";
 import { Button } from "@/components/ui/button";
 import { type Specifications } from 'convex/schema'
-import SpecificationForm, { type SpecificationFormType } from './forms/create-specefication';
-import { Ellipsis, Trash2, Copy, SquarePen, Shirt } from "lucide-react";
+import SpecificationForm, { type SpecificationFormType } from './forms/create-specification';
+import { Trash2, Copy, SquarePen, Shirt } from "lucide-react";
 import AppTable from "@/components/ui/app-table";
 import { MyPopover } from "@/components/my-popover";
-import clsx from "clsx";
+import { ActionsMenu } from "@/components/actions-menu";
 import { useDeleteSpecification, useDuplicateSpecification, useUpdateSpecification } from "./utils/queries";
 import { Separator } from "radix-ui";
 import { EditSpecifications } from "./forms/edit-specifications";
@@ -21,43 +24,19 @@ interface SpecificationsProps {
 }
 
 
-const actionsList = [
-  {icon: <SquarePen size={12} />, label: 'Редагувати', isDisable: false, actionName: 'edit'},
-  {icon: <Copy size={12} />, label: 'Дублювати', isDisable: false, actionName: 'duplicate'},
-  {icon: <Trash2 size={12} />, label: 'Видалити', isDisable: false, actionName: 'delete' },
-];
-
-const ActionsListComponent = ({ row, handleEditSpec }: { row: any, handleEditSpec: (data: any) => void }) => {
+const SpecActionsCell = ({ row, handleEditSpec }: { row: any; handleEditSpec: (data: any) => void }) => {
   const { mutate: duplicateAction } = useDuplicateSpecification();
   const { mutate: deleteAction } = useDeleteSpecification();
 
-  const handleActions = (actionName: string) => {
-    const actionData = { id: row._id };
-    const actions = {
-      duplicate: () => duplicateAction(actionData),
-      delete: () => deleteAction(actionData),
-      edit: () => handleEditSpec(row)
-    }
-    actions[actionName as keyof typeof actions]?.();
-  }
-
   return (
-    <div className="flex flex-col">
-      {actionsList.map((action) => (
-        <div 
-          key={action.label} 
-          onClick={() => action.isDisable ? null : handleActions(action.actionName)}
-          className={clsx(
-            "flex flex-row items-center gap-2 cursor-pointer hover:bg-gray-100 p-2 rounded",
-            action.isDisable && "cursor-not-allowed opacity-50 hover:bg-transparent"
-          )}
-        >
-          {action.icon}
-          <span className="text-sm">{action.label}</span>
-        </div>
-      ))}
-    </div>
-  )
+    <ActionsMenu
+      items={[
+        { label: 'Редагувати', icon: <SquarePen className="size-3" />, onClick: () => handleEditSpec(row) },
+        { label: 'Дублювати', icon: <Copy className="size-3" />, onClick: () => duplicateAction({ id: row._id }) },
+        { label: 'Видалити', icon: <Trash2 className="size-3" />, destructive: true, onClick: () => deleteAction({ id: row._id }) },
+      ]}
+    />
+  );
 };
 
 export const MaterialsCellComponent = memo(({ materials }: { materials: any }) => {
@@ -128,13 +107,10 @@ const headers: ({ handleEditSpec }: HeaderProps) => Array<HeaderObject> = ({ han
     width: 50,
     type: 'other',
     label: "",
-    accessor: "",
+    accessor: "_actions",
     pinned: 'right',
     cellRenderer: ({ row }) => (
-      <MyPopover
-        trigger={<Ellipsis className="cursor-pointer" size={14}/>}
-        content={<ActionsListComponent row={row} handleEditSpec={handleEditSpec} />}
-      />
+      <SpecActionsCell row={row} handleEditSpec={handleEditSpec} />
     )
   },
 ];
@@ -144,13 +120,20 @@ const Specifications: FunctionComponent<SpecificationsProps> = () => {
   const { mutate: createSpec } = useCreateSpecification();
   const { mutate: updateSpec } = useUpdateSpecification();
   const { openDialog, closeDialog } = useContext(DialogContext);
+  const navigate = useNavigate({ from: specificationsRoute.to });
+
+  const handleCellClick = ({ row, accessor }: CellClickProps) => {
+    if (accessor === '_actions') return;
+    const r = row as any;
+    if (!r._id) return;
+    navigate({ to: specDetailsRoute.to, params: { specId: r._id } });
+  };
 
   const handleSubmitAdd = (values: SpecificationFormType) => {
     const newMaterials = values.materials.map((material) => ({
+      ...material,
       fabricId: 'fabricId' in material ? material.fabricId?.value as Id<'fabrics'> : undefined,
       materialId: 'materialId' in material ? material.materialId?.value as Id<'materials'>: undefined,
-      units: material.units,
-      quantity: material.quantity,
     }));
     createSpec({...values, materials: newMaterials} as Specifications);
     closeDialog();
@@ -177,6 +160,7 @@ const Specifications: FunctionComponent<SpecificationsProps> = () => {
   const handleAddSpec = () => {
     openDialog({
       title: 'Створення специфікації',
+      className: 'sm:w-250 sm:max-w-250',
       content: <SpecificationForm
         formId="create-specification-form"
         actionSubmit={handleSubmitAdd}/>,
@@ -206,7 +190,8 @@ const Specifications: FunctionComponent<SpecificationsProps> = () => {
         height={600}
         rows={data || []}
         defaultHeaders={headers({ handleEditSpec })}
-        getRowId={({ row }: any) => row.id as string}
+        getRowId={({ row }: any) => row._id as string}
+        onCellClick={handleCellClick}
       />
     </div>
   );

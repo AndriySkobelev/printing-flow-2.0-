@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { memo, useMemo } from "react";
-import SpecificationForm, { SpecificationFormType } from "./create-specefication"
+import SpecificationForm, { SpecificationFormType } from "./create-specification"
 import { convexQuery } from "@convex-dev/react-query";
 import { api } from "convex/_generated/api";
 import { Id } from "convex/_generated/dataModel";

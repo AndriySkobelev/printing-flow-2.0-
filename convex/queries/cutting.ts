@@ -34,7 +34,7 @@ async function resolveSpecForOrder(ctx: QueryCtx, productionOrderId: Id<'product
           if (!name) {
             if (mat.fabricId) {
               const fabric = await ctx.db.get(mat.fabricId as Id<'fabrics'>);
-              name = fabric?.fabricName ?? fabric?.name;
+              name = fabric?.name;
             } else if (mat.materialId) {
               const material = await ctx.db.get(mat.materialId as Id<'materials'>);
               name = material?.name;

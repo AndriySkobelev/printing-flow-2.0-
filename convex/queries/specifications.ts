@@ -56,7 +56,7 @@ export const getSpecsWithMaterials = query({
         let data, pickData;
         if (material.fabricId) {
           data = await ctx.db.get('fabrics', material.fabricId)
-          pickData = renameKey(pick(['fabricName', 'color'], data as Fabrics || {}), 'fabricName', 'name')
+          pickData = { name: (data as Fabrics)?.name }
         }
         if (material.materialId) {
           data = await ctx.db.get('materials', material.materialId)
@@ -115,4 +115,49 @@ export const duplicateSpecification = mutation({
     const req = await ctx.db.insert('specifications', updateData)
     return { result: 'success'};
   }
+})
+
+export const getSpecificationById = query({
+  args: { id: v.id('specifications') },
+  handler: async (ctx, { id }) => {
+    const spec = await ctx.db.get(id);
+    if (!spec) return null;
+
+    const materials = await Promise.all(spec.materials.map(async (material) => {
+      let data: any = {};
+      if (material.fabricId) {
+        const fabric = await ctx.db.get(material.fabricId);
+        data = { name: fabric?.name };
+      }
+      if (material.materialId) {
+        const mat = await ctx.db.get(material.materialId);
+        data = { name: mat?.name, color: mat?.color, size: mat?.size };
+      }
+      return { ...material, ...data };
+    }));
+
+    return { ...spec, materials };
+  }
+})
+
+export const generateSpecFileUploadUrl = mutation({
+  handler: async (ctx) => ctx.storage.generateUploadUrl(),
+})
+
+export const addSpecAttachedFile = mutation({
+  args: {
+    specificationId: v.id('specifications'),
+    storageId: v.string(),
+    name: v.string(),
+    contentType: v.optional(v.string()),
+  },
+  handler: async (ctx, { specificationId, storageId, name, contentType }) => {
+    const spec = await ctx.db.get(specificationId);
+    if (!spec) throw new Error('Специфікацію не знайдено');
+    const url = await ctx.storage.getUrl(storageId as any);
+    if (!url) throw new Error('Не вдалося отримати URL файлу');
+    const files = [...(spec.attachedFiles ?? []), { url, name, contentType }];
+    await ctx.db.patch(specificationId, { attachedFiles: files });
+    return { url, name, contentType };
+  },
 })

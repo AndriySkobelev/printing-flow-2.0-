@@ -9,7 +9,7 @@ import { api } from 'convex/_generated/api';
 import { useQuery } from '@tanstack/react-query';
 import { convexQuery } from '@convex-dev/react-query';
 import { UTCDate } from '@date-fns/utc';
-import { TextField } from '@/components/main-form/text-field';
+import { TextNumberField } from '@/components/main-form/text-field';
 import { ProductsList, type SizeEntry, type ProductEntry } from '@/route-components/seamstress/components/products-list';
 
 // --- Schema ---
@@ -169,7 +169,7 @@ const NewForm: FunctionComponent<NewFormProps> = ({ formId, defaultValues, actio
                         {Object.entries(sizeQuantities).map(([size, qty]) => (
                           <div key={size} className='flex items-center gap-2 text-sm px-2 py-1 rounded bg-primary/5'>
                             <span className='w-10 font-medium'>{size}</span>
-                            <TextField
+                            <TextNumberField
                               min={1}
                               type='number'
                               otherValue={qty}

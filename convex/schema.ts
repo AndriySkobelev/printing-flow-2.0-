@@ -21,11 +21,12 @@ import {
 } from './schemas/prdouction';
 import {
   fabricsTable,
+  fabricVariantsTable,
+  fabricColorsTable,
   materialsTable,
   proudctsTable,
   specifications,
   shiftReportsTabel,
-  fabricColorsTable,
   icomingMaterialsTable
 } from './schemas/storage';
 
@@ -132,21 +133,20 @@ export default defineSchema({
   orders: ordersTable.index("orderId", ["orderId"]),
   fabrics: fabricsTable
     .searchIndex('search_name', {
-      searchField: 'fabricName',
-    })
-    .searchIndex('search_color', {
-      searchField: 'color',
+      searchField: 'name',
     })
     .searchIndex('search_skuPrefix', {
       searchField: 'skuPrefix',
-    })
-    .index('by_skuNumber', ['skuNumber']),
+    }),
+  fabricVariants: fabricVariantsTable
+    .index('by_parentId', ['parentId']),
   materials: materialsTable
     .searchIndex('search_name', {
       searchField: 'searchText'
     }),
   products: proudctsTable
     .index('search_sku', ['sku'])
+    .index('by_parentId', ['parentId'])
     .searchIndex('search_text', {
       searchField: 'searchText'
     }),

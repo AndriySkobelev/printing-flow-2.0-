@@ -3,13 +3,12 @@ import { Trash2Icon } from 'lucide-react'
 import { z } from 'zod';
 import { has } from 'ramda';
 import clsx from "clsx";
-import { revalidateLogic, useStore } from '@tanstack/react-form';
+import { revalidateLogic } from '@tanstack/react-form';
 import { useAppForm } from "@/components/main-form";
 import { Button } from "@/components/ui/button";
 import { useAsyncOptions } from '../utils/hooks'
 import { api } from "convex/_generated/api";
 import { Option } from "@/components/main-form/select/form-select";
-import { ScrollArea } from "@/components/ui/scroll-area";
 
 export const unitsOptions = [
   {value: 'шт', label: 'шт'},
@@ -39,6 +38,12 @@ const specificationSchema = z.object({
     }),
     z.object({
       type: z.literal('fabric'),
+      units: z.string(),
+      quantity: z.string(),
+      fabricId: selectFieldSchema,
+    }),
+    z.object({
+      type: z.literal('base'),
       units: z.string(),
       quantity: z.string(),
       fabricId: selectFieldSchema,
@@ -96,7 +101,7 @@ const SpecificationForm: FunctionComponent<SpecificationFormProps> = ({
       packingTime:    '0',
       brandingTime:   '0',
       materials: [
-        { type: 'fabric' as const, fabricId: undefined, quantity: '1', units: '' }
+        { type: 'base' as const, fabricId: undefined, quantity: '1', units: '' }
       ]
     },
     onSubmit: (value) => {
@@ -115,39 +120,41 @@ const SpecificationForm: FunctionComponent<SpecificationFormProps> = ({
           e.preventDefault();
           form.handleSubmit();
         }}
-        className="flex flex-col gap-3"
+        className="flex gap-3"
       >
-        <div className='flex gap-2'>
-          <form.AppField
-            name='name'
-            children={(field) => <field.FormTextField type="text" label='Назва'/>} />
-          <form.AppField
-            name='category'
-            children={(field) => <field.FormTextField type="text" label='Категорія'/>} />
-        </div>
-        <div className="flex gap-2">
-          <form.AppField
-            name='skuPrefix'
-            children={(field) => <field.FormTextField type="text" label='SKU prefix'/>} />
-          <form.AppField
-            name='productionPrice'
-            children={(field) => <field.FormTextField type="number" label='Ціна виробництва'/>} />
-        </div>
-        <div className="flex gap-2">
-          <form.AppField
-            name='productionTime'
-            children={(field) => <field.FormTextField type="number" label='Час виробництва (хв)'/>} />
-          <form.AppField
-            name='cutTime'
-            children={(field) => <field.FormTextField type="number" label='Час крою (хв)'/>} />
-        </div>
-        <div className="flex gap-2">
-          <form.AppField
-            name='packingTime'
-            children={(field) => <field.FormTextField type="number" label='Час пакування (хв)'/>} />
-          <form.AppField
-            name='brandingTime'
-            children={(field) => <field.FormTextField type="number" label='Час брендингу (хв)'/>} />
+        <div className="flex flex-col w-full gap-2">
+          <div className='flex gap-2'>
+            <form.AppField
+              name='name'
+              children={(field) => <field.FormTextField type="text" label='Назва'/>} />
+            <form.AppField
+              name='category'
+              children={(field) => <field.FormTextField type="text" label='Категорія'/>} />
+          </div>
+          <div className="flex gap-2">
+            <form.AppField
+              name='skuPrefix'
+              children={(field) => <field.FormTextField type="text" label='SKU prefix'/>} />
+            <form.AppField
+              name='productionPrice'
+              children={(field) => <field.FormTextField type="number" label='Ціна виробництва'/>} />
+          </div>
+          <div className="flex gap-2">
+            <form.AppField
+              name='productionTime'
+              children={(field) => <field.FormTextField type="number" label='Час виробництва (хв)'/>} />
+            <form.AppField
+              name='cutTime'
+              children={(field) => <field.FormTextField type="number" label='Час крою (хв)'/>} />
+          </div>
+          <div className="flex gap-2">
+            <form.AppField
+              name='packingTime'
+              children={(field) => <field.FormTextField type="number" label='Час пакування (хв)'/>} />
+            <form.AppField
+              name='brandingTime'
+              children={(field) => <field.FormTextField type="number" label='Час брендингу (хв)'/>} />
+          </div>
         </div>
         <form.Field
           mode="array"
@@ -164,16 +171,16 @@ const SpecificationForm: FunctionComponent<SpecificationFormProps> = ({
                               className='flex-5'
                               valueMode='object'
                               label={!has('fabricId', value) ? "Матеріал" : 'Тканина'}
-                              modeOption={!has('fabricId', value) ? 'materials' : 'fabric'}
+                              modeOption={!has('fabricId', value) ? 'materials' : 'default'}
                               asyncOptions={!has('fabricId', value) ? materialOptions : fabricOptions}
                               defaultOptions={!has('fabricId', value) ? defaultMaterialsOptions : defaultFabricOptions}/>
                           )}
                         />
                         <form.AppField key={`quantity-${i}`} name={`materials[${i}].quantity`}
-                          children={(subField) => (<subField.FormTextField className="flex-3" type='number' label="Кількість"/>)}
+                          children={(subField) => (<subField.FormTextNumberField className="flex-3" type='text' label="Кількість"/>)}
                         />
                         <form.AppField key={`units-${i}`} name={`materials[${i}].units`}
-                            children={(subField) => (<subField.FormSelect className="flex-3" options={unitsOptions} label="Од. виміру"/>)}
+                            children={(subField) => (<subField.FormSelect className="flex-3" options={unitsOptions} placeholder='...' label="Од. виміру"/>)}
                         />
                         {
                           i != 0

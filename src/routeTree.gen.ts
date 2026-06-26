@@ -31,6 +31,7 @@ import { Route as AuthenticatedAppLoginRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedAppInventoryMovementRouteImport } from './routes/_authenticated/app/inventory-movement'
 import { Route as AuthenticatedAppFabricsRouteImport } from './routes/_authenticated/app/fabrics'
 import { Route as AuthenticatedAppBrandingRouteImport } from './routes/_authenticated/app/branding'
+import { Route as AuthenticatedAppSpecificationsSpecIdRouteImport } from './routes/_authenticated/app/specifications_.$specId'
 import { Route as AuthenticatedAppProductionOrdersOrderIdRouteImport } from './routes/_authenticated/app/production-orders_.$orderId'
 
 const LoginRoute = LoginRouteImport.update({
@@ -153,6 +154,12 @@ const AuthenticatedAppBrandingRoute =
     path: '/branding',
     getParentRoute: () => AuthenticatedAppRouteRoute,
   } as any)
+const AuthenticatedAppSpecificationsSpecIdRoute =
+  AuthenticatedAppSpecificationsSpecIdRouteImport.update({
+    id: '/specifications_/$specId',
+    path: '/specifications/$specId',
+    getParentRoute: () => AuthenticatedAppRouteRoute,
+  } as any)
 const AuthenticatedAppProductionOrdersOrderIdRoute =
   AuthenticatedAppProductionOrdersOrderIdRouteImport.update({
     id: '/production-orders_/$orderId',
@@ -183,6 +190,7 @@ export interface FileRoutesByFullPath {
   '/app/users': typeof AuthenticatedAppUsersRoute
   '/app/workload': typeof AuthenticatedAppWorkloadRoute
   '/app/production-orders/$orderId': typeof AuthenticatedAppProductionOrdersOrderIdRoute
+  '/app/specifications/$specId': typeof AuthenticatedAppSpecificationsSpecIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -207,6 +215,7 @@ export interface FileRoutesByTo {
   '/app/users': typeof AuthenticatedAppUsersRoute
   '/app/workload': typeof AuthenticatedAppWorkloadRoute
   '/app/production-orders/$orderId': typeof AuthenticatedAppProductionOrdersOrderIdRoute
+  '/app/specifications/$specId': typeof AuthenticatedAppSpecificationsSpecIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -233,6 +242,7 @@ export interface FileRoutesById {
   '/_authenticated/app/users': typeof AuthenticatedAppUsersRoute
   '/_authenticated/app/workload': typeof AuthenticatedAppWorkloadRoute
   '/_authenticated/app/production-orders_/$orderId': typeof AuthenticatedAppProductionOrdersOrderIdRoute
+  '/_authenticated/app/specifications_/$specId': typeof AuthenticatedAppSpecificationsSpecIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -259,6 +269,7 @@ export interface FileRouteTypes {
     | '/app/users'
     | '/app/workload'
     | '/app/production-orders/$orderId'
+    | '/app/specifications/$specId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -283,6 +294,7 @@ export interface FileRouteTypes {
     | '/app/users'
     | '/app/workload'
     | '/app/production-orders/$orderId'
+    | '/app/specifications/$specId'
   id:
     | '__root__'
     | '/'
@@ -308,6 +320,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/users'
     | '/_authenticated/app/workload'
     | '/_authenticated/app/production-orders_/$orderId'
+    | '/_authenticated/app/specifications_/$specId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -472,6 +485,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppBrandingRouteImport
       parentRoute: typeof AuthenticatedAppRouteRoute
     }
+    '/_authenticated/app/specifications_/$specId': {
+      id: '/_authenticated/app/specifications_/$specId'
+      path: '/specifications/$specId'
+      fullPath: '/app/specifications/$specId'
+      preLoaderRoute: typeof AuthenticatedAppSpecificationsSpecIdRouteImport
+      parentRoute: typeof AuthenticatedAppRouteRoute
+    }
     '/_authenticated/app/production-orders_/$orderId': {
       id: '/_authenticated/app/production-orders_/$orderId'
       path: '/production-orders/$orderId'
@@ -501,6 +521,7 @@ interface AuthenticatedAppRouteRouteChildren {
   AuthenticatedAppUsersRoute: typeof AuthenticatedAppUsersRoute
   AuthenticatedAppWorkloadRoute: typeof AuthenticatedAppWorkloadRoute
   AuthenticatedAppProductionOrdersOrderIdRoute: typeof AuthenticatedAppProductionOrdersOrderIdRoute
+  AuthenticatedAppSpecificationsSpecIdRoute: typeof AuthenticatedAppSpecificationsSpecIdRoute
 }
 
 const AuthenticatedAppRouteRouteChildren: AuthenticatedAppRouteRouteChildren = {
@@ -525,6 +546,8 @@ const AuthenticatedAppRouteRouteChildren: AuthenticatedAppRouteRouteChildren = {
   AuthenticatedAppWorkloadRoute: AuthenticatedAppWorkloadRoute,
   AuthenticatedAppProductionOrdersOrderIdRoute:
     AuthenticatedAppProductionOrdersOrderIdRoute,
+  AuthenticatedAppSpecificationsSpecIdRoute:
+    AuthenticatedAppSpecificationsSpecIdRoute,
 }
 
 const AuthenticatedAppRouteRouteWithChildren =

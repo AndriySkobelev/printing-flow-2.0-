@@ -3,7 +3,7 @@ import { type FunctionComponent } from 'react';
 import { useAppForm } from '@/components/main-form';
 import { revalidateLogic } from '@tanstack/react-form';
 import { productSizes } from '@/constants';
-import { unitsOptions } from '@/route-components/specifications/forms/create-specefication';
+import { unitsOptions } from '@/route-components/specifications/forms/create-specification';
 
 const sizeOptions = productSizes.map(s => ({ value: s, label: s }));
 

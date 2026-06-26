@@ -94,7 +94,7 @@ const navConfig: NavItem[] = [
         type: 'subgroup',
         label: 'Продукція',
         children: [
-          { to: '/app/products',       label: 'Товари',       icon: ShoppingBag   },
+          // { to: '/app/products',       label: 'Товари',       icon: ShoppingBag   },
           { to: '/app/specifications', label: 'Специфікації', icon: ClipboardList },
         ],
       },

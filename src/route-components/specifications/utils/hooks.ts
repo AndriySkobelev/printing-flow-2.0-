@@ -1,11 +1,9 @@
 import { useConvex } from "convex/react";
-import { makeFabricOptions, makeMaterialsOptions } from '@/components/main-form/select/options';
-import { useConvexMutation } from "@convex-dev/react-query";
-import { api } from "convex/_generated/api";
-import { useMutation } from "@tanstack/react-query";
+import { makeFabricOptions, makeMaterialsOptions, makeOptions } from '@/components/main-form/select/options';
 
 const developOptions = {
-  fabric: makeFabricOptions,
+  fabric: makeOptions,
+  fabricVariants: makeFabricOptions,
   materials: makeMaterialsOptions
 };
 
@@ -21,6 +19,10 @@ export const useAsyncOptions = (apiPath: any, optionsMode: keyof DevelopOptionsT
       apiPath,
       data
     );
+
+    if (optionsMode === 'fabric') {
+     return developOptions[optionsMode](optionsData ?? [], 'name', '_id');
+    }
 
     return developOptions[optionsMode](optionsData ?? []);
   };

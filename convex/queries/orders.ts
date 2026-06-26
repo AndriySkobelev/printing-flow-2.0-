@@ -1,6 +1,7 @@
 import { v } from 'convex/values'
 import { query, mutation, action } from '../_generated/server'
 import type { MutationCtx } from '../_generated/server'
+import type { Id } from '../_generated/dataModel'
 import { api } from '../_generated/api'
 import { getAuthUserId } from '@convex-dev/auth/server'
 import { omit } from 'ramda'
@@ -54,7 +55,7 @@ async function resolveFabricName(ctx: MutationCtx, sku: string): Promise<string>
   if (!fabricMaterial?.fabricId) return sku
 
   const fabric = await ctx.db.get(fabricMaterial.fabricId)
-  return fabric?.fabricName ?? sku
+  return fabric?.name ?? sku
 }
 
 type OrderItemEntry = {
@@ -64,6 +65,7 @@ type OrderItemEntry = {
   size: string;
   needsCutting: boolean;
   shipmentType: 'manufacturing' | 'warehouse' | null;
+  isCustomCut?: boolean | null;
 };
 
 async function createCuttingTasks(ctx: MutationCtx, { productionOrderId, plannedShipDate, keycrmOrderId, orderItems }: {
@@ -72,21 +74,25 @@ async function createCuttingTasks(ctx: MutationCtx, { productionOrderId, planned
   plannedShipDate: number,
   orderItems: OrderItemEntry[]
 }): Promise<Map<string, string>> {
-  const cuttingGroups = new Map<string, OrderItemEntry[]>();
-  for (const item of orderItems.filter(i => i.shipmentType === 'manufacturing')) {
-    const key = `${item.product.name}__${item.color}`;
-    if (!cuttingGroups.has(key)) cuttingGroups.set(key, []);
-    cuttingGroups.get(key)!.push(item);
+  const manufacturingItems = orderItems.filter(i => i.shipmentType === 'manufacturing')
+  const customItems  = manufacturingItems.filter(i => i.isCustomCut)
+  const normalItems  = manufacturingItems.filter(i => !i.isCustomCut)
+
+  const cuttingGroups = new Map<string, OrderItemEntry[]>()
+  for (const item of normalItems) {
+    const key = `${item.product.name}__${item.color}`
+    if (!cuttingGroups.has(key)) cuttingGroups.set(key, [])
+    cuttingGroups.get(key)!.push(item)
   }
 
-  const totalTasks = cuttingGroups.size
+  const totalTasks = cuttingGroups.size + customItems.length
   let taskIndex = 1
   const groupToCuttingTaskId = new Map<string, string>()
 
   for (const [key, items] of cuttingGroups.entries()) {
-    const { product, color } = items[0];
-    const specName = product.name as string;
-    const fabric   = await resolveFabricName(ctx, items[0].product.sku as string);
+    const { product, color } = items[0]
+    const specName = product.name as string
+    const fabric   = await resolveFabricName(ctx, items[0].product.sku as string)
 
     const cuttingTaskId = await ctx.db.insert('cuttingTasks', {
       color,
@@ -97,7 +103,7 @@ async function createCuttingTasks(ctx: MutationCtx, { productionOrderId, planned
       productionOrderId,
       endDate: plannedShipDate,
       orderIndex: totalTasks === 1 ? keycrmOrderId : `${keycrmOrderId}-(${taskIndex++})`,
-    });
+    })
 
     groupToCuttingTaskId.set(key, cuttingTaskId as unknown as string)
 
@@ -108,8 +114,36 @@ async function createCuttingTasks(ctx: MutationCtx, { productionOrderId, planned
         size: item.size,
         quantity: item.product.quantity,
         completedQty: 0,
-      });
+      })
     }
+  }
+
+  for (const item of customItems) {
+    const fabric   = await resolveFabricName(ctx, item.product.sku as string)
+    const dbItem   = await ctx.db.get(item.id as Id<'productionOrderItems'>)
+
+    const cuttingTaskId = await ctx.db.insert('cuttingTasks', {
+      color:     item.color,
+      fabric,
+      specName:  item.product.name as string,
+      keycrmOrderId,
+      status:    'new',
+      productionOrderId,
+      endDate:   plannedShipDate,
+      isCustomCut:      true,
+      customCutComment: dbItem?.customCutComment ?? undefined,
+      orderIndex: totalTasks === 1 ? keycrmOrderId : `${keycrmOrderId}-(${taskIndex++})`,
+    })
+
+    groupToCuttingTaskId.set(item.id, cuttingTaskId as unknown as string)
+
+    await ctx.db.insert('cuttingTaskSizes', {
+      cuttingTaskId,
+      productionOrderItemId: item.id as any,
+      size:         item.size,
+      quantity:     item.product.quantity,
+      completedQty: 0,
+    })
   }
 
   return groupToCuttingTaskId
@@ -671,6 +705,8 @@ export const createProductionTasks = mutation({
       size:         item.size,
       needsCutting: item.needsCutting ?? false,
       shipmentType: item.shipmentType,
+      isCustomCut:      item.isCustomCut ?? false,
+      customCutComment: item.customCutComment ?? undefined,
     }))
 
     const cuttingTaskIds = await createCuttingTasks(ctx, { productionOrderId, plannedShipDate, keycrmOrderId, orderItems })

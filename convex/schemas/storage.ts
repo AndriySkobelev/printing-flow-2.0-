@@ -5,19 +5,20 @@ export enum TransactionType { INCOMING = 'incoming', OUTGOING = 'outgoing', RESE
 export const TRANSACTION_TYPES = { INCOMING: 'incoming', OUTGOING: 'outgoing', RESERVE: 'reserve' } as const;
 
 export const fabricsSchema = {
-  sku: v.string(),
+  name: v.string(),
+  skuPrefix: v.string(),
+  units: v.union(v.literal('кг'), v.literal('м')),
+  processingType: v.optional(v.union(v.string(), v.null())),
+  updatedAt: v.optional(v.string()),
+  lastIndexVariant: v.optional(v.number()),
+};
+
+export const fabricVariantsSchema = {
   color: v.string(),
   skuNumber: v.number(),
-  skuPrefix: v.string(),
-  id: v.optional(v.string()),
-  name: v.optional(v.string()),
-  updatedAt: v.optional(v.string()),
-  createdAt: v.optional(v.string()),
-  thredsSku: v.optional(v.string()),
-  fabricName: v.optional(v.string()),
-  units: v.union(v.literal('кг'), v.literal('м')),
-  threds: v.optional(v.union(v.string(), v.number())),
-  processingType: v.optional(v.union(v.string(), v.null())),
+  sku: v.string(),
+  threds: v.optional(v.union(v.string(), v.null())),
+  parentId: v.id('fabrics'),
 };
 
 export const materialsSchema = {
@@ -61,6 +62,7 @@ export const productsSpecification = {
   cutTime:         v.optional(v.union(v.number(), v.string())),
   packingTime:     v.optional(v.union(v.number(), v.string())),
   brandingTime:    v.optional(v.union(v.number(), v.string())),
+  customSizes: v.optional(v.array(v.string())),
   materials: v.array(v.object({
     units: v.string(),
     quantity: v.union(v.number(), v.string()),
@@ -69,6 +71,12 @@ export const productsSpecification = {
     materialId: v.optional(v.id('materials')),
     type: v.optional(v.union(v.literal('fabric'), v.literal('material'), v.literal('base'))),
   })),
+  lastVariantIndex: v.optional(v.number()),
+  attachedFiles: v.optional(v.array(v.object({
+    url: v.string(),
+    name: v.string(),
+    contentType: v.optional(v.string()),
+  }))),
 }
 
 export const productVariants = {
@@ -79,10 +87,12 @@ export const productVariants = {
   style: v.optional(v.string()),
   parentId: v.id('specifications'),
   searchText: v.optional(v.string()),
+  synced_at: v.optional(v.number()), // час коли останній раз синхронізували з keycrm
   processingType: v.optional(v.union(v.string(), v.null())),
   materials: v.optional(v.array(v.object({
     multiplier: v.optional(v.number()),
     fabricId: v.optional(v.id('fabrics')),
+    fabricVariantId: v.optional(v.id('fabricVariants')),
     materialId: v.optional(v.id('materials')),
     overwriteMaterialId: v.optional(v.union(v.id('materials'), v.id('fabrics'))),
   }))),
@@ -110,6 +120,7 @@ export const fabricColors = {
 }
 
 const fabricsTable = defineTable(fabricsSchema)
+const fabricVariantsTable = defineTable(fabricVariantsSchema)
 const fabricColorsTable = defineTable(fabricColors)
 const proudctsTable = defineTable(productVariants);
 const shiftReportsTabel = defineTable(shiftReports)
@@ -119,6 +130,7 @@ const icomingMaterialsTable = defineTable(storeMovementsSchema)
 
 export {
   fabricsTable,
+  fabricVariantsTable,
   fabricColorsTable,
   proudctsTable,
   shiftReportsTabel,
