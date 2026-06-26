@@ -1,0 +1,25 @@
+{
+  "form": {
+    "login": {
+      "title": "Login",
+      "email": "Email",
+      "password": "Password",
+      "submit": "Login"
+    },
+    "register": {
+      "title": "Register",
+      "email": "Email",
+      "password": "Password",
+      "submit": "Register",
+      "name": "Name"
+    },
+    "error": {
+      "emailRequired": "Email is required",
+      "passwordRequired": "Password is required",
+      "emailInvalid": "Invalid email address",
+      "emailAlreadyExists": "Email already exists",
+      "emailOrPasswordInvalid": "Email or password is invalid",
+      "passwordMinLength": "Password must be at least 8 characters long"
+    }
+  }
+}

@@ -9,185 +9,342 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as DemoTanstackQueryRouteImport } from './routes/demo/tanstack-query'
-import { Route as DemoStoreRouteImport } from './routes/demo/store'
-import { Route as DemoDrizzleRouteImport } from './routes/demo/drizzle'
-import { Route as DemoStartServerFuncsRouteImport } from './routes/demo/start.server-funcs'
-import { Route as DemoStartApiRequestRouteImport } from './routes/demo/start.api-request'
-import { Route as DemoApiTqTodosRouteImport } from './routes/demo/api.tq-todos'
-import { Route as DemoApiNamesRouteImport } from './routes/demo/api.names'
-import { Route as DemoStartSsrIndexRouteImport } from './routes/demo/start.ssr.index'
-import { Route as DemoStartSsrSpaModeRouteImport } from './routes/demo/start.ssr.spa-mode'
-import { Route as DemoStartSsrFullSsrRouteImport } from './routes/demo/start.ssr.full-ssr'
-import { Route as DemoStartSsrDataOnlyRouteImport } from './routes/demo/start.ssr.data-only'
+import { Route as AuthenticatedSeamstressRouteImport } from './routes/_authenticated/seamstress'
+import { Route as AuthenticatedAppRouteRouteImport } from './routes/_authenticated/app/route'
+import { Route as AuthenticatedAppWorkloadRouteImport } from './routes/_authenticated/app/workload'
+import { Route as AuthenticatedAppUsersRouteImport } from './routes/_authenticated/app/users'
+import { Route as AuthenticatedAppStoreRouteImport } from './routes/_authenticated/app/store'
+import { Route as AuthenticatedAppSpecificationsRouteImport } from './routes/_authenticated/app/specifications'
+import { Route as AuthenticatedAppSewingTasksRouteImport } from './routes/_authenticated/app/sewing-tasks'
+import { Route as AuthenticatedAppRegisterRouteImport } from './routes/_authenticated/app/register'
+import { Route as AuthenticatedAppProfileRouteImport } from './routes/_authenticated/app/profile'
+import { Route as AuthenticatedAppProductsRouteImport } from './routes/_authenticated/app/products'
+import { Route as AuthenticatedAppProductionOrdersRouteImport } from './routes/_authenticated/app/production-orders'
+import { Route as AuthenticatedAppProductionCutRouteImport } from './routes/_authenticated/app/production-cut'
+import { Route as AuthenticatedAppProductionCalendarRouteImport } from './routes/_authenticated/app/production-calendar'
+import { Route as AuthenticatedAppPlannerRouteImport } from './routes/_authenticated/app/planner'
+import { Route as AuthenticatedAppMaterialsRouteImport } from './routes/_authenticated/app/materials'
+import { Route as AuthenticatedAppLoginRouteImport } from './routes/_authenticated/app/login'
+import { Route as AuthenticatedAppInventoryMovementRouteImport } from './routes/_authenticated/app/inventory-movement'
+import { Route as AuthenticatedAppFabricsRouteImport } from './routes/_authenticated/app/fabrics'
+import { Route as AuthenticatedAppBrandingRouteImport } from './routes/_authenticated/app/branding'
+import { Route as AuthenticatedAppSpecificationsSpecIdRouteImport } from './routes/_authenticated/app/specifications_.$specId'
+import { Route as AuthenticatedAppProductionOrdersOrderIdRouteImport } from './routes/_authenticated/app/production-orders_.$orderId'
 
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedRoute = AuthenticatedRouteImport.update({
+  id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DemoTanstackQueryRoute = DemoTanstackQueryRouteImport.update({
-  id: '/demo/tanstack-query',
-  path: '/demo/tanstack-query',
-  getParentRoute: () => rootRouteImport,
+const AuthenticatedSeamstressRoute = AuthenticatedSeamstressRouteImport.update({
+  id: '/seamstress',
+  path: '/seamstress',
+  getParentRoute: () => AuthenticatedRoute,
 } as any)
-const DemoStoreRoute = DemoStoreRouteImport.update({
-  id: '/demo/store',
-  path: '/demo/store',
-  getParentRoute: () => rootRouteImport,
+const AuthenticatedAppRouteRoute = AuthenticatedAppRouteRouteImport.update({
+  id: '/app',
+  path: '/app',
+  getParentRoute: () => AuthenticatedRoute,
 } as any)
-const DemoDrizzleRoute = DemoDrizzleRouteImport.update({
-  id: '/demo/drizzle',
-  path: '/demo/drizzle',
-  getParentRoute: () => rootRouteImport,
+const AuthenticatedAppWorkloadRoute =
+  AuthenticatedAppWorkloadRouteImport.update({
+    id: '/workload',
+    path: '/workload',
+    getParentRoute: () => AuthenticatedAppRouteRoute,
+  } as any)
+const AuthenticatedAppUsersRoute = AuthenticatedAppUsersRouteImport.update({
+  id: '/users',
+  path: '/users',
+  getParentRoute: () => AuthenticatedAppRouteRoute,
 } as any)
-const DemoStartServerFuncsRoute = DemoStartServerFuncsRouteImport.update({
-  id: '/demo/start/server-funcs',
-  path: '/demo/start/server-funcs',
-  getParentRoute: () => rootRouteImport,
+const AuthenticatedAppStoreRoute = AuthenticatedAppStoreRouteImport.update({
+  id: '/store',
+  path: '/store',
+  getParentRoute: () => AuthenticatedAppRouteRoute,
 } as any)
-const DemoStartApiRequestRoute = DemoStartApiRequestRouteImport.update({
-  id: '/demo/start/api-request',
-  path: '/demo/start/api-request',
-  getParentRoute: () => rootRouteImport,
+const AuthenticatedAppSpecificationsRoute =
+  AuthenticatedAppSpecificationsRouteImport.update({
+    id: '/specifications',
+    path: '/specifications',
+    getParentRoute: () => AuthenticatedAppRouteRoute,
+  } as any)
+const AuthenticatedAppSewingTasksRoute =
+  AuthenticatedAppSewingTasksRouteImport.update({
+    id: '/sewing-tasks',
+    path: '/sewing-tasks',
+    getParentRoute: () => AuthenticatedAppRouteRoute,
+  } as any)
+const AuthenticatedAppRegisterRoute =
+  AuthenticatedAppRegisterRouteImport.update({
+    id: '/register',
+    path: '/register',
+    getParentRoute: () => AuthenticatedAppRouteRoute,
+  } as any)
+const AuthenticatedAppProfileRoute = AuthenticatedAppProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => AuthenticatedAppRouteRoute,
 } as any)
-const DemoApiTqTodosRoute = DemoApiTqTodosRouteImport.update({
-  id: '/demo/api/tq-todos',
-  path: '/demo/api/tq-todos',
-  getParentRoute: () => rootRouteImport,
+const AuthenticatedAppProductsRoute =
+  AuthenticatedAppProductsRouteImport.update({
+    id: '/products',
+    path: '/products',
+    getParentRoute: () => AuthenticatedAppRouteRoute,
+  } as any)
+const AuthenticatedAppProductionOrdersRoute =
+  AuthenticatedAppProductionOrdersRouteImport.update({
+    id: '/production-orders',
+    path: '/production-orders',
+    getParentRoute: () => AuthenticatedAppRouteRoute,
+  } as any)
+const AuthenticatedAppProductionCutRoute =
+  AuthenticatedAppProductionCutRouteImport.update({
+    id: '/production-cut',
+    path: '/production-cut',
+    getParentRoute: () => AuthenticatedAppRouteRoute,
+  } as any)
+const AuthenticatedAppProductionCalendarRoute =
+  AuthenticatedAppProductionCalendarRouteImport.update({
+    id: '/production-calendar',
+    path: '/production-calendar',
+    getParentRoute: () => AuthenticatedAppRouteRoute,
+  } as any)
+const AuthenticatedAppPlannerRoute = AuthenticatedAppPlannerRouteImport.update({
+  id: '/planner',
+  path: '/planner',
+  getParentRoute: () => AuthenticatedAppRouteRoute,
 } as any)
-const DemoApiNamesRoute = DemoApiNamesRouteImport.update({
-  id: '/demo/api/names',
-  path: '/demo/api/names',
-  getParentRoute: () => rootRouteImport,
+const AuthenticatedAppMaterialsRoute =
+  AuthenticatedAppMaterialsRouteImport.update({
+    id: '/materials',
+    path: '/materials',
+    getParentRoute: () => AuthenticatedAppRouteRoute,
+  } as any)
+const AuthenticatedAppLoginRoute = AuthenticatedAppLoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => AuthenticatedAppRouteRoute,
 } as any)
-const DemoStartSsrIndexRoute = DemoStartSsrIndexRouteImport.update({
-  id: '/demo/start/ssr/',
-  path: '/demo/start/ssr/',
-  getParentRoute: () => rootRouteImport,
+const AuthenticatedAppInventoryMovementRoute =
+  AuthenticatedAppInventoryMovementRouteImport.update({
+    id: '/inventory-movement',
+    path: '/inventory-movement',
+    getParentRoute: () => AuthenticatedAppRouteRoute,
+  } as any)
+const AuthenticatedAppFabricsRoute = AuthenticatedAppFabricsRouteImport.update({
+  id: '/fabrics',
+  path: '/fabrics',
+  getParentRoute: () => AuthenticatedAppRouteRoute,
 } as any)
-const DemoStartSsrSpaModeRoute = DemoStartSsrSpaModeRouteImport.update({
-  id: '/demo/start/ssr/spa-mode',
-  path: '/demo/start/ssr/spa-mode',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DemoStartSsrFullSsrRoute = DemoStartSsrFullSsrRouteImport.update({
-  id: '/demo/start/ssr/full-ssr',
-  path: '/demo/start/ssr/full-ssr',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DemoStartSsrDataOnlyRoute = DemoStartSsrDataOnlyRouteImport.update({
-  id: '/demo/start/ssr/data-only',
-  path: '/demo/start/ssr/data-only',
-  getParentRoute: () => rootRouteImport,
-} as any)
+const AuthenticatedAppBrandingRoute =
+  AuthenticatedAppBrandingRouteImport.update({
+    id: '/branding',
+    path: '/branding',
+    getParentRoute: () => AuthenticatedAppRouteRoute,
+  } as any)
+const AuthenticatedAppSpecificationsSpecIdRoute =
+  AuthenticatedAppSpecificationsSpecIdRouteImport.update({
+    id: '/specifications_/$specId',
+    path: '/specifications/$specId',
+    getParentRoute: () => AuthenticatedAppRouteRoute,
+  } as any)
+const AuthenticatedAppProductionOrdersOrderIdRoute =
+  AuthenticatedAppProductionOrdersOrderIdRouteImport.update({
+    id: '/production-orders_/$orderId',
+    path: '/production-orders/$orderId',
+    getParentRoute: () => AuthenticatedAppRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/demo/drizzle': typeof DemoDrizzleRoute
-  '/demo/store': typeof DemoStoreRoute
-  '/demo/tanstack-query': typeof DemoTanstackQueryRoute
-  '/demo/api/names': typeof DemoApiNamesRoute
-  '/demo/api/tq-todos': typeof DemoApiTqTodosRoute
-  '/demo/start/api-request': typeof DemoStartApiRequestRoute
-  '/demo/start/server-funcs': typeof DemoStartServerFuncsRoute
-  '/demo/start/ssr/data-only': typeof DemoStartSsrDataOnlyRoute
-  '/demo/start/ssr/full-ssr': typeof DemoStartSsrFullSsrRoute
-  '/demo/start/ssr/spa-mode': typeof DemoStartSsrSpaModeRoute
-  '/demo/start/ssr': typeof DemoStartSsrIndexRoute
+  '/login': typeof LoginRoute
+  '/app': typeof AuthenticatedAppRouteRouteWithChildren
+  '/seamstress': typeof AuthenticatedSeamstressRoute
+  '/app/branding': typeof AuthenticatedAppBrandingRoute
+  '/app/fabrics': typeof AuthenticatedAppFabricsRoute
+  '/app/inventory-movement': typeof AuthenticatedAppInventoryMovementRoute
+  '/app/login': typeof AuthenticatedAppLoginRoute
+  '/app/materials': typeof AuthenticatedAppMaterialsRoute
+  '/app/planner': typeof AuthenticatedAppPlannerRoute
+  '/app/production-calendar': typeof AuthenticatedAppProductionCalendarRoute
+  '/app/production-cut': typeof AuthenticatedAppProductionCutRoute
+  '/app/production-orders': typeof AuthenticatedAppProductionOrdersRoute
+  '/app/products': typeof AuthenticatedAppProductsRoute
+  '/app/profile': typeof AuthenticatedAppProfileRoute
+  '/app/register': typeof AuthenticatedAppRegisterRoute
+  '/app/sewing-tasks': typeof AuthenticatedAppSewingTasksRoute
+  '/app/specifications': typeof AuthenticatedAppSpecificationsRoute
+  '/app/store': typeof AuthenticatedAppStoreRoute
+  '/app/users': typeof AuthenticatedAppUsersRoute
+  '/app/workload': typeof AuthenticatedAppWorkloadRoute
+  '/app/production-orders/$orderId': typeof AuthenticatedAppProductionOrdersOrderIdRoute
+  '/app/specifications/$specId': typeof AuthenticatedAppSpecificationsSpecIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/demo/drizzle': typeof DemoDrizzleRoute
-  '/demo/store': typeof DemoStoreRoute
-  '/demo/tanstack-query': typeof DemoTanstackQueryRoute
-  '/demo/api/names': typeof DemoApiNamesRoute
-  '/demo/api/tq-todos': typeof DemoApiTqTodosRoute
-  '/demo/start/api-request': typeof DemoStartApiRequestRoute
-  '/demo/start/server-funcs': typeof DemoStartServerFuncsRoute
-  '/demo/start/ssr/data-only': typeof DemoStartSsrDataOnlyRoute
-  '/demo/start/ssr/full-ssr': typeof DemoStartSsrFullSsrRoute
-  '/demo/start/ssr/spa-mode': typeof DemoStartSsrSpaModeRoute
-  '/demo/start/ssr': typeof DemoStartSsrIndexRoute
+  '/login': typeof LoginRoute
+  '/app': typeof AuthenticatedAppRouteRouteWithChildren
+  '/seamstress': typeof AuthenticatedSeamstressRoute
+  '/app/branding': typeof AuthenticatedAppBrandingRoute
+  '/app/fabrics': typeof AuthenticatedAppFabricsRoute
+  '/app/inventory-movement': typeof AuthenticatedAppInventoryMovementRoute
+  '/app/login': typeof AuthenticatedAppLoginRoute
+  '/app/materials': typeof AuthenticatedAppMaterialsRoute
+  '/app/planner': typeof AuthenticatedAppPlannerRoute
+  '/app/production-calendar': typeof AuthenticatedAppProductionCalendarRoute
+  '/app/production-cut': typeof AuthenticatedAppProductionCutRoute
+  '/app/production-orders': typeof AuthenticatedAppProductionOrdersRoute
+  '/app/products': typeof AuthenticatedAppProductsRoute
+  '/app/profile': typeof AuthenticatedAppProfileRoute
+  '/app/register': typeof AuthenticatedAppRegisterRoute
+  '/app/sewing-tasks': typeof AuthenticatedAppSewingTasksRoute
+  '/app/specifications': typeof AuthenticatedAppSpecificationsRoute
+  '/app/store': typeof AuthenticatedAppStoreRoute
+  '/app/users': typeof AuthenticatedAppUsersRoute
+  '/app/workload': typeof AuthenticatedAppWorkloadRoute
+  '/app/production-orders/$orderId': typeof AuthenticatedAppProductionOrdersOrderIdRoute
+  '/app/specifications/$specId': typeof AuthenticatedAppSpecificationsSpecIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/demo/drizzle': typeof DemoDrizzleRoute
-  '/demo/store': typeof DemoStoreRoute
-  '/demo/tanstack-query': typeof DemoTanstackQueryRoute
-  '/demo/api/names': typeof DemoApiNamesRoute
-  '/demo/api/tq-todos': typeof DemoApiTqTodosRoute
-  '/demo/start/api-request': typeof DemoStartApiRequestRoute
-  '/demo/start/server-funcs': typeof DemoStartServerFuncsRoute
-  '/demo/start/ssr/data-only': typeof DemoStartSsrDataOnlyRoute
-  '/demo/start/ssr/full-ssr': typeof DemoStartSsrFullSsrRoute
-  '/demo/start/ssr/spa-mode': typeof DemoStartSsrSpaModeRoute
-  '/demo/start/ssr/': typeof DemoStartSsrIndexRoute
+  '/_authenticated': typeof AuthenticatedRouteWithChildren
+  '/login': typeof LoginRoute
+  '/_authenticated/app': typeof AuthenticatedAppRouteRouteWithChildren
+  '/_authenticated/seamstress': typeof AuthenticatedSeamstressRoute
+  '/_authenticated/app/branding': typeof AuthenticatedAppBrandingRoute
+  '/_authenticated/app/fabrics': typeof AuthenticatedAppFabricsRoute
+  '/_authenticated/app/inventory-movement': typeof AuthenticatedAppInventoryMovementRoute
+  '/_authenticated/app/login': typeof AuthenticatedAppLoginRoute
+  '/_authenticated/app/materials': typeof AuthenticatedAppMaterialsRoute
+  '/_authenticated/app/planner': typeof AuthenticatedAppPlannerRoute
+  '/_authenticated/app/production-calendar': typeof AuthenticatedAppProductionCalendarRoute
+  '/_authenticated/app/production-cut': typeof AuthenticatedAppProductionCutRoute
+  '/_authenticated/app/production-orders': typeof AuthenticatedAppProductionOrdersRoute
+  '/_authenticated/app/products': typeof AuthenticatedAppProductsRoute
+  '/_authenticated/app/profile': typeof AuthenticatedAppProfileRoute
+  '/_authenticated/app/register': typeof AuthenticatedAppRegisterRoute
+  '/_authenticated/app/sewing-tasks': typeof AuthenticatedAppSewingTasksRoute
+  '/_authenticated/app/specifications': typeof AuthenticatedAppSpecificationsRoute
+  '/_authenticated/app/store': typeof AuthenticatedAppStoreRoute
+  '/_authenticated/app/users': typeof AuthenticatedAppUsersRoute
+  '/_authenticated/app/workload': typeof AuthenticatedAppWorkloadRoute
+  '/_authenticated/app/production-orders_/$orderId': typeof AuthenticatedAppProductionOrdersOrderIdRoute
+  '/_authenticated/app/specifications_/$specId': typeof AuthenticatedAppSpecificationsSpecIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/demo/drizzle'
-    | '/demo/store'
-    | '/demo/tanstack-query'
-    | '/demo/api/names'
-    | '/demo/api/tq-todos'
-    | '/demo/start/api-request'
-    | '/demo/start/server-funcs'
-    | '/demo/start/ssr/data-only'
-    | '/demo/start/ssr/full-ssr'
-    | '/demo/start/ssr/spa-mode'
-    | '/demo/start/ssr'
+    | '/login'
+    | '/app'
+    | '/seamstress'
+    | '/app/branding'
+    | '/app/fabrics'
+    | '/app/inventory-movement'
+    | '/app/login'
+    | '/app/materials'
+    | '/app/planner'
+    | '/app/production-calendar'
+    | '/app/production-cut'
+    | '/app/production-orders'
+    | '/app/products'
+    | '/app/profile'
+    | '/app/register'
+    | '/app/sewing-tasks'
+    | '/app/specifications'
+    | '/app/store'
+    | '/app/users'
+    | '/app/workload'
+    | '/app/production-orders/$orderId'
+    | '/app/specifications/$specId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/demo/drizzle'
-    | '/demo/store'
-    | '/demo/tanstack-query'
-    | '/demo/api/names'
-    | '/demo/api/tq-todos'
-    | '/demo/start/api-request'
-    | '/demo/start/server-funcs'
-    | '/demo/start/ssr/data-only'
-    | '/demo/start/ssr/full-ssr'
-    | '/demo/start/ssr/spa-mode'
-    | '/demo/start/ssr'
+    | '/login'
+    | '/app'
+    | '/seamstress'
+    | '/app/branding'
+    | '/app/fabrics'
+    | '/app/inventory-movement'
+    | '/app/login'
+    | '/app/materials'
+    | '/app/planner'
+    | '/app/production-calendar'
+    | '/app/production-cut'
+    | '/app/production-orders'
+    | '/app/products'
+    | '/app/profile'
+    | '/app/register'
+    | '/app/sewing-tasks'
+    | '/app/specifications'
+    | '/app/store'
+    | '/app/users'
+    | '/app/workload'
+    | '/app/production-orders/$orderId'
+    | '/app/specifications/$specId'
   id:
     | '__root__'
     | '/'
-    | '/demo/drizzle'
-    | '/demo/store'
-    | '/demo/tanstack-query'
-    | '/demo/api/names'
-    | '/demo/api/tq-todos'
-    | '/demo/start/api-request'
-    | '/demo/start/server-funcs'
-    | '/demo/start/ssr/data-only'
-    | '/demo/start/ssr/full-ssr'
-    | '/demo/start/ssr/spa-mode'
-    | '/demo/start/ssr/'
+    | '/_authenticated'
+    | '/login'
+    | '/_authenticated/app'
+    | '/_authenticated/seamstress'
+    | '/_authenticated/app/branding'
+    | '/_authenticated/app/fabrics'
+    | '/_authenticated/app/inventory-movement'
+    | '/_authenticated/app/login'
+    | '/_authenticated/app/materials'
+    | '/_authenticated/app/planner'
+    | '/_authenticated/app/production-calendar'
+    | '/_authenticated/app/production-cut'
+    | '/_authenticated/app/production-orders'
+    | '/_authenticated/app/products'
+    | '/_authenticated/app/profile'
+    | '/_authenticated/app/register'
+    | '/_authenticated/app/sewing-tasks'
+    | '/_authenticated/app/specifications'
+    | '/_authenticated/app/store'
+    | '/_authenticated/app/users'
+    | '/_authenticated/app/workload'
+    | '/_authenticated/app/production-orders_/$orderId'
+    | '/_authenticated/app/specifications_/$specId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  DemoDrizzleRoute: typeof DemoDrizzleRoute
-  DemoStoreRoute: typeof DemoStoreRoute
-  DemoTanstackQueryRoute: typeof DemoTanstackQueryRoute
-  DemoApiNamesRoute: typeof DemoApiNamesRoute
-  DemoApiTqTodosRoute: typeof DemoApiTqTodosRoute
-  DemoStartApiRequestRoute: typeof DemoStartApiRequestRoute
-  DemoStartServerFuncsRoute: typeof DemoStartServerFuncsRoute
-  DemoStartSsrDataOnlyRoute: typeof DemoStartSsrDataOnlyRoute
-  DemoStartSsrFullSsrRoute: typeof DemoStartSsrFullSsrRoute
-  DemoStartSsrSpaModeRoute: typeof DemoStartSsrSpaModeRoute
-  DemoStartSsrIndexRoute: typeof DemoStartSsrIndexRoute
+  AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
+  LoginRoute: typeof LoginRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -195,99 +352,227 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/demo/tanstack-query': {
-      id: '/demo/tanstack-query'
-      path: '/demo/tanstack-query'
-      fullPath: '/demo/tanstack-query'
-      preLoaderRoute: typeof DemoTanstackQueryRouteImport
-      parentRoute: typeof rootRouteImport
+    '/_authenticated/seamstress': {
+      id: '/_authenticated/seamstress'
+      path: '/seamstress'
+      fullPath: '/seamstress'
+      preLoaderRoute: typeof AuthenticatedSeamstressRouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
-    '/demo/store': {
-      id: '/demo/store'
-      path: '/demo/store'
-      fullPath: '/demo/store'
-      preLoaderRoute: typeof DemoStoreRouteImport
-      parentRoute: typeof rootRouteImport
+    '/_authenticated/app': {
+      id: '/_authenticated/app'
+      path: '/app'
+      fullPath: '/app'
+      preLoaderRoute: typeof AuthenticatedAppRouteRouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
-    '/demo/drizzle': {
-      id: '/demo/drizzle'
-      path: '/demo/drizzle'
-      fullPath: '/demo/drizzle'
-      preLoaderRoute: typeof DemoDrizzleRouteImport
-      parentRoute: typeof rootRouteImport
+    '/_authenticated/app/workload': {
+      id: '/_authenticated/app/workload'
+      path: '/workload'
+      fullPath: '/app/workload'
+      preLoaderRoute: typeof AuthenticatedAppWorkloadRouteImport
+      parentRoute: typeof AuthenticatedAppRouteRoute
     }
-    '/demo/start/server-funcs': {
-      id: '/demo/start/server-funcs'
-      path: '/demo/start/server-funcs'
-      fullPath: '/demo/start/server-funcs'
-      preLoaderRoute: typeof DemoStartServerFuncsRouteImport
-      parentRoute: typeof rootRouteImport
+    '/_authenticated/app/users': {
+      id: '/_authenticated/app/users'
+      path: '/users'
+      fullPath: '/app/users'
+      preLoaderRoute: typeof AuthenticatedAppUsersRouteImport
+      parentRoute: typeof AuthenticatedAppRouteRoute
     }
-    '/demo/start/api-request': {
-      id: '/demo/start/api-request'
-      path: '/demo/start/api-request'
-      fullPath: '/demo/start/api-request'
-      preLoaderRoute: typeof DemoStartApiRequestRouteImport
-      parentRoute: typeof rootRouteImport
+    '/_authenticated/app/store': {
+      id: '/_authenticated/app/store'
+      path: '/store'
+      fullPath: '/app/store'
+      preLoaderRoute: typeof AuthenticatedAppStoreRouteImport
+      parentRoute: typeof AuthenticatedAppRouteRoute
     }
-    '/demo/api/tq-todos': {
-      id: '/demo/api/tq-todos'
-      path: '/demo/api/tq-todos'
-      fullPath: '/demo/api/tq-todos'
-      preLoaderRoute: typeof DemoApiTqTodosRouteImport
-      parentRoute: typeof rootRouteImport
+    '/_authenticated/app/specifications': {
+      id: '/_authenticated/app/specifications'
+      path: '/specifications'
+      fullPath: '/app/specifications'
+      preLoaderRoute: typeof AuthenticatedAppSpecificationsRouteImport
+      parentRoute: typeof AuthenticatedAppRouteRoute
     }
-    '/demo/api/names': {
-      id: '/demo/api/names'
-      path: '/demo/api/names'
-      fullPath: '/demo/api/names'
-      preLoaderRoute: typeof DemoApiNamesRouteImport
-      parentRoute: typeof rootRouteImport
+    '/_authenticated/app/sewing-tasks': {
+      id: '/_authenticated/app/sewing-tasks'
+      path: '/sewing-tasks'
+      fullPath: '/app/sewing-tasks'
+      preLoaderRoute: typeof AuthenticatedAppSewingTasksRouteImport
+      parentRoute: typeof AuthenticatedAppRouteRoute
     }
-    '/demo/start/ssr/': {
-      id: '/demo/start/ssr/'
-      path: '/demo/start/ssr'
-      fullPath: '/demo/start/ssr'
-      preLoaderRoute: typeof DemoStartSsrIndexRouteImport
-      parentRoute: typeof rootRouteImport
+    '/_authenticated/app/register': {
+      id: '/_authenticated/app/register'
+      path: '/register'
+      fullPath: '/app/register'
+      preLoaderRoute: typeof AuthenticatedAppRegisterRouteImport
+      parentRoute: typeof AuthenticatedAppRouteRoute
     }
-    '/demo/start/ssr/spa-mode': {
-      id: '/demo/start/ssr/spa-mode'
-      path: '/demo/start/ssr/spa-mode'
-      fullPath: '/demo/start/ssr/spa-mode'
-      preLoaderRoute: typeof DemoStartSsrSpaModeRouteImport
-      parentRoute: typeof rootRouteImport
+    '/_authenticated/app/profile': {
+      id: '/_authenticated/app/profile'
+      path: '/profile'
+      fullPath: '/app/profile'
+      preLoaderRoute: typeof AuthenticatedAppProfileRouteImport
+      parentRoute: typeof AuthenticatedAppRouteRoute
     }
-    '/demo/start/ssr/full-ssr': {
-      id: '/demo/start/ssr/full-ssr'
-      path: '/demo/start/ssr/full-ssr'
-      fullPath: '/demo/start/ssr/full-ssr'
-      preLoaderRoute: typeof DemoStartSsrFullSsrRouteImport
-      parentRoute: typeof rootRouteImport
+    '/_authenticated/app/products': {
+      id: '/_authenticated/app/products'
+      path: '/products'
+      fullPath: '/app/products'
+      preLoaderRoute: typeof AuthenticatedAppProductsRouteImport
+      parentRoute: typeof AuthenticatedAppRouteRoute
     }
-    '/demo/start/ssr/data-only': {
-      id: '/demo/start/ssr/data-only'
-      path: '/demo/start/ssr/data-only'
-      fullPath: '/demo/start/ssr/data-only'
-      preLoaderRoute: typeof DemoStartSsrDataOnlyRouteImport
-      parentRoute: typeof rootRouteImport
+    '/_authenticated/app/production-orders': {
+      id: '/_authenticated/app/production-orders'
+      path: '/production-orders'
+      fullPath: '/app/production-orders'
+      preLoaderRoute: typeof AuthenticatedAppProductionOrdersRouteImport
+      parentRoute: typeof AuthenticatedAppRouteRoute
+    }
+    '/_authenticated/app/production-cut': {
+      id: '/_authenticated/app/production-cut'
+      path: '/production-cut'
+      fullPath: '/app/production-cut'
+      preLoaderRoute: typeof AuthenticatedAppProductionCutRouteImport
+      parentRoute: typeof AuthenticatedAppRouteRoute
+    }
+    '/_authenticated/app/production-calendar': {
+      id: '/_authenticated/app/production-calendar'
+      path: '/production-calendar'
+      fullPath: '/app/production-calendar'
+      preLoaderRoute: typeof AuthenticatedAppProductionCalendarRouteImport
+      parentRoute: typeof AuthenticatedAppRouteRoute
+    }
+    '/_authenticated/app/planner': {
+      id: '/_authenticated/app/planner'
+      path: '/planner'
+      fullPath: '/app/planner'
+      preLoaderRoute: typeof AuthenticatedAppPlannerRouteImport
+      parentRoute: typeof AuthenticatedAppRouteRoute
+    }
+    '/_authenticated/app/materials': {
+      id: '/_authenticated/app/materials'
+      path: '/materials'
+      fullPath: '/app/materials'
+      preLoaderRoute: typeof AuthenticatedAppMaterialsRouteImport
+      parentRoute: typeof AuthenticatedAppRouteRoute
+    }
+    '/_authenticated/app/login': {
+      id: '/_authenticated/app/login'
+      path: '/login'
+      fullPath: '/app/login'
+      preLoaderRoute: typeof AuthenticatedAppLoginRouteImport
+      parentRoute: typeof AuthenticatedAppRouteRoute
+    }
+    '/_authenticated/app/inventory-movement': {
+      id: '/_authenticated/app/inventory-movement'
+      path: '/inventory-movement'
+      fullPath: '/app/inventory-movement'
+      preLoaderRoute: typeof AuthenticatedAppInventoryMovementRouteImport
+      parentRoute: typeof AuthenticatedAppRouteRoute
+    }
+    '/_authenticated/app/fabrics': {
+      id: '/_authenticated/app/fabrics'
+      path: '/fabrics'
+      fullPath: '/app/fabrics'
+      preLoaderRoute: typeof AuthenticatedAppFabricsRouteImport
+      parentRoute: typeof AuthenticatedAppRouteRoute
+    }
+    '/_authenticated/app/branding': {
+      id: '/_authenticated/app/branding'
+      path: '/branding'
+      fullPath: '/app/branding'
+      preLoaderRoute: typeof AuthenticatedAppBrandingRouteImport
+      parentRoute: typeof AuthenticatedAppRouteRoute
+    }
+    '/_authenticated/app/specifications_/$specId': {
+      id: '/_authenticated/app/specifications_/$specId'
+      path: '/specifications/$specId'
+      fullPath: '/app/specifications/$specId'
+      preLoaderRoute: typeof AuthenticatedAppSpecificationsSpecIdRouteImport
+      parentRoute: typeof AuthenticatedAppRouteRoute
+    }
+    '/_authenticated/app/production-orders_/$orderId': {
+      id: '/_authenticated/app/production-orders_/$orderId'
+      path: '/production-orders/$orderId'
+      fullPath: '/app/production-orders/$orderId'
+      preLoaderRoute: typeof AuthenticatedAppProductionOrdersOrderIdRouteImport
+      parentRoute: typeof AuthenticatedAppRouteRoute
     }
   }
 }
 
+interface AuthenticatedAppRouteRouteChildren {
+  AuthenticatedAppBrandingRoute: typeof AuthenticatedAppBrandingRoute
+  AuthenticatedAppFabricsRoute: typeof AuthenticatedAppFabricsRoute
+  AuthenticatedAppInventoryMovementRoute: typeof AuthenticatedAppInventoryMovementRoute
+  AuthenticatedAppLoginRoute: typeof AuthenticatedAppLoginRoute
+  AuthenticatedAppMaterialsRoute: typeof AuthenticatedAppMaterialsRoute
+  AuthenticatedAppPlannerRoute: typeof AuthenticatedAppPlannerRoute
+  AuthenticatedAppProductionCalendarRoute: typeof AuthenticatedAppProductionCalendarRoute
+  AuthenticatedAppProductionCutRoute: typeof AuthenticatedAppProductionCutRoute
+  AuthenticatedAppProductionOrdersRoute: typeof AuthenticatedAppProductionOrdersRoute
+  AuthenticatedAppProductsRoute: typeof AuthenticatedAppProductsRoute
+  AuthenticatedAppProfileRoute: typeof AuthenticatedAppProfileRoute
+  AuthenticatedAppRegisterRoute: typeof AuthenticatedAppRegisterRoute
+  AuthenticatedAppSewingTasksRoute: typeof AuthenticatedAppSewingTasksRoute
+  AuthenticatedAppSpecificationsRoute: typeof AuthenticatedAppSpecificationsRoute
+  AuthenticatedAppStoreRoute: typeof AuthenticatedAppStoreRoute
+  AuthenticatedAppUsersRoute: typeof AuthenticatedAppUsersRoute
+  AuthenticatedAppWorkloadRoute: typeof AuthenticatedAppWorkloadRoute
+  AuthenticatedAppProductionOrdersOrderIdRoute: typeof AuthenticatedAppProductionOrdersOrderIdRoute
+  AuthenticatedAppSpecificationsSpecIdRoute: typeof AuthenticatedAppSpecificationsSpecIdRoute
+}
+
+const AuthenticatedAppRouteRouteChildren: AuthenticatedAppRouteRouteChildren = {
+  AuthenticatedAppBrandingRoute: AuthenticatedAppBrandingRoute,
+  AuthenticatedAppFabricsRoute: AuthenticatedAppFabricsRoute,
+  AuthenticatedAppInventoryMovementRoute:
+    AuthenticatedAppInventoryMovementRoute,
+  AuthenticatedAppLoginRoute: AuthenticatedAppLoginRoute,
+  AuthenticatedAppMaterialsRoute: AuthenticatedAppMaterialsRoute,
+  AuthenticatedAppPlannerRoute: AuthenticatedAppPlannerRoute,
+  AuthenticatedAppProductionCalendarRoute:
+    AuthenticatedAppProductionCalendarRoute,
+  AuthenticatedAppProductionCutRoute: AuthenticatedAppProductionCutRoute,
+  AuthenticatedAppProductionOrdersRoute: AuthenticatedAppProductionOrdersRoute,
+  AuthenticatedAppProductsRoute: AuthenticatedAppProductsRoute,
+  AuthenticatedAppProfileRoute: AuthenticatedAppProfileRoute,
+  AuthenticatedAppRegisterRoute: AuthenticatedAppRegisterRoute,
+  AuthenticatedAppSewingTasksRoute: AuthenticatedAppSewingTasksRoute,
+  AuthenticatedAppSpecificationsRoute: AuthenticatedAppSpecificationsRoute,
+  AuthenticatedAppStoreRoute: AuthenticatedAppStoreRoute,
+  AuthenticatedAppUsersRoute: AuthenticatedAppUsersRoute,
+  AuthenticatedAppWorkloadRoute: AuthenticatedAppWorkloadRoute,
+  AuthenticatedAppProductionOrdersOrderIdRoute:
+    AuthenticatedAppProductionOrdersOrderIdRoute,
+  AuthenticatedAppSpecificationsSpecIdRoute:
+    AuthenticatedAppSpecificationsSpecIdRoute,
+}
+
+const AuthenticatedAppRouteRouteWithChildren =
+  AuthenticatedAppRouteRoute._addFileChildren(
+    AuthenticatedAppRouteRouteChildren,
+  )
+
+interface AuthenticatedRouteChildren {
+  AuthenticatedAppRouteRoute: typeof AuthenticatedAppRouteRouteWithChildren
+  AuthenticatedSeamstressRoute: typeof AuthenticatedSeamstressRoute
+}
+
+const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
+  AuthenticatedAppRouteRoute: AuthenticatedAppRouteRouteWithChildren,
+  AuthenticatedSeamstressRoute: AuthenticatedSeamstressRoute,
+}
+
+const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
+  AuthenticatedRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  DemoDrizzleRoute: DemoDrizzleRoute,
-  DemoStoreRoute: DemoStoreRoute,
-  DemoTanstackQueryRoute: DemoTanstackQueryRoute,
-  DemoApiNamesRoute: DemoApiNamesRoute,
-  DemoApiTqTodosRoute: DemoApiTqTodosRoute,
-  DemoStartApiRequestRoute: DemoStartApiRequestRoute,
-  DemoStartServerFuncsRoute: DemoStartServerFuncsRoute,
-  DemoStartSsrDataOnlyRoute: DemoStartSsrDataOnlyRoute,
-  DemoStartSsrFullSsrRoute: DemoStartSsrFullSsrRoute,
-  DemoStartSsrSpaModeRoute: DemoStartSsrSpaModeRoute,
-  DemoStartSsrIndexRoute: DemoStartSsrIndexRoute,
+  AuthenticatedRoute: AuthenticatedRouteWithChildren,
+  LoginRoute: LoginRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
