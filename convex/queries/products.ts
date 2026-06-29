@@ -203,7 +203,7 @@ export const createProductsBySpecification = mutation({
         processingType: fabric?.processingType,
         searchText: `${spec?.name}.${size}.${fabric?.color}`,
         materials: [
-          { fabricVariantId: fabric._id as any, multiplier: 1, overwriteMaterialId: specFabric?.fabricId },
+          { fabricVariantId: fabric._id as any, multiplier: 1, lineId: specFabric?.lineId },
         ],
         sku: `${spec?.skuPrefix}-${String(numberSku).padStart(5, '0')}`,
       }
@@ -223,27 +223,30 @@ export const createSpecVariants = mutation({
     variants: v.array(v.object({ color: v.string(), size: v.string() })),
   },
   handler: async (ctx, { specificationId, variants }) => {
-    const spec = await ctx.db.get(specificationId);
+    const spec = await getSpecWithMaterials(ctx, specificationId);
     if (!spec) throw new Error('Специфікацію не знайдено');
+
+    const baseMaterial = spec.materials.find(m => m.type === 'base' && m.fabricId);
+    if (!baseMaterial?.fabricId) throw new Error('Base fabric not found in specification');
+
+    const baseFabric = await ctx.db.get('fabrics', baseMaterial.fabricId);
+    if (!baseFabric?.name) throw new Error('Base fabric not found');
 
     let skuNumber = spec.lastVariantIndex ?? 0;
 
-    const existing = await ctx.db
-      .query('products')
-      .withIndex('by_parentId', q => q.eq('parentId', specificationId))
-      .collect();
-
     for (const { color, size } of variants) {
-      const template = existing.find(p => p.color === color);
+      const [fabricVariant] = await getFabricsByNameAndColors(ctx, baseFabric.name, [color]);
       const numberSku = ++skuNumber;
       await ctx.db.insert('products', {
         size,
         color,
         parentId: specificationId,
         skuNumber: numberSku,
-        processingType: template?.processingType ?? null,
+        processingType: fabricVariant?.processingType ?? null,
         searchText: `${spec.name}.${size}.${color}`,
-        materials: template?.materials,
+        materials: fabricVariant
+          ? [{ fabricVariantId: fabricVariant._id as any, multiplier: 1, lineId: baseMaterial.lineId }]
+          : [],
         sku: `${spec.skuPrefix}-${String(numberSku).padStart(5, '0')}`,
       });
     }

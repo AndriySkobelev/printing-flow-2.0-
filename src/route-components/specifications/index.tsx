@@ -172,6 +172,7 @@ const Specifications: FunctionComponent<SpecificationsProps> = () => {
   const handleEditSpec = (data: Omit<Specifications, 'productionPrice'> & { productionPrice: number }) => {
     openDialog({
       title: 'Редагування специфікації',
+      className: 'sm:w-250 sm:max-w-250',
       content: <EditSpecifications
         formId="edit-specification-form"
         actionSubmit={handleSubmitEdit}

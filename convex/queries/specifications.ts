@@ -79,10 +79,22 @@ export const getSpecsWithMaterials = query({
 })
 
 
+export const checkSkuPrefix = query({
+  args: { skuPrefix: v.string() },
+  handler: async (ctx, { skuPrefix }) => {
+    const existing = await ctx.db
+      .query('specifications')
+      .withIndex('search_skuPrefix', q => q.eq('skuPrefix', skuPrefix))
+      .first();
+    return { exists: existing !== null };
+  },
+})
+
 export const insertSpecification = mutation({
   args: productsSpecification,
   handler: async (ctx, args) => {
-    const data = await ctx.db.insert('specifications', args)
+    const materials = args.materials.map(m => ({ ...m, lineId: m.lineId ?? crypto.randomUUID() }));
+    const data = await ctx.db.insert('specifications', { ...args, materials });
     return data;
   }
 })
@@ -111,7 +123,8 @@ export const duplicateSpecification = mutation({
     const { id } = args;
     const spec = await ctx.db.get(id);
     if (!spec) return { result: 'error', message: 'Specification not found' };
-    const updateData = {...omit(['_id', '_creationTime'], spec), name: `${spec?.name} копія`};
+    const materials = spec.materials.map(m => ({ ...m, lineId: crypto.randomUUID() }));
+    const updateData = { ...omit(['_id', '_creationTime'], spec), name: `${spec?.name} копія`, materials };
     const req = await ctx.db.insert('specifications', updateData)
     return { result: 'success'};
   }

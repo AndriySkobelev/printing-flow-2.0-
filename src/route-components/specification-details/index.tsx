@@ -2,16 +2,21 @@ import { useQuery } from '@tanstack/react-query'
 import { convexQuery } from '@convex-dev/react-query'
 import { api } from 'convex/_generated/api'
 import { type Id } from 'convex/_generated/dataModel'
+import { useNavigate } from '@tanstack/react-router'
+import { ArrowLeft } from 'lucide-react'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { Button } from '@/components/ui/button'
 import { SpecImages } from './components/spec-images'
 import { SpecInfo } from './components/spec-info'
 import { SpecVariantsTable } from './components/spec-variants-table'
+import { Route as specificationsRoute } from '@/routes/_authenticated/app/specifications'
 
 type Props = {
   specificationId: string | null
 }
 
 const SpecDetailsContent = ({ specificationId }: { specificationId: string }) => {
+  const navigate = useNavigate()
   const { data: spec } = useQuery(
     convexQuery(api.queries.specifications.getSpecificationById, {
       id: specificationId as Id<'specifications'>,
@@ -32,8 +37,11 @@ const SpecDetailsContent = ({ specificationId }: { specificationId: string }) =>
       {/* ── Left: spec info ───────────────────────────────────────────── */}
       <div className="w-80 shrink-0 border-r flex flex-col overflow-hidden">
 
-        <div className="px-3 py-3 border-b shrink-0">
-          <p className="text-sm font-semibold">{spec.name}</p>
+        <div className="px-3 py-2 border-b shrink-0 flex items-center gap-2">
+          <Button variant="ghost" size="icon" className="size-7 shrink-0" onClick={() => navigate({ to: specificationsRoute.to })}>
+            <ArrowLeft className="size-4" />
+          </Button>
+          <p className="text-sm font-semibold truncate">{spec.name}</p>
         </div>
 
         <SpecImages

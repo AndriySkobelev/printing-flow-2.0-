@@ -134,7 +134,15 @@ const SpecificationForm: FunctionComponent<SpecificationFormProps> = ({
           <div className="flex gap-2">
             <form.AppField
               name='skuPrefix'
-              children={(field) => <field.FormTextField type="text" label='SKU prefix'/>} />
+              children={(field) => (
+                <field.FormAsyncTextField
+                  label='SKU prefix'
+                  query={api.queries.specifications.checkSkuPrefix}
+                  buildArgs={(value) => ({ skuPrefix: value })}
+                  isTaken={(result) => result?.exists === true}
+                  takenMessage='Цей SKU префікс вже використовується'
+                />
+              )} />
             <form.AppField
               name='productionPrice'
               children={(field) => <field.FormTextField type="number" label='Ціна виробництва'/>} />
@@ -177,7 +185,7 @@ const SpecificationForm: FunctionComponent<SpecificationFormProps> = ({
                           )}
                         />
                         <form.AppField key={`quantity-${i}`} name={`materials[${i}].quantity`}
-                          children={(subField) => (<subField.FormTextNumberField className="flex-3" type='text' label="Кількість"/>)}
+                          children={(subField) => (<subField.FormTextNumberField className="flex-3" type='number' label="Кількість"/>)}
                         />
                         <form.AppField key={`units-${i}`} name={`materials[${i}].units`}
                             children={(subField) => (<subField.FormSelect className="flex-3" options={unitsOptions} placeholder='...' label="Од. виміру"/>)}
