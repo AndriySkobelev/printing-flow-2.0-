@@ -14,6 +14,42 @@ type Props = {
   specificationId: string
 }
 
+const CheckCell = () => (
+  <span className="flex items-center justify-center"><Check size={14} className="text-green-500" /></span>
+)
+
+const PlusCell = () => (
+  <span className="flex items-center justify-center"><Plus size={14} className="text-blue-500" /></span>
+)
+
+const EmptyCell = () => (
+  <span className="flex items-center justify-center opacity-15 hover:opacity-50 transition-opacity cursor-pointer">
+    <Plus size={14} />
+  </span>
+)
+
+const tableHeaders: HeaderObject[] = [
+  {
+    accessor: 'color',
+    label: '',
+    width: 140,
+    type: 'string',
+    pinned: 'left',
+  },
+  ...productSizes.map(size => ({
+    accessor: size,
+    label: size,
+    width: 58,
+    type: 'other' as const,
+    cellRenderer: ({ row }: { row: Record<string, any> }) => {
+      const status = row[`__status_${size}`]
+      if (status === 'exists') return <CheckCell />
+      if (status === 'pending') return <PlusCell />
+      return <EmptyCell />
+    },
+  })),
+]
+
 export const SpecVariantsTable = ({ specificationId }: Props) => {
   const { data: products = [], isLoading: loadingProducts } = useQuery(
     convexQuery(api.queries.products.getProductsBySpec, {
@@ -28,7 +64,6 @@ export const SpecVariantsTable = ({ specificationId }: Props) => {
   const { mutate: createVariants, isPending } = useCreateSpecVariants()
 
   const [pending, setPending] = useState<Set<string>>(new Set())
-  const [tableKey, setTableKey] = useState(0)
 
   const isLoading = loadingProducts || loadingColors
 
@@ -37,37 +72,18 @@ export const SpecVariantsTable = ({ specificationId }: Props) => {
     for (const p of products) variantSet.add(`${p.color}__${p.size}`)
 
     const rows = fabricColors
-      .map(f => ({ color: f.color }))
+      .map(f => {
+        const row: Record<string, any> = { color: f.color }
+        for (const size of productSizes) {
+          const key = `${f.color}__${size}`
+          row[`__status_${size}`] = variantSet.has(key) ? 'exists' : pending.has(key) ? 'pending' : 'none'
+        }
+        return row
+      })
       .sort((a, b) => a.color.localeCompare(b.color))
 
     return { variantSet, rows }
-  }, [products, fabricColors])
-
-  const headers: HeaderObject[] = useMemo(() => [
-    {
-      accessor: 'color',
-      label: '',
-      width: 140,
-      type: 'string',
-      pinned: 'left',
-    },
-    ...productSizes.map(size => ({
-      accessor: size,
-      label: size,
-      width: 58,
-      type: 'other' as const,
-      cellRenderer: ({ row }: { row: Record<string, any> }) => {
-        const key = `${row.color}__${size}`
-        if (variantSet.has(key)) {
-          return <span className="flex items-center justify-center"><Check size={14} className="text-green-500" /></span>
-        }
-        if (pending.has(key)) {
-          return <span className="flex items-center justify-center"><Plus size={14} className="text-blue-500" /></span>
-        }
-        return null
-      },
-    })),
-  ], [variantSet, pending])
+  }, [products, fabricColors, pending])
 
   const handleCellClick = useCallback(({ accessor, row }: CellClickProps) => {
     if (!productSizes.includes(accessor as string)) return
@@ -104,7 +120,6 @@ export const SpecVariantsTable = ({ specificationId }: Props) => {
       {
         onSuccess: () => {
           setPending(new Set())
-          setTableKey(k => k + 1)
         },
       }
     )
@@ -116,17 +131,14 @@ export const SpecVariantsTable = ({ specificationId }: Props) => {
         <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
           Варіанти ({products.length})
         </p>
-        {pending.size > 0 && (
-          <Button size="sm" className="h-6 text-[11px] px-2" onClick={handleCreate} disabled={isPending}>
-            <Plus size={10} className="mr-1" />
-            Створити ({pending.size})
-          </Button>
-        )}
+        <Button size="sm" className="h-6 text-[11px] px-2" onClick={handleCreate} disabled={pending.size <= 0 || isPending}>
+          <Plus size={10} className="mr-1" />
+          Створити ({pending.size})
+        </Button>
       </div>
       <AppTable
-        key={tableKey}
         rows={rows}
-        defaultHeaders={headers}
+        defaultHeaders={tableHeaders}
         isLoading={isLoading}
         getRowId={({ row }: any) => row.color as string}
         height="100%"

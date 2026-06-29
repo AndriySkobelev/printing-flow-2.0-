@@ -12,19 +12,41 @@ interface FormTextFieldProps {
   otherValue?: string | number,
 }
 
-export const FormTextNumberField = ({ type = 'text', placeholder, label, className, onChange, otherValue }: FormTextFieldProps) => { 
+const ALLOWED_KEYS = new Set([
+  'Backspace', 'Delete', 'Tab', 'Escape', 'Enter',
+  'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown',
+  'Home', 'End',
+]);
+
+export const FormTextNumberField = ({ type = 'text', placeholder, label, className, onChange, otherValue }: FormTextFieldProps) => {
   const field = useFieldContext();
   const name = useMemo(() => field.name, [field.name]);
-  const value = useMemo(() => {
-    return type === 'number' ? Number(field.state.value) : field.state.value as string | number | ReadonlyArray<string> | undefined;
-  }, [field.state.value]);
-  // console.log("🚀 ~ FormTextNumberField ~ value:", value)
-  const fieldOnChange = useMemo(() => (e: React.ChangeEvent<HTMLInputElement>) => {
+
+  const rawValue = field.state.value;
+  const displayValue = type === 'number'
+    ? (rawValue === 0 || rawValue == null ? '' : String(rawValue))
+    : rawValue as string | number | ReadonlyArray<string> | undefined;
+
+  const fieldOnChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.value;
-    console.log('raw', raw, value)
-    field.handleChange
-  }, [field.handleChange]);
-  
+    if (type === 'number') {
+      const sanitized = raw.replace(/[^\d.]/g, '').replace(/^(\d*\.?\d*).*$/, '$1');
+      field.handleChange(sanitized as never);
+    } else {
+      field.handleChange(raw as never);
+    }
+    onChange?.(e);
+  };
+
+  const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (type !== 'number') return;
+    if (ALLOWED_KEYS.has(e.key)) return;
+    if (e.ctrlKey || e.metaKey) return;
+    const currentVal = String(rawValue ?? '');
+    if (e.key === '.' && !currentVal.includes('.')) return;
+    if (!/^\d$/.test(e.key)) e.preventDefault();
+  };
+
   const errors = useMemo(() => field.state.meta.errors as Array<{ message: string }> | undefined, [field.state.meta.errors]);
   const isValid = useMemo(() => field.state.meta.isValid as boolean | undefined, [field.state.meta.isValid]);
 
@@ -32,21 +54,19 @@ export const FormTextNumberField = ({ type = 'text', placeholder, label, classNa
     <div className={clsx("flex flex-col gap-1 w-full", className)}>
       {label ? <div className="text-sm text-[#bbbfc7] capitalize ml-2">{label}</div> : null}
       <Input
-        min={1}
-        type={type}
+        type="text"
         name={name}
-        value={value}
-        pattern="[0-9]*"
-        inputMode="numeric"
+        value={displayValue}
+        inputMode={type === 'number' ? 'decimal' : 'text'}
         onChange={fieldOnChange}
+        onKeyDown={onKeyDown}
         placeholder={placeholder}
         title={`${errors?.[0]?.message ?? ''}`}
         className={clsx(
-          "placeholder:text-gray-300 h-9.5 shadow-none bg-white [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [appearance:textfield]" + ' ' + className,
-          errors ? errors?.length > 0 && 'border-red-500': '',
+          "placeholder:text-gray-300 h-9.5 shadow-none bg-white",
+          !isValid && 'border-red-500',
         )}
       />
-      {/* {!isValid && <div className="text-sm text-red-500 ml-2">{errors?.[0]?.message}</div>} */}
     </div>
   )
 };

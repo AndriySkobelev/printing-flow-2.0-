@@ -65,9 +65,10 @@ export const productsSpecification = {
   customSizes: v.optional(v.array(v.string())),
   materials: v.array(v.object({
     units: v.string(),
-    quantity: v.union(v.number(), v.string()),
+    lineId: v.optional(v.string()),
     materialName: v.optional(v.string()),
     fabricId: v.optional(v.id('fabrics')),
+    quantity: v.union(v.number(), v.string()),
     materialId: v.optional(v.id('materials')),
     type: v.optional(v.union(v.literal('fabric'), v.literal('material'), v.literal('base'))),
   })),
@@ -90,6 +91,7 @@ export const productVariants = {
   synced_at: v.optional(v.number()), // час коли останній раз синхронізували з keycrm
   processingType: v.optional(v.union(v.string(), v.null())),
   materials: v.optional(v.array(v.object({
+    lineId: v.optional(v.string()),
     multiplier: v.optional(v.number()),
     fabricId: v.optional(v.id('fabrics')),
     fabricVariantId: v.optional(v.id('fabricVariants')),

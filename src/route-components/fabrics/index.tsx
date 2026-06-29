@@ -40,6 +40,7 @@ const fabricHeaders = (
     label: "",
     width: 40,
     type: "string",
+    pinned: 'right',
     cellRenderer: ({ row }: any) => (
       <ActionsMenu items={[{
         label: 'Видалити',
@@ -64,6 +65,7 @@ const variantHeaders = (deleteVariant: DeleteVariantFn): HeaderObject[] => [
     label: "",
     width: 40,
     type: "string",
+    pinned: 'right',
     cellRenderer: ({ row }: any) => (
       <ActionsMenu items={[{
         label: 'Видалити',
