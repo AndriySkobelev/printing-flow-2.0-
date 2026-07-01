@@ -13,7 +13,7 @@ const Divider: FC<DividerProps> = ({ className, type = 'horizontal' }) => {
     <Separator.Root
       orientation={type}
       className={clsx(
-        type === 'horizontal' ? 'h-px w-full bg-primary/30' : 'w-px h-lh bg-primary/30',
+        type === 'horizontal' ? 'h-px w-full bg-primary/30' : 'w-px bg-primary/30',
         className
       )} />
   );

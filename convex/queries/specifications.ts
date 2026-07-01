@@ -60,7 +60,7 @@ export const getSpecsWithMaterials = query({
         }
         if (material.materialId) {
           data = await ctx.db.get('materials', material.materialId)
-          pickData = pick(['name', 'color', 'size'], data as Materials || {})
+          // pickData = pick(['name', 'color', 'size'], data as Materials || {})
         }
 
         return {
@@ -144,7 +144,7 @@ export const getSpecificationById = query({
       }
       if (material.materialId) {
         const mat = await ctx.db.get(material.materialId);
-        data = { name: mat?.name, color: mat?.color, size: mat?.size };
+        // data = { name: mat?.name, color: mat?.color, size: mat?.size };
       }
       return { ...material, ...data };
     }));

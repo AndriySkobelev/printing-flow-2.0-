@@ -284,10 +284,10 @@ export const getProductsWithResolvedMaterials = query({
           const fabric = await ctx.db.get(material.fabricId) as Fabrics | null;
           return { ...material, name: fabric?.name, color: fabric, units: fabric?.units };
         }
-        if (material.materialId) {
-          const mat = await ctx.db.get(material.materialId) as Materials | null;
-          return { ...material, name: mat?.name, size: mat?.size, color: mat?.color, units: mat?.units };
-        }
+        // if (material.materialId) {
+        //   const mat = await ctx.db.get(material.materialId) as Materials | null;
+        //   return { ...material, name: mat?.name, size: mat?.size, color: mat?.color, units: mat?.units };
+        // }
         return material;
       }));
 

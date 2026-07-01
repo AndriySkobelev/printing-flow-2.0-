@@ -24,6 +24,7 @@ import {
   fabricVariantsTable,
   fabricColorsTable,
   materialsTable,
+  materialVariantsTable,
   proudctsTable,
   specifications,
   shiftReportsTabel,
@@ -142,7 +143,13 @@ export default defineSchema({
     .index('by_parentId', ['parentId']),
   materials: materialsTable
     .searchIndex('search_name', {
-      searchField: 'searchText'
+      searchField: 'name',
+    })
+    .index('by_skuPrefix', ['skuPrefix']),
+  materialVariants: materialVariantsTable
+    .index('by_parentId', ['parentId'])
+    .searchIndex('search_text', {
+      searchField: 'searchText',
     }),
   products: proudctsTable
     .index('search_sku', ['sku'])
