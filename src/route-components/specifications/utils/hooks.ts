@@ -4,7 +4,8 @@ import { makeFabricOptions, makeMaterialsOptions, makeOptions } from '@/componen
 const developOptions = {
   fabric: makeOptions,
   fabricVariants: makeFabricOptions,
-  materials: makeMaterialsOptions
+  materials: makeOptions,
+  materialsVariants: makeMaterialsOptions
 };
 
 type DevelopOptionsType = typeof developOptions
@@ -20,7 +21,7 @@ export const useAsyncOptions = (apiPath: any, optionsMode: keyof DevelopOptionsT
       data
     );
 
-    if (optionsMode === 'fabric') {
+    if (optionsMode === 'fabric' || optionsMode === 'materials') {
      return developOptions[optionsMode](optionsData ?? [], 'name', '_id');
     }
 

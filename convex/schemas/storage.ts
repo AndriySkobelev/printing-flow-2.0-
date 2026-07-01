@@ -23,15 +23,22 @@ export const fabricVariantsSchema = {
 
 export const materialsSchema = {
   name: v.string(),
-  sku: v.string(),
-  color: v.string(),
+  skuPrefix: v.string(),
   units: v.string(),
   category: v.string(),
+  material: v.optional(v.string()),
+  sizes: v.optional(v.array(v.string())),
+  colors: v.optional(v.array(v.string())),
+  lastVariantIndex: v.optional(v.number()),
+};
+
+export const materialVariantsSchema = {
+  sku: v.string(),
+  color: v.string(),
+  size: v.string(),
   skuNumber: v.number(),
-  skuPrefix: v.string(),
   code: v.optional(v.string()),
-  size: v.optional(v.string()),
-  material: v.optional(v.string()), // сатини, бавовна, джинс
+  parentId: v.id('materials'),
   searchText: v.optional(v.string()),
 };
 
@@ -127,6 +134,7 @@ const fabricColorsTable = defineTable(fabricColors)
 const proudctsTable = defineTable(productVariants);
 const shiftReportsTabel = defineTable(shiftReports)
 const materialsTable = defineTable(materialsSchema)
+const materialVariantsTable = defineTable(materialVariantsSchema)
 const specifications = defineTable(productsSpecification)
 const icomingMaterialsTable = defineTable(storeMovementsSchema)
 
@@ -137,6 +145,7 @@ export {
   proudctsTable,
   shiftReportsTabel,
   materialsTable,
+  materialVariantsTable,
   specifications,
   icomingMaterialsTable,
 }
