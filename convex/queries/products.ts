@@ -298,6 +298,74 @@ export const getProductsWithResolvedMaterials = query({
   },
 });
 
+export const getSpecMaterialLines = query({
+  args: { specificationId: v.id('specifications') },
+  handler: async (ctx, { specificationId }) => {
+    const spec = await ctx.db.get(specificationId);
+    if (!spec) return [];
+
+    const lines = await Promise.all(spec.materials.map(async (m) => {
+      if (!m.lineId) return null;
+      const mat = m.materialId
+        ? await ctx.db.get(m.materialId)
+        : m.fabricId
+          ? await ctx.db.get(m.fabricId)
+          : null
+      if (!mat) return null;
+
+      return {
+        lineId: m.lineId,
+        fabricId: m.fabricId,
+        units: m?.units ?? '—',
+        name: mat?.name ?? '—',
+        materialId: m.materialId,
+        quantity: m?.quantity ?? '—',
+      };
+    }));
+
+    return lines.filter((l): l is NonNullable<typeof l> => l !== null);
+  },
+})
+
+export const bulkUpdateProductMaterials = mutation({
+  args: {
+    productIds: v.array(v.id('products')),
+    updates: v.array(v.object({
+      lineId: v.string(),
+      fabricVariantId: v.optional(v.id('fabricVariants')),
+      materialVariantId: v.optional(v.id('materialVariants')),
+    })),
+  },
+  handler: async (ctx, { productIds, updates }) => {
+    await Promise.all(productIds.map(async (productId) => {
+      const product = await ctx.db.get(productId);
+      if (!product) return;
+
+      const currentMaterials = product.materials ?? [];
+      const updatedMaterials = currentMaterials.map(cur => {
+        if (!cur.lineId) return cur;
+        const upd = updates.find(u => u.lineId === cur.lineId);
+        if (!upd) return cur;
+        return {
+          ...cur,
+          ...(upd.fabricVariantId !== undefined ? { fabricVariantId: upd.fabricVariantId } : {}),
+          ...(upd.materialVariantId !== undefined ? { materialVariantId: upd.materialVariantId } : {}),
+        };
+      });
+
+      const newEntries = updates
+        .filter(upd => !currentMaterials.some(cur => cur.lineId === upd.lineId))
+        .map(upd => ({
+          lineId: upd.lineId,
+          fabricVariantId: upd.fabricVariantId,
+          materialVariantId: upd.materialVariantId,
+        }));
+
+      await ctx.db.patch(productId, { materials: [...updatedMaterials, ...newEntries] });
+    }));
+  },
+})
+
 export const updateProducts = mutation({
   args: {
     ids: v.array(v.id('products')),
@@ -336,4 +404,61 @@ export const updateProducts = mutation({
       await ctx.db.patch(id, { materials: updatedMaterials });
     }))
   }
+})
+
+export const getProductVariantDetails = query({
+  args: { productId: v.id('products') },
+  handler: async (ctx, { productId }) => {
+    const product = await ctx.db.get(productId);
+    if (!product) return null;
+
+    const spec = await ctx.db.get('specifications', product.parentId);
+    if (!spec) return null;
+
+    const productMaterials = product.materials ?? [];
+
+    const lines = await Promise.all(spec.materials.map(async (specMat) => {
+      const assignment = productMaterials.find(m => m.lineId === specMat.lineId);
+
+      let assignedVariant: { label: string; sku?: string } | null = null;
+
+      if (assignment?.fabricVariantId) {
+        const fv = await ctx.db.get(assignment.fabricVariantId);
+        const fabric = fv ? await ctx.db.get('fabrics', fv.parentId) : null;
+        assignedVariant = {
+          label: [fabric?.name, fv?.color].filter(Boolean).join(' · '),
+          sku: fv?.sku,
+        };
+      } else if (assignment?.materialVariantId) {
+        const mv = await ctx.db.get(assignment.materialVariantId);
+        const material = mv ? await ctx.db.get('materials', mv.parentId) : null;
+        assignedVariant = {
+          label: [material?.name, mv?.color, mv?.size].filter(Boolean).join(' · '),
+          sku: mv?.sku,
+        };
+      }
+
+      const parentMat = specMat.materialId
+        ? await ctx.db.get(specMat.materialId)
+        : specMat.fabricId
+          ? await ctx.db.get(specMat.fabricId)
+          : null;
+
+      return {
+        lineId: specMat.lineId,
+        name: parentMat?.name ?? specMat.materialName ?? '—',
+        quantity: specMat.quantity,
+        units: specMat.units,
+        type: specMat.type,
+        assignedVariant,
+      };
+    }));
+
+    return {
+      sku: product.sku,
+      size: product.size,
+      color: product.color,
+      lines,
+    };
+  },
 })

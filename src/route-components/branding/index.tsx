@@ -13,7 +13,6 @@ export const BrandingPage = () => {
   const { data: tasks = [] } = useQuery(convexQuery(api.queries.branding.getAllBrandingTasks, {}))
 
   const selectedTask = tasks.find(t => t._id === selectedId) ?? null
-  console.log("🚀 ~ BrandingPage ~ selectedTask:", selectedTask)
 
   return (
     <div className="relative h-full overflow-hidden md:overflow-visible md:flex md:gap-2 md:p-2">

@@ -38,13 +38,22 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
         content: 'width=device-width, initial-scale=1',
       },
       {
-        title: 'TanStack Start Starter',
+        title: 'Виробниництво',
       },
     ],
     links: [
       {
         rel: 'stylesheet',
         href: appCss,
+      },
+      // {
+      //   rel: 'icon',
+      //   href: '/favicon.ico?v=3',
+      // },
+      {
+        rel: 'icon',
+        href: '/logo.svg?v=4',
+        type: 'image/svg+xml',
       },
     ],
   }),

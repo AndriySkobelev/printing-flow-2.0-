@@ -103,6 +103,7 @@ export const productVariants = {
     fabricId: v.optional(v.id('fabrics')),
     fabricVariantId: v.optional(v.id('fabricVariants')),
     materialId: v.optional(v.id('materials')),
+    materialVariantId: v.optional(v.id('materialVariants')),
     overwriteMaterialId: v.optional(v.union(v.id('materials'), v.id('fabrics'))),
   }))),
 }

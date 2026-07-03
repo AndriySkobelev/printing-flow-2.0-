@@ -166,24 +166,26 @@ export const MaterialDetail = ({ materialId }: Props) => {
 
       {/* Colors */}
       <div className="flex flex-col gap-2">
-        <div className="flex items-center gap-1.5 text-muted-foreground">
-          <Palette size={13} />
-          <span className="text-xs">Кольори</span>
-        </div>
-        <div className="flex flex-wrap gap-1.5">
-          {colors.map(color => (
-            <EditableChip
-              key={color}
-              label={color}
-              prefix={colorDot(color)}
-              onRename={newColor => renameColor({ id: materialId, oldColor: color, newColor })}
+          <div className="flex items-center gap-1.5 text-muted-foreground">
+            <Palette size={13} />
+            <span className="text-xs">Кольори</span>
+          </div>
+        <ScrollArea className="max-h-20">
+          <div className="flex flex-wrap gap-1.5">
+            {colors.map(color => (
+              <EditableChip
+                key={color}
+                label={color}
+                prefix={colorDot(color)}
+                onRename={newColor => renameColor({ id: materialId, oldColor: color, newColor })}
+              />
+            ))}
+            <AddChip
+              placeholder="Додати колір"
+              onAdd={color => addColors({ id: materialId, colors: [color] })}
             />
-          ))}
-          <AddChip
-            placeholder="Додати колір"
-            onAdd={color => addColors({ id: materialId, colors: [color] })}
-          />
-        </div>
+          </div>
+        </ScrollArea>
       </div>
 
       {/* Sizes */}

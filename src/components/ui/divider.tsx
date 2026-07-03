@@ -8,7 +8,6 @@ interface DividerProps {
 }
  
 const Divider: FC<DividerProps> = ({ className, type = 'horizontal' }) => {
-  console.log("🚀 ~ Divider ~ className:", className)
   return (
     <Separator.Root
       orientation={type}

@@ -12,6 +12,7 @@ type DialogOptions = {
   outerClose?: boolean
   className?: string
   actionSubmit?: (data: any) => void
+  onDismiss?: () => void
 }
 
 type DialogEntry = DialogOptions & { id: string }
@@ -59,7 +60,7 @@ export const ContextDialogComponent = ({ children }: { children: React.ReactNode
           outerClose={dialog.outerClose}
           description={dialog.description}
           actionSubmit={dialog.actionSubmit}
-          setOpen={open => { if (!open) closeDialog(dialog.id); }}
+          setOpen={open => { if (!open) { dialog.onDismiss?.(); closeDialog(dialog.id); } }}
         />
       ))}
     </DialogContext.Provider>

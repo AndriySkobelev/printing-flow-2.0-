@@ -1,4 +1,4 @@
-import { type FunctionComponent } from "react";
+import { type FunctionComponent, type MutableRefObject } from "react";
 import { Trash2Icon } from 'lucide-react'
 import { z } from 'zod';
 import { has } from 'ramda';
@@ -70,20 +70,24 @@ export type SpecificationFormType = z.infer<typeof specificationSchema>
 
 interface SpecificationFormProps {
   formId: string,
+  isEdit?: boolean,
   defaultValues?: SpecificationFormType,
   defaultFabricOptions?: Array<Option>,
   defaultMaterialsOptions?: Array<Option>,
   actionSubmit: (values: SpecificationFormType | SpecificationFormType & { _id: string, _creationTime: string}) => void,
+  formApiRef?: MutableRefObject<(() => SpecificationFormType) | null>,
 }
 
 const SpecificationForm: FunctionComponent<SpecificationFormProps> = ({
   formId,
+  isEdit,
   actionSubmit,
   defaultValues,
   defaultFabricOptions,
-  defaultMaterialsOptions
+  defaultMaterialsOptions,
+  formApiRef,
 }) => {
-  const { loadOptions: fabricOptions } = useAsyncOptions(api.queries.fabrics.getFabricsOptions);
+  const { loadOptions: fabricOptions } = useAsyncOptions(api.queries.fabrics.getFabricsOptions, 'fabric');
   const { loadOptions: materialOptions } = useAsyncOptions(api.queries.materials.getMaterialOptions, 'materials');
 
 
@@ -110,8 +114,7 @@ const SpecificationForm: FunctionComponent<SpecificationFormProps> = ({
     },
   });
 
-  // const formState = useStore(form.store, state => state)
-  // console.log("🚀 ~ SpecificationForm ~ formState:", formState)
+  if (formApiRef) formApiRef.current = () => form.state.values;
 
   return (
     <div>
@@ -136,34 +139,37 @@ const SpecificationForm: FunctionComponent<SpecificationFormProps> = ({
           <div className="flex gap-2 w-full">
             <form.AppField
               name='skuPrefix'
-              children={(field) => (
-                <field.FormAsyncTextField
-                  label='SKU prefix'
-                  buildArgs={(value) => ({ skuPrefix: value })}
-                  isTaken={(result) => result?.exists === true}
-                  query={api.queries.specifications.checkSkuPrefix}
-                  takenMessage='Цей SKU префікс вже використовується'
-                />
-              )} />
+              children={(field) => isEdit
+                ? <field.FormTextField type="text" label='SKU prefix' disabled />
+                : (
+                  <field.FormAsyncTextField
+                    label='SKU prefix'
+                    buildArgs={(value) => ({ skuPrefix: value })}
+                    isTaken={(result) => result?.exists === true}
+                    query={api.queries.specifications.checkSkuPrefix}
+                    takenMessage='Цей SKU префікс вже використовується'
+                  />
+                )
+              } />
             <form.AppField
               name='productionPrice'
-              children={(field) => <field.FormTextField type="number" label='Ціна виробництва'/>} />
+              children={(field) => <field.FormTextNumberField type="number" label='Ціна виробництва'/>} />
           </div>
           <div className="flex gap-2 w-full">
             <form.AppField
               name='productionTime'
-              children={(field) => <field.FormTextField type="number" label='Час виробництва (хв)'/>} />
+              children={(field) => <field.FormTextNumberField type="number" label='Час виробництва (хв)'/>} />
             <form.AppField
               name='cutTime'
-              children={(field) => <field.FormTextField type="number" label='Час крою (хв)'/>} />
+              children={(field) => <field.FormTextNumberField type="number" label='Час крою (хв)'/>} />
           </div>
           <div className="flex gap-2 w-full">
             <form.AppField
               name='packingTime'
-              children={(field) => <field.FormTextField type="number" label='Час пакування (хв)'/>} />
+              children={(field) => <field.FormTextNumberField type="number" label='Час пакування (хв)'/>} />
             <form.AppField
               name='brandingTime'
-              children={(field) => <field.FormTextField type="number" label='Час брендингу (хв)'/>} />
+              children={(field) => <field.FormTextNumberField type="number" label='Час брендингу (хв)'/>} />
           </div>
         </div>
         <Divider type="vertical" className="mx-3 bg-primary/5"/>

@@ -11,6 +11,14 @@ export const useCreateSpecVariants = () =>
     onSuccess: () => toast.success('Варіанти створено'),
   })
 
+
+export const useBulkUpdateProductMaterials = () =>
+  useMutation({
+    mutationFn: useConvexMutation(api.queries.products.bulkUpdateProductMaterials),
+    onError: (e: Error) => toast.error(e.message),
+    onSuccess: () => toast.success('Матеріали збережено'),
+  })
+
 export const useUploadSpecFile = (specificationId: string) => {
   const { mutateAsync: getUploadUrl } = useMutation({
     mutationFn: useConvexMutation(api.queries.specifications.generateSpecFileUploadUrl),

@@ -69,24 +69,3 @@ export function useDeleteSpecification() {
   })
 }
 
-export function useDuplicateSpecification() {
-  const mutationFn = useConvexMutation(
-    api.queries.specifications.duplicateSpecification,
-  )
-
-  return useMutation({
-    mutationFn,
-    onSuccess: () => {
-      toast.success('Специфікація продубльована', {
-        duration: 3000,
-        position: 'top-center',
-      },)
-    },
-    onError: (error) => {
-      toast.error(`Помилка при дублюванні: ${error.message}`, {
-        duration: 3000,
-        position: 'top-center',
-      },)
-    },
-  })
-}

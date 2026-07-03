@@ -1,3 +1,4 @@
+import { getAll } from "convex-helpers/server/relationships";
 import { query, mutation } from "../_generated/server";
 import { fabricsSchema, fabricVariantsSchema } from "../schemas/storage";
 import { v } from "convex/values";
@@ -54,6 +55,23 @@ export const getFabricById = query({
       .withIndex("by_parentId", q => q.eq("parentId", id))
       .collect();
     return { ...fabric, variants };
+  },
+})
+
+export const getFabricByIds = query({
+  args: { ids: v.array(v.id("fabrics")) },
+  handler: async (ctx, { ids }) => {
+    const fabrics = await getAll(ctx.db, ids);
+    return Promise.all(
+      fabrics.map(async (fabric) => {
+        if (!fabric) return null;
+        const variants = await ctx.db
+          .query("fabricVariants")
+          .withIndex("by_parentId", q => q.eq("parentId", fabric._id))
+          .collect();
+        return { ...fabric, variants };
+      })
+    );
   },
 })
 
@@ -216,5 +234,16 @@ export const seedFabricsFromStaticData = mutation({
     }
 
     return { parents: parentCount, variants: variantCount };
+  },
+})
+
+export const checkSkuPrefix = query({
+  args: { skuPrefix: v.string() },
+  handler: async (ctx, { skuPrefix }) => {
+    const existing = await ctx.db
+      .query('fabrics')
+      .filter(q => q.eq(q.field('skuPrefix'), skuPrefix))
+      .first();
+    return { exists: existing !== null };
   },
 })

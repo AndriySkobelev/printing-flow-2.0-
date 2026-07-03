@@ -38,8 +38,9 @@ export const makeProductOptions =<T,> (data: Array<T & { color?: string, size?: 
 
 export const makeOptions =<T,> (data: Array<T>, labelName: keyof T, valueName: keyof T): Array<Option> => {
   const operationData = data || [];
-  return operationData.map((item) => ({
+  const options = operationData.map((item) => ({
     value: item[valueName] as string | number,
     label: item[labelName] as string,
-  }))
+  }));
+  return options;
 }
