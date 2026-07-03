@@ -209,11 +209,11 @@ const Specifications: FunctionComponent<SpecificationsProps> = () => {
 
   const handleSubmitAdd = (values: SpecificationFormType) => {
     const newMaterials = values.materials.map((material) => ({
+      lineId: (material as any).lineId,
       units: material.units,
       quantity: material.quantity,
       type: material.type,
-      fabricId: 'fabricId' in material ? material.fabricId?.value as Id<'fabrics'> : undefined,
-      materialId: 'materialId' in material ? material.materialId?.value as Id<'materials'>: undefined,
+      id: material.id?.value as Id<'fabrics'> | Id<'materials'>,
     }));
     createSpec(omit(['_id', '_creationTime'], {...values, materials: newMaterials} as any) as Specifications);
     closeDialog();
@@ -222,8 +222,9 @@ const Specifications: FunctionComponent<SpecificationsProps> = () => {
   const handleSubmitEdit = (values: SpecificationFormType | (SpecificationFormType & { _id: Id<'specifications'>, _creationTime: string })) => {
     if ('_id' in values && '_creationTime' in values) {
       const newMaterials = values.materials.map((material) => ({
-        fabricId: 'fabricId' in material ? material.fabricId?.value as Id<'fabrics'> : undefined,
-        materialId: 'materialId' in material ? material.materialId?.value as Id<'materials'>: undefined,
+        lineId: (material as any).lineId,
+        id: material.id?.value as Id<'fabrics'> | Id<'materials'>,
+        type: material.type,
         units: material.units,
         quantity: material.quantity,
       }));

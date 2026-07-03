@@ -51,6 +51,26 @@ export const getMaterialOptions = query({
   }
 })
 
+// Spec/product material lines reference a specific materialVariant (color/size),
+// not the parent material — so option search needs to flatten name+color+size+sku per variant.
+export const getMaterialVariantOptions = query({
+  args: { inputValue: v.string() },
+  handler: async (ctx, { inputValue }) => {
+    const materials = await ctx.db
+      .query("materials")
+      .withSearchIndex('search_name', q => q.search('name', inputValue))
+      .take(10);
+    const withVariants = await Promise.all(materials.map(async (material) => {
+      const variants = await ctx.db
+        .query("materialVariants")
+        .withIndex("by_parentId", q => q.eq("parentId", material._id))
+        .collect();
+      return variants.map((variant) => ({ _id: variant._id, name: material.name, color: variant.color, size: variant.size, sku: variant.sku }));
+    }));
+    return withVariants.flat();
+  }
+})
+
 export const getMaterialWithVariants = query({
   args: { id: v.id('materials') },
   handler: async (ctx, { id }) => {

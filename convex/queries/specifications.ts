@@ -1,16 +1,39 @@
 import { query, mutation } from "../_generated/server";
+import type { QueryCtx } from "../_generated/server";
 import { getAll } from 'convex-helpers/server/relationships'
-import { Fabrics, Materials } from "../schema";
 import { productsSpecification } from "../schemas/storage";
-import { pick, omit } from "ramda";
+import { omit } from "ramda";
 import { v } from "convex/values";
 
-const renameKey = (obj: any, oldKey: string, newKey: string) => {
-  if (oldKey !== newKey && obj.hasOwnProperty(oldKey)) {
-    obj[newKey] = obj[oldKey];
-    delete obj[oldKey];
+// Spec material lines reference the generic parent fabric/material (no color)
+// via { id, type }. This resolves that parent doc for display (name).
+export const resolveMaterialParent = async <T extends { id: any, type?: 'fabric' | 'material', name?: string }>(
+  ctx: QueryCtx,
+  material: T
+): Promise<T & { name?: string }> => {
+  const parent = material.type === 'material'
+    ? await ctx.db.get('materials', material.id)
+    : await ctx.db.get('fabrics', material.id);
+  return { ...material, name: parent?.name ?? material.name };
+}
+
+// Product-level material overrides reference a specific fabricVariant/materialVariant
+// (a color/size) via { id, type }. This resolves that variant plus its parent doc
+// for display (name, color, size, sku).
+export const resolveMaterialVariant = async <T extends { id: any, type?: 'fabric' | 'material', name?: string }>(
+  ctx: QueryCtx,
+  material: T
+): Promise<T & { name?: string, color?: string, size?: string, sku?: string }> => {
+  if (material.type === 'material') {
+    const variant = await ctx.db.get('materialVariants', material.id);
+    if (!variant) return { ...material };
+    const parent = await ctx.db.get('materials', variant.parentId);
+    return { ...material, name: parent?.name ?? material.name, color: variant.color, size: variant.size, sku: variant.sku };
   }
-  return obj;
+  const variant = await ctx.db.get('fabricVariants', material.id);
+  if (!variant) return { ...material };
+  const parent = await ctx.db.get('fabrics', variant.parentId);
+  return { ...material, name: parent?.name ?? material.name, color: variant.color, sku: variant.sku };
 }
 
 export const getSpecifications = query({
@@ -24,17 +47,7 @@ export const getSpecificationsWithMaterials = query({
   handler: async (ctx) => {
     const specifications = await ctx.db.query('specifications').collect();
     const withMaterials = await Promise.all(specifications.flatMap(async (spec) => {
-      const mapData = await Promise.all(spec.materials.map(async (material) => {
-        let data;
-        if (material.fabricId) {
-          data = await ctx.db.get('fabrics', material.fabricId)
-        }
-        if (material.materialId) {
-          data = await ctx.db.get('materials', material.materialId)
-        }
-
-        return {...data, ...material};
-      }));
+      const mapData = await Promise.all(spec.materials.map((material) => resolveMaterialParent(ctx, material)));
 
       return {
         ...spec,
@@ -52,22 +65,7 @@ export const getSpecsWithMaterials = query({
     const specifications = await getAll(ctx.db, specs);
     const withMaterials = await Promise.all(specifications.flatMap(async (spec) => {
       if (!spec) return null;
-      const mapData = await Promise.all(spec.materials.map(async (material) => {
-        let data, pickData;
-        if (material.fabricId) {
-          data = await ctx.db.get('fabrics', material.fabricId)
-          pickData = { name: (data as Fabrics)?.name }
-        }
-        if (material.materialId) {
-          data = await ctx.db.get('materials', material.materialId)
-          // pickData = pick(['name', 'color', 'size'], data as Materials || {})
-        }
-
-        return {
-          ...material,
-          ...pickData
-        };
-      }));
+      const mapData = await Promise.all(spec.materials.map((material) => resolveMaterialParent(ctx, material)));
 
       return {
         ...spec,
@@ -136,18 +134,7 @@ export const getSpecificationById = query({
     const spec = await ctx.db.get(id);
     if (!spec) return null;
 
-    const materials = await Promise.all(spec.materials.map(async (material) => {
-      let data: any = {};
-      if (material.fabricId) {
-        const fabric = await ctx.db.get(material.fabricId);
-        data = fabric
-      }
-      if (material.materialId) {
-        const mat = await ctx.db.get(material.materialId);
-        data = mat
-      }
-      return { ...material, ...data };
-    }));
+    const materials = await Promise.all(spec.materials.map((material) => resolveMaterialParent(ctx, material)));
 
     return { ...spec, materials };
   }

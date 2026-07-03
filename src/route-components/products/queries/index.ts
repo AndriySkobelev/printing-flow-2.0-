@@ -18,7 +18,7 @@ export function useCreateProducts() {
 
 export function useUpdateProducts() {
   const mutationFn = useConvexMutation(
-    api.queries.products.updateProducts,
+    api.queries.products.bulkUpdateProductMaterials,
   )
 
   return useMutation({

@@ -72,12 +72,11 @@ export const productsSpecification = {
   customSizes: v.optional(v.array(v.string())),
   materials: v.array(v.object({
     units: v.string(),
+    name: v.optional(v.string()),
     lineId: v.optional(v.string()),
-    materialName: v.optional(v.string()),
-    fabricId: v.optional(v.id('fabrics')),
     quantity: v.union(v.number(), v.string()),
-    materialId: v.optional(v.id('materials')),
-    type: v.optional(v.union(v.literal('fabric'), v.literal('material'), v.literal('base'))),
+    id: v.union(v.id('materials'), v.id('fabrics')),
+    type: v.optional(v.union(v.literal('fabric'), v.literal('material'))),
   })),
   lastVariantIndex: v.optional(v.number()),
   attachedFiles: v.optional(v.array(v.object({
@@ -100,11 +99,8 @@ export const productVariants = {
   materials: v.optional(v.array(v.object({
     lineId: v.optional(v.string()),
     multiplier: v.optional(v.number()),
-    fabricId: v.optional(v.id('fabrics')),
-    fabricVariantId: v.optional(v.id('fabricVariants')),
-    materialId: v.optional(v.id('materials')),
-    materialVariantId: v.optional(v.id('materialVariants')),
-    overwriteMaterialId: v.optional(v.union(v.id('materials'), v.id('fabrics'))),
+    id: v.union(v.id('materialVariants'), v.id('fabricVariants')),
+    type: v.optional(v.union(v.literal('fabric'), v.literal('material'))),
   }))),
 }
 

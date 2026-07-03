@@ -1,11 +1,10 @@
 import { type MutableRefObject, memo } from "react";
 import SpecificationForm, { SpecificationFormType } from "./create-specification"
 import { useResolveSpecificationMaterials } from "../utils/use-resolve-specification-materials";
-import { type SpecificationMaterials } from "./edit-specifications";
 
 interface DuplicateSpecificationProps {
   formId: string,
-  specification: Omit<SpecificationFormType, 'materials'> & { materials: Array<Pick<SpecificationMaterials, 'quantity' | 'type' | 'units'> & { materialId?: string, fabricId?: string}> },
+  specification: Omit<SpecificationFormType, 'materials'> & { materials: Array<{ lineId?: string, quantity: string | number, units: string, id: string, type?: 'fabric' | 'material' }> },
   formApiRef?: MutableRefObject<(() => SpecificationFormType) | null>,
   actionSubmit: (values: SpecificationFormType) => void,
 }

@@ -5,6 +5,7 @@ import type { Id } from '../_generated/dataModel'
 import { api } from '../_generated/api'
 import { getAuthUserId } from '@convex-dev/auth/server'
 import { omit } from 'ramda'
+import { createOrderMaterialReservations } from './movements'
 
 type Diff = Record<string, { from: any; to: any }>
 
@@ -51,10 +52,10 @@ async function resolveFabricName(ctx: MutationCtx, sku: string): Promise<string>
 
   if (!spec) return sku
 
-  const fabricMaterial = (spec.materials ?? []).find((m: any) => m.fabricId)
-  if (!fabricMaterial?.fabricId) return sku
+  const fabricMaterial = (spec.materials ?? []).find((m: any) => m.type === 'fabric')
+  if (!fabricMaterial) return sku
 
-  const fabric = await ctx.db.get(fabricMaterial.fabricId)
+  const fabric = await ctx.db.get('fabrics', fabricMaterial.id as Id<'fabrics'>)
   return fabric?.name ?? sku
 }
 
@@ -720,6 +721,13 @@ export const createProductionTasks = mutation({
     if (needsBranding) {
       await createBrandingTasks(ctx, { productionOrderId, keycrmOrderId, plannedShipDate, externalData })
     }
+
+    await createOrderMaterialReservations(ctx, {
+      keycrmOrderId,
+      manager: order.keycrmManager,
+      orderShippingDate: plannedShipDate,
+      items: dbItems.map(item => ({ sku: item.sku, quantity: item.quantity, shipmentType: item.shipmentType })),
+    })
 
     await Promise.all([
       ctx.db.patch(productionOrderId, { inProduction: true, status: 'in_progress' }),
