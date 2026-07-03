@@ -140,11 +140,11 @@ export const getSpecificationById = query({
       let data: any = {};
       if (material.fabricId) {
         const fabric = await ctx.db.get(material.fabricId);
-        data = { name: fabric?.name };
+        data = fabric
       }
       if (material.materialId) {
         const mat = await ctx.db.get(material.materialId);
-        // data = { name: mat?.name, color: mat?.color, size: mat?.size };
+        data = mat
       }
       return { ...material, ...data };
     }));

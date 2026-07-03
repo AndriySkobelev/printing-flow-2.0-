@@ -7,6 +7,7 @@ interface FormTextFieldProps {
   label?: string,
   onChange?: any,
   className?: string,
+  disabled?: boolean,
   placeholder?: string,
   type?: 'text' | 'number',
   otherValue?: string | number,
@@ -19,6 +20,7 @@ interface TextFieldProps {
   label?: string,
   onChange?: any,
   className?: string,
+  disabled?: boolean,
   placeholder?: string,
   value?: string | number,
   inputClassName?: string,
@@ -34,6 +36,7 @@ export const TextNumberField = ({
   label,
   onChange,
   className,
+  disabled,
   error = [],
   placeholder,
   type = 'text',
@@ -50,6 +53,7 @@ export const TextNumberField = ({
         name={name}
         value={value}
         pattern="[0-9]*"
+        disabled={disabled}
         inputMode="numeric"
         onChange={onChange}
         placeholder={placeholder}
@@ -66,13 +70,12 @@ export const TextNumberField = ({
 
 
 
-export const FormTextField = ({ type = 'text', placeholder, label, className, onChange, otherValue }: FormTextFieldProps) => { 
+export const FormTextField = ({ type = 'text', disabled, placeholder, label, className, onChange, otherValue }: FormTextFieldProps) => { 
   const field = useFieldContext();
   const name = useMemo(() => field.name, [field.name]);
   const value = useMemo(() => {
     return type === 'number' ? Number(field.state.value) : field.state.value as string | number | ReadonlyArray<string> | undefined;
   }, [field.state.value]);
-  console.log("🚀 ~ FormTextField ~ value:", value)
   const fieldOnChange = useMemo(() => (e: React.ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.value;
     if (onChange) {
@@ -91,6 +94,7 @@ export const FormTextField = ({ type = 'text', placeholder, label, className, on
       <Input
         type={type}
         name={name}
+        disabled={disabled}
         onChange={fieldOnChange}
         placeholder={placeholder}
         value={otherValue || value}

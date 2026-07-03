@@ -6,10 +6,10 @@ import { convexQuery } from '@convex-dev/react-query'
 import { api } from "convex/_generated/api";
 import { type Id } from "convex/_generated/dataModel";
 import { DialogContext } from '@/contexts/dialog'
-import { useCreateFabric, useAddFabricVariants, useDeleteFabric, useDeleteFabricVariant } from "./queries";
+import { useCreateFabric, useAddFabricVariants, useDeleteFabric, useDeleteFabricVariant, useUpdateFabric } from "./queries";
 import { Button } from "@/components/ui/button";
 import { ActionsMenu } from "@/components/actions-menu";
-import { Trash2 } from "lucide-react";
+import { Trash2, SquarePen } from "lucide-react";
 import CreateFabricForm from "./forms/create-fabrics";
 import AddFabricVariantForm from "./forms/add-fabric-variant";
 import AppTable from "@/components/ui/app-table";
@@ -26,7 +26,8 @@ type DeleteFabricFn  = (args: { id: Id<'fabrics'> }) => void
 type DeleteVariantFn = (args: { id: Id<'fabricVariants'> }) => void
 
 const fabricHeaders = (
-  deleteFabric: DeleteFabricFn,
+  confirmDelete: (id: Id<'fabrics'>) => void,
+  onEdit: (row: any) => void,
   selectedFabricId: Id<'fabrics'> | null,
   setSelectedFabricId: (id: Id<'fabrics'> | null) => void,
 ): HeaderObject[] => [
@@ -42,15 +43,13 @@ const fabricHeaders = (
     type: "string",
     pinned: 'right',
     cellRenderer: ({ row }: any) => (
-      <ActionsMenu items={[{
-        label: 'Видалити',
-        icon: <Trash2 className="size-3" />,
-        destructive: true,
-        onClick: () => {
-          deleteFabric({ id: row._id });
+      <ActionsMenu items={[
+        { label: 'Редагувати', icon: <SquarePen className="size-3" />, onClick: () => onEdit(row) },
+        { label: 'Видалити', icon: <Trash2 className="size-3" />, destructive: true, onClick: () => {
+          confirmDelete(row._id);
           if (selectedFabricId === row._id) setSelectedFabricId(null);
-        },
-      }]} />
+        }},
+      ]} />
     ),
   },
 ]
@@ -82,9 +81,41 @@ const Fabrics: FunctionComponent<FabricsProps> = () => {
   const { mutate: createFabric } = useCreateFabric();
   const { mutate: addVariant } = useAddFabricVariants();
   const { mutate: deleteFabric } = useDeleteFabric();
+  const { mutate: updateFabric } = useUpdateFabric();
   const { mutate: deleteVariant } = useDeleteFabricVariant();
   const { openDialog, closeDialog } = useContext(DialogContext);
   const [selectedFabricId, setSelectedFabricId] = useState<Id<'fabrics'> | null>(null);
+
+  const handleEditFabric = (row: any) => {
+    const formId = 'edit-fabric-form'
+    openDialog({
+      title: 'Редагувати тканину',
+      withForm: true,
+      formId,
+      content: (
+        <CreateFabricForm
+          isEdit
+          formId={formId}
+          defaultValues={{ name: row.name, skuPrefix: row.skuPrefix, units: row.units, processingType: row.processingType }}
+          actionSubmit={(values) => {
+            updateFabric({ id: row._id, ...values }, { onSuccess: () => closeDialog() })
+          }}
+        />
+      ),
+    })
+  }
+
+  const handleConfirmDeleteFabric = (id: Id<'fabrics'>) => {
+    openDialog({
+      title: 'Видалити тканину?',
+      content: 'Тканину та всі її варіанти буде видалено. Цю дію неможливо скасувати.',
+      withForm: true,
+      actionSubmit: () => {
+        deleteFabric({ id });
+        closeDialog();
+      },
+    })
+  };
 
   const fabricRows = data.map(fabric => ({
     _id: fabric._id,
@@ -153,7 +184,7 @@ const Fabrics: FunctionComponent<FabricsProps> = () => {
             height={650}
             rows={fabricRows}
             isLoading={isLoading}
-            defaultHeaders={fabricHeaders(deleteFabric, selectedFabricId, setSelectedFabricId)}
+            defaultHeaders={fabricHeaders(handleConfirmDeleteFabric, handleEditFabric, selectedFabricId, setSelectedFabricId)}
             onCellClick={handleFabricClick}
             getRowId={(row) => row.row._id as string}
           />
