@@ -43,13 +43,15 @@ export const materialVariantsSchema = {
 };
 
 export const storeMovementsSchema = {
-  quantity: v.union(v.number(), v.string()),
-  materialType: v.union(v.literal('fabrics'), v.literal('materials')),
-  materialId: v.union(v.id('materials'), v.id('fabrics')),
+  quantity: v.number(),
+  materialType: v.union(
+    v.literal('fabricVariants'),
+    v.literal('materialVariants'),
+  ),
+  materialId: v.union(v.id('materialVariants'), v.id('fabricVariants')),
   type: v.union(
     v.literal(TRANSACTION_TYPES['INCOMING']),
     v.literal(TRANSACTION_TYPES['OUTGOING']),
-    v.literal(TRANSACTION_TYPES['RESERVE'])
   ),
   //// OPTIONAL FIELDS
   orderId: v.optional(v.number()),
@@ -57,7 +59,33 @@ export const storeMovementsSchema = {
   description: v.optional(v.string()),
   orderShippingDate: v.optional(v.string()),
   productInfo: v.optional(v.array(v.string())),
-  productQuantity: v.optional(v.union(v.number(), v.string())),
+  productQuantity: v.optional(v.number()),
+  balanceAfter: v.optional(v.number()),
+}
+
+export const reservations = {
+  quantity: v.number(),
+  materialType: v.union(
+    v.literal('fabricVariants'),
+    v.literal('materialVariants'),
+  ),
+  manager: v.optional(v.string()),
+  orderShippingDate: v.optional(v.string()),
+  productInfo: v.optional(v.array(v.string())),
+  productionItemId: v.id('productionOrderItems'),
+  materialId: v.union(v.id('materialVariants'), v.id('fabricVariants')),
+  status: v.union(v.literal('active'), v.literal('released'), v.literal('fulfilled')),
+}
+
+export const stockBalances = {
+  materialType: v.union(
+    v.literal('fabricVariants'),
+    v.literal('materialVariants'),
+  ),
+  materialId: v.union(v.id('materialVariants'), v.id('fabricVariants')),
+  inStock: v.number(),
+  reserved: v.number(),
+  updateAt: v.number(),
 }
 
 export const productsSpecification = {
@@ -72,12 +100,11 @@ export const productsSpecification = {
   customSizes: v.optional(v.array(v.string())),
   materials: v.array(v.object({
     units: v.string(),
+    name: v.optional(v.string()),
     lineId: v.optional(v.string()),
-    materialName: v.optional(v.string()),
-    fabricId: v.optional(v.id('fabrics')),
     quantity: v.union(v.number(), v.string()),
-    materialId: v.optional(v.id('materials')),
-    type: v.optional(v.union(v.literal('fabric'), v.literal('material'), v.literal('base'))),
+    id: v.union(v.id('materials'), v.id('fabrics')),
+    type: v.optional(v.union(v.literal('fabric'), v.literal('material'))),
   })),
   lastVariantIndex: v.optional(v.number()),
   attachedFiles: v.optional(v.array(v.object({
@@ -100,11 +127,8 @@ export const productVariants = {
   materials: v.optional(v.array(v.object({
     lineId: v.optional(v.string()),
     multiplier: v.optional(v.number()),
-    fabricId: v.optional(v.id('fabrics')),
-    fabricVariantId: v.optional(v.id('fabricVariants')),
-    materialId: v.optional(v.id('materials')),
-    materialVariantId: v.optional(v.id('materialVariants')),
-    overwriteMaterialId: v.optional(v.union(v.id('materials'), v.id('fabrics'))),
+    id: v.union(v.id('materialVariants'), v.id('fabricVariants')),
+    type: v.optional(v.union(v.literal('fabric'), v.literal('material'))),
   }))),
 }
 
@@ -138,6 +162,8 @@ const materialsTable = defineTable(materialsSchema)
 const materialVariantsTable = defineTable(materialVariantsSchema)
 const specifications = defineTable(productsSpecification)
 const icomingMaterialsTable = defineTable(storeMovementsSchema)
+const reservationsTable = defineTable(reservations)
+const stockBalancesTable = defineTable(stockBalances)
 
 export {
   fabricsTable,
@@ -149,4 +175,6 @@ export {
   materialVariantsTable,
   specifications,
   icomingMaterialsTable,
+  reservationsTable,
+  stockBalancesTable,
 }

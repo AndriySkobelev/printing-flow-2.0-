@@ -81,8 +81,9 @@ const ProductsSection = ({ items, productionOrderId }: { items: OrderItem[]; pro
               {
                 productionOrderId: productionOrderId as Id<'productionOrders'>,
                 items: products.map(p => ({
+                  productId:    p.productId as Id<'products'>,
                   name:         p.name,
-                  sku:          p.sku,
+                  sku:          p.sku ?? '',
                   color:        p.color,
                   size:         p.size,
                   quantity:     Number(p.quantity),

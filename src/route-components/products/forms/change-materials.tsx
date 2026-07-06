@@ -13,7 +13,7 @@ import { useAsyncOptions } from "@/route-components/specifications/utils/hooks";
 
 const productSchema = z.object({
   materials: z.array(z.object({
-    overwriteMaterialId: z.string(),
+    lineId: z.string(),
     type: z.enum(['fabric', 'material']),
     parentLabel: z.string(),
     multiplier: z.number().min(0.01, 'Мінімум 0.01').optional(),
@@ -29,9 +29,9 @@ interface ChangeMaterialsFormProps {
   specificationIds: Array<Id<'specifications'>>,
   actionSubmit: (values: {
     materials: Array<{
-      overwriteMaterialId: string,
-      fabricId?: string,
-      materialId?: string,
+      lineId: string,
+      id: string,
+      type: 'fabric' | 'material',
       multiplier?: number,
     }>
   }) => void
@@ -54,20 +54,18 @@ const ParentMaterials = ({
           <div className="font-medium text-sm mb-1">{spec?.name}</div>
           <div className="flex flex-wrap gap-1">
             {spec?.materials.map((material: any, j: number) => {
-              const id = material.fabricId || material.materialId;
-              const isSelected = selected.includes(id);
+              const isSelected = selected.includes(material.lineId);
               return (
                 <div
-                  key={`${material?.name}-${j}`}
+                  key={material.lineId ?? j}
                   className={clsx(
                     "flex flex-col items-start gap-0.5 text-sm bg-primary/5 rounded-md px-2 py-1 cursor-pointer hover:bg-primary/10 transition-colors",
                     isSelected && 'bg-green-100 border border-green-300'
                   )}
                   onClick={() => onToggle(material)}
                 >
-                  <div className="text-xs">{material?.name}{material?.size ? `-${material?.size}` : ''}</div>
+                  <div className="text-xs">{material?.name}</div>
                   <div className="flex items-center gap-0.5 text-xs">
-                    <span className="text-[#868686]">{material?.color}</span>
                     <span className="text-[#706f6f]">({material?.quantity}{material?.units})</span>
                   </div>
                 </div>
@@ -87,48 +85,45 @@ const ChangeMaterials: FunctionComponent<ChangeMaterialsFormProps> = ({
   specificationIds,
 }) => {
   const { data } = useQuery(convexQuery(api.queries.specifications.getSpecsWithMaterials, { specs: specificationIds }));
-  const { loadOptions: fabricOptions } = useAsyncOptions(api.queries.fabrics.getFabricsOptionsByColor, 'fabric');
-  const { loadOptions: materialOptions } = useAsyncOptions(api.queries.materials.getMaterialOptions, 'materials');
+  const { loadOptions: fabricOptions } = useAsyncOptions(api.queries.fabrics.getFabricVariantOptions, 'fabricVariants');
+  const { loadOptions: materialOptions } = useAsyncOptions(api.queries.materials.getMaterialVariantOptions, 'materialsVariants');
 
   const form = useAppForm({
     validationLogic: revalidateLogic(),
     validators: { onDynamic: productSchema },
     defaultValues: defaultValues || { materials: [] },
     onSubmit: ({ value }) => {
-      const materials = value?.materials ? value?.materials.map((m) => ({
-        overwriteMaterialId: m.overwriteMaterialId,
-        multiplier: m.multiplier,
-        ...(m.type === 'fabric'
-          ? { fabricId: m.newMaterial?.value }
-          : { materialId: m.newMaterial?.value }
-        ),
-      })) : [];
+      const materials = (value?.materials ?? [])
+        .filter((m) => !!m.newMaterial?.value)
+        .map((m) => ({
+          lineId: m.lineId,
+          type: m.type,
+          multiplier: m.multiplier,
+          id: m.newMaterial!.value,
+        }));
       actionSubmit({ materials });
     }
   });
 
   const selectedIds = useStore(form.store, (state: any) =>
-    (state.values.materials as FormValuesType['materials']).map((m) => m.overwriteMaterialId)
+    (state.values.materials as FormValuesType['materials']).map((m) => m.lineId)
   );
 
   const handleToggleMaterial = (material: any) => {
-    const id = material.fabricId || material.materialId;
     const materials = form.getFieldValue('materials') || [];
-    const existingIndex = materials && materials.findIndex((m: any) => m.overwriteMaterialId === id);
+    const existingIndex = materials && materials.findIndex((m: any) => m.lineId === material.lineId);
 
     if (existingIndex !== -1) {
       form.setFieldValue('materials', materials ? materials.filter((_: any, idx: number) => idx !== existingIndex) : []);
       return;
     }
 
-    const isFabric = !!material.fabricId;
-    const label = `${material.name ?? ''}${material.size ? `-${material.size}` : ''} ${material.color ?? ''}`.trim();
     form.setFieldValue('materials', [
       ...materials,
       {
-        overwriteMaterialId: id,
-        type: isFabric ? 'fabric' : 'material',
-        parentLabel: label,
+        lineId: material.lineId,
+        type: material.type,
+        parentLabel: material.name ?? '',
         multiplier: undefined,
         newMaterial: undefined,
       },

@@ -1,7 +1,6 @@
 import { type FunctionComponent, type MutableRefObject } from "react";
 import { Trash2Icon } from 'lucide-react'
 import { z } from 'zod';
-import { has } from 'ramda';
 import clsx from "clsx";
 import { revalidateLogic } from '@tanstack/react-form';
 import { useAppForm } from "@/components/main-form";
@@ -30,38 +29,26 @@ const specificationSchema = z.object({
   packingTime:    z.string().min(1, 'Must be an 1 min charts'),
   brandingTime:   z.string().min(1, 'Must be an 1 min charts'),
   productionPrice: z.string().min(1, 'Must be an 1 min charts'),
-  materials: z.array(z.discriminatedUnion('type', [
-    z.object({
-      type: z.literal('material'),
-      units: z.string(),
-      quantity: z.string(),
-      materialId: selectFieldSchema,
-    }),
-    z.object({
-      type: z.literal('fabric'),
-      units: z.string(),
-      quantity: z.string(),
-      fabricId: selectFieldSchema,
-    }),
-    z.object({
-      type: z.literal('base'),
-      units: z.string(),
-      quantity: z.string(),
-      fabricId: selectFieldSchema,
-    })
-  ]))
+  // Every line references a specific fabricVariant/materialVariant via id; the
+  // first line is always the base fabric by convention (see products.ts).
+  materials: z.array(z.object({
+    type: z.union([z.literal('material'), z.literal('fabric')]),
+    units: z.string(),
+    quantity: z.string(),
+    id: selectFieldSchema,
+  }))
 })
 
 const defaultMaterialValues = {
   type: 'material' as const,
-  materialId: undefined,
+  id: undefined,
   quantity: '',
   units: ''
 }
 
 const defaultFabricsValues = {
   type: 'fabric' as const,
-  fabricId: undefined,
+  id: undefined,
   quantity: '',
   units: ''
 }
@@ -106,7 +93,7 @@ const SpecificationForm: FunctionComponent<SpecificationFormProps> = ({
       packingTime:    '0',
       brandingTime:   '0',
       materials: [
-        { type: 'base' as const, fabricId: undefined, quantity: '1', units: '' }
+        { type: 'fabric' as const, id: undefined, quantity: '1', units: '' }
       ]
     },
     onSubmit: (value) => {
@@ -183,15 +170,15 @@ const SpecificationForm: FunctionComponent<SpecificationFormProps> = ({
                     <span className="text-primary/40">Матеріали</span>
                     {field.state.value.map((value, i) => (
                       <div key={i} className={clsx('flex gap-2 w-full items-end')}>
-                        <form.AppField key={`materialId-${i}`} name={!has('fabricId', value) ? `materials[${i}].materialId` : `materials[${i}].fabricId`}
+                        <form.AppField key={`id-${i}`} name={`materials[${i}].id`}
                           children={(subField) => (
                             <subField.FormAsyncSelect
                               className='flex-5'
                               valueMode='object'
-                              label={!has('fabricId', value) ? "Матеріал" : 'Тканина'}
+                              label={value.type === 'material' ? "Матеріал" : 'Тканина'}
                               modeOption='default'
-                              asyncOptions={!has('fabricId', value) ? materialOptions : fabricOptions}
-                              defaultOptions={!has('fabricId', value) ? defaultMaterialsOptions : defaultFabricOptions}/>
+                              asyncOptions={value.type === 'material' ? materialOptions : fabricOptions}
+                              defaultOptions={value.type === 'material' ? defaultMaterialsOptions : defaultFabricOptions}/>
                           )}
                         />
                         <form.AppField key={`quantity-${i}`} name={`materials[${i}].quantity`}

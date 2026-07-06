@@ -43,7 +43,6 @@ export const TextNumberField = ({
   inputClassName,
   value}: TextFieldProps
 ) => {
-  console.log("🚀 ~ TextNumberField ~ value:", value)
   return (
     <div className={clsx("flex flex-col gap-1 w-full", className)}>
       {label ? <div className="text-sm text-[#bbbfc7] capitalize ml-2">{label}</div> : null}

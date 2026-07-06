@@ -3,13 +3,10 @@ import SpecificationForm, { SpecificationFormType } from "./create-specification
 import { Id } from "convex/_generated/dataModel";
 import { useResolveSpecificationMaterials } from "../utils/use-resolve-specification-materials";
 
-type Prettify<T> = { [K in keyof T]: T[K] } & {}
 export type SpecificationMaterials = SpecificationFormType['materials'][number]
-export type OmitMaterialsType = Omit<SpecificationMaterials, 'fabricId' | 'materialId'>
-export type MaterialsOmitType = Prettify<{ materialId?: string, fabricId?: string } & OmitMaterialsType>
 interface EditSpecificationsProps {
   formId: string,
-  specification: Omit<SpecificationFormType, 'materials'> & { materials: Array<Pick<SpecificationMaterials, 'quantity' | 'type' | 'units'> & { materialId?: string, fabricId?: string}> },
+  specification: Omit<SpecificationFormType, 'materials'> & { materials: Array<{ lineId?: string, quantity: string | number, units: string, id: string, type?: 'fabric' | 'material' }> },
   actionSubmit: (values: SpecificationFormType | SpecificationFormType & { _id: Id<'specifications'>, _creationTime: string}) => void,
 }
 

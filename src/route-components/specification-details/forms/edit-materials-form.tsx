@@ -12,8 +12,8 @@ type SpecLine = {
   name: string
   units: string
   quantity: string | number
-  fabricId?: Id<'fabrics'>
-  materialId?: Id<'materials'>
+  id: Id<'fabrics'> | Id<'materials'>
+  type?: 'fabric' | 'material'
 }
 
 const FabricLineField = ({ fabricId, index, form }: { fabricId: Id<'fabrics'>; index: number; form: any }) => {
@@ -54,8 +54,8 @@ const formSchema = z.object({
 export type EditMaterialsFormType = {
   updates: Array<{
     lineId: string
-    fabricVariantId?: Id<'fabricVariants'>
-    materialVariantId?: Id<'materialVariants'>
+    id: Id<'fabricVariants'> | Id<'materialVariants'>
+    type: 'fabric' | 'material'
   }>
 }
 
@@ -78,9 +78,8 @@ const EditMaterialsFormInner: FunctionComponent<InnerProps> = ({ formId, specLin
           const specLine = specLines.find(s => s.lineId === l.lineId)
           return {
             lineId: l.lineId,
-            ...(specLine?.fabricId
-              ? { fabricVariantId: l.variantId as Id<'fabricVariants'> }
-              : { materialVariantId: l.variantId as Id<'materialVariants'> }),
+            type: specLine?.type === 'material' ? 'material' as const : 'fabric' as const,
+            id: l.variantId as Id<'fabricVariants'> | Id<'materialVariants'>,
           }
         })
       actionSubmit({ updates })
@@ -106,11 +105,9 @@ const EditMaterialsFormInner: FunctionComponent<InnerProps> = ({ formId, specLin
                   </div>
                   <ArrowLeftRight size={15} className='stroke-1' />
                   <div className="flex-1">
-                    {specMat.fabricId
-                      ? <FabricLineField fabricId={specMat.fabricId} index={i} form={form} />
-                      : specMat.materialId
-                        ? <MaterialLineField materialId={specMat.materialId} index={i} form={form} />
-                        : null
+                    {specMat.type === 'material'
+                      ? <MaterialLineField materialId={specMat.id as Id<'materials'>} index={i} form={form} />
+                      : <FabricLineField fabricId={specMat.id as Id<'fabrics'>} index={i} form={form} />
                     }
                   </div>
                 </div>

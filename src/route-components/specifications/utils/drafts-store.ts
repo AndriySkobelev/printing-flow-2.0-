@@ -10,9 +10,7 @@ export type SpecificationDraft = {
 
 const hasDraftContent = (values: Partial<SpecificationFormType>) => {
   if (values.name?.trim() || values.category?.trim() || values.skuPrefix?.trim()) return true
-  return (values.materials || []).some((material) =>
-    ('materialId' in material && !!material.materialId) || ('fabricId' in material && !!material.fabricId)
-  )
+  return (values.materials || []).some((material) => !!material.id)
 }
 
 type SpecificationDraftsStore = {

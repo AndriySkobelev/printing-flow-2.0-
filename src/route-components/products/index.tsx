@@ -67,9 +67,9 @@ const Products: FunctionComponent<ProductsProps> = () => {
 
   const handleSubmitChangeMaterials = (data: any) => {
     setIsLoading(true);
-    const ids = selectedData.map((el) => el._id);
-    
-    updateProducts({ ...data, ids }, {
+    const productIds = selectedData.map((el) => el._id);
+
+    updateProducts({ productIds, updates: data.materials }, {
       onSuccess: () => {
         closeDialog();
         setIsLoading(false);

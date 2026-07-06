@@ -3,6 +3,7 @@ import { query, mutation, type QueryCtx } from '../_generated/server'
 import { type Id } from '../_generated/dataModel'
 import { omit } from 'ramda'
 import { getAuthUserId } from '@convex-dev/auth/server'
+import { resolveMaterialParent } from './specifications'
 
 // ─── HELPERS ────────────────────────────────────────────────────────────────
 
@@ -30,17 +31,8 @@ async function resolveSpecForOrder(ctx: QueryCtx, productionOrderId: Id<'product
     specs.map(async (spec: any) => {
       const materials = await Promise.all(
         spec.materials.map(async (mat: any) => {
-          let name: string | undefined = mat.materialName;
-          if (!name) {
-            if (mat.fabricId) {
-              const fabric = await ctx.db.get(mat.fabricId as Id<'fabrics'>);
-              name = fabric?.name;
-            } else if (mat.materialId) {
-              const material = await ctx.db.get(mat.materialId as Id<'materials'>);
-              name = material?.name;
-            }
-          }
-          return { ...mat, materialName: name };
+          const resolved = await resolveMaterialParent(ctx, mat);
+          return { ...mat, materialName: resolved.name };
         })
       );
       return { ...omit(['productionPrice'], spec), materials };
