@@ -28,7 +28,9 @@ import {
   proudctsTable,
   specifications,
   shiftReportsTabel,
-  icomingMaterialsTable
+  icomingMaterialsTable,
+  reservationsTable,
+  stockBalancesTable,
 } from './schemas/storage';
 
 
@@ -161,6 +163,13 @@ export default defineSchema({
     .index('search_skuPrefix', ['skuPrefix']),
   shiftReports: shiftReportsTabel
     .index('by_timeStamp', ['timeStamp']),
-  storeMovements: icomingMaterialsTable,
+  storeMovements: icomingMaterialsTable
+    .index('by_materialId', ['materialId']),
   plannerEvents: plannerEventsTable,
+  reservations: reservationsTable
+    .index('by_productionItemId', ['productionItemId'])
+    .index('by_materialId', ['materialId'])
+    .index('by_status', ['status']),
+  stockBalances: stockBalancesTable
+    .index('by_materialId', ['materialId']),
 });
