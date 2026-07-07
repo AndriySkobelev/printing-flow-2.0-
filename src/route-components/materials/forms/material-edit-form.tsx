@@ -2,13 +2,13 @@ import z from 'zod';
 import { type FunctionComponent } from 'react';
 import { useAppForm } from '@/components/main-form';
 import { revalidateLogic } from '@tanstack/react-form';
+import { unitsOptions } from '@/route-components/specifications/forms/create-specification';
 
 const formSchema = z.object({
   name: z.string().min(1, 'Введіть назву'),
-  color: z.string().min(1, 'Введіть колір'),
   units: z.string().min(1, 'Введіть одиниці'),
   category: z.string().min(1, 'Введіть категорію'),
-  size: z.string().optional(),
+  material: z.string(),
 });
 
 export type MaterialEditFormType = z.infer<typeof formSchema>;
@@ -24,14 +24,12 @@ const MaterialEditForm: FunctionComponent<MaterialEditFormProps> = ({ formId, de
     validationLogic: revalidateLogic(),
     validators: { onDynamic: formSchema },
     defaultValues: {
-      name: '',
-      color: '',
-      units: '',
-      category: '',
-      size: '',
-      ...defaultValues,
+      name: defaultValues?.name ?? '',
+      units: defaultValues?.units ?? '',
+      category: defaultValues?.category ?? '',
+      material: defaultValues?.material ?? '',
     },
-    onSubmit: ({ value }) => actionSubmit(value as MaterialEditFormType),
+    onSubmit: ({ value }) => actionSubmit(value),
   });
 
   return (
@@ -45,10 +43,9 @@ const MaterialEditForm: FunctionComponent<MaterialEditFormProps> = ({ formId, de
         <form.AppField name="category" children={(field) => <field.FormTextField label="Категорія" />} />
       </div>
       <div className="flex gap-2">
-        <form.AppField name="color" children={(field) => <field.FormTextField label="Колір" />} />
-        <form.AppField name="size" children={(field) => <field.FormTextField label="Розмір" />} />
+        <form.AppField name="units" children={(field) => <field.FormSelect label="Одиниці" options={unitsOptions} />} />
+        <form.AppField name="material" children={(field) => <field.FormTextField label="Склад" placeholder="бавовна, сатин..." />} />
       </div>
-      <form.AppField name="units" children={(field) => <field.FormTextField label="Одиниці" />} />
     </form>
   );
 };

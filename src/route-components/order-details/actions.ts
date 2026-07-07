@@ -58,6 +58,13 @@ export const useSplitOrderItem = () =>
     onSuccess: () => toast.success('Товар розділено'),
   })
 
+export const useDeleteProductionOrderItem = () =>
+  useMutation({
+    mutationFn: useConvexMutation(api.queries.orders.deleteProductionOrderItem),
+    onError: (e: Error) => toast.error(e.message),
+    onSuccess: () => toast.success('Товар видалено'),
+  })
+
 export const useAddProductionOrderItems = () =>
   useMutation({
     mutationFn: useConvexMutation(api.queries.orders.addProductionOrderItems),

@@ -107,9 +107,11 @@ const plannerEventsTable = defineTable(plannerEventsSchema)
   .index('by_sewer_date', ['sewerId', 'date'])
 
 export type Materials = Doc<'materials'>;
+export type MaterialVariants = Doc<'materialVariants'>;
 export type Users = Doc<'users'>;
 export type ShiftReportsType = Doc<'shiftReports'>;
 export type Fabrics = Doc<'fabrics'>;
+export type FabricVariants = Doc<'fabricVariants'>;
 export type Orders = Doc<'orders'>;
 export type Products = Doc<'products'>;
 export type Specifications = Doc<'specifications'>;

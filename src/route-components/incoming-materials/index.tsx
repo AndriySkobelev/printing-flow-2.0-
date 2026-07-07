@@ -12,6 +12,12 @@ import { type HeaderObject } from "simple-table-core";
 import { DialogContext } from '@/contexts/dialog'
 import { Button } from '@/components/ui/button';
 import AppTable from '@/components/ui/app-table';
+
+// getMovementsWithMaterials resolves a movement's variant back to its parent
+// fabric/material doc, plus the variant's own color/sku(/size) — not the raw
+// fabricVariants/materialVariants doc, which has neither `name` nor `units`.
+type ResolvedMaterial = (Fabrics | Materials) & { color?: string; size?: string; sku?: string };
+
 const typeIcons = {
   incoming: {
     bg: '#e0f5dd',
@@ -43,7 +49,7 @@ const headers: Array<HeaderObject> = [
     type: "string",
     minWidth: 200,
     cellRenderer: (props) => {
-      const row = props.row as StoreMovements & { material: Materials | Fabrics};
+      const row = props.row as StoreMovements & { material: ResolvedMaterial };
       return (
         <div
           className='flex items-center gap-1 rounded-md w-fit px-1.5 py-0'
@@ -60,7 +66,7 @@ const headers: Array<HeaderObject> = [
     isSortable: true,
     type: "string",
     cellRenderer: (props) => {
-      const row = props.row as StoreMovements & { material: Materials | Fabrics};
+      const row = props.row as StoreMovements & { material: ResolvedMaterial };
       return (
         <div
           className='flex items-center gap-1 rounded-md w-fit py-0'
@@ -77,7 +83,7 @@ const headers: Array<HeaderObject> = [
     isSortable: true,
     type: "number",
     cellRenderer: (props) => {
-      const row = props.row as StoreMovements & { material: Materials | Fabrics};
+      const row = props.row as StoreMovements & { material: ResolvedMaterial };
       return (
         <div
           className='flex items-center gap-1 rounded-md w-fit px-1.5 py-0'
@@ -94,7 +100,7 @@ const headers: Array<HeaderObject> = [
     isSortable: true,
     type: "number",
     cellRenderer: (props) => {
-      const row = props.row as StoreMovements & { material: Materials | Fabrics};
+      const row = props.row as StoreMovements & { material: ResolvedMaterial };
       return (
         <div
           style={{ backgroundColor: typeIcons[row.type].bg}}
@@ -110,7 +116,7 @@ const headers: Array<HeaderObject> = [
   { accessor: "manager", label: "Менеджер", width: 150, isSortable: true, type: "string" },
   { accessor: "sku", label: "SKU", width: 100, isSortable: true, type: "string",
     cellRenderer: (props) => {
-      const row = props.row as StoreMovements & { material: Materials | Fabrics};
+      const row = props.row as StoreMovements & { material: ResolvedMaterial };
       return (
         <div
           className='flex items-center gap-1 rounded-md w-fit py-0'
@@ -127,22 +133,6 @@ const headers: Array<HeaderObject> = [
     isSortable: true,
     type: "date",
     valueFormatter: ({ value }) => {
-      const date = new Date(value as string) || '-';
-      return date.toLocaleDateString("uk-UA", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-      });
-    }
-  },
-  {
-    accessor: "orderShippingDate",
-    label: "Дата видачі",
-    width: 200,
-    isSortable: true,
-    type: "date",
-    valueFormatter: ({ value }) => {
-      if (!value) return '-'; 
       const date = new Date(value as string) || '-';
       return date.toLocaleDateString("uk-UA", {
         month: "short",

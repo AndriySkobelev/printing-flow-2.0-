@@ -1,8 +1,10 @@
+import { v } from "convex/values";
 import { UTCDate } from "@date-fns/utc";
 import { query, mutation, internalMutation } from "../_generated/server";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { Id } from "../_generated/dataModel";
 import { storeMovementsSchema } from  "../schemas/storage";
+import { resolveMaterialParent } from "./specifications";
 
 // Applies a movement's quantity onto the material variant's stock balance —
 // incoming adds, outgoing subtracts — creating the balance row if this variant
@@ -109,6 +111,96 @@ export const getStockBalancesWithMaterials = query({
     return Promise.all(balances.map(async (balance) => {
       const material = await resolveVariantMaterial(ctx, balance);
       return { ...balance, material };
+    }));
+  }
+})
+
+type RequiredMaterial = {
+  unassigned: boolean,
+  materialType: 'fabricVariants' | 'materialVariants' | 'fabrics' | 'materials',
+  materialId: Id<'fabricVariants'> | Id<'materialVariants'> | Id<'fabrics'> | Id<'materials'>,
+  units: string,
+  quantity: number,
+}
+
+// What this order needs to be produced, aggregated per material, alongside
+// current stock. Mirrors createOrderMaterialReservations's resolution (product
+// assignment by lineId wins, else the spec's generic default) but is read-only
+// and, unlike the reservation flow, still reports lines with no product-level
+// assignment yet (flagged `unassigned`, no stock to check against since we
+// don't know which variant will end up being consumed).
+export const getOrderRequiredMaterials = query({
+  args: { productionOrderId: v.id('productionOrders') },
+  handler: async (ctx, { productionOrderId }) => {
+    const allItems = await ctx.db
+      .query('productionOrderItems')
+      .withIndex('by_productionOrder', q => q.eq('productionOrderId', productionOrderId))
+      .collect();
+    const items = allItems.filter(item => item.shipmentType === 'manufacturing');
+
+    // Phase 1: batch-fetch deduplicated products, then their specs.
+    const productIds = [...new Set(items.map(item => item.productId))];
+    const products = await Promise.all(productIds.map(id => ctx.db.get(id)));
+    const productById = new Map(products.filter((p): p is NonNullable<typeof p> => !!p).map(p => [p._id, p]));
+
+    const specIds = [...new Set([...productById.values()].map(p => p.parentId))];
+    const specs = await Promise.all(specIds.map(id => ctx.db.get(id)));
+    const specById = new Map(specs.filter((s): s is NonNullable<typeof s> => !!s).map(s => [s._id, s]));
+
+    // Phase 2: sync aggregation across items using the prefetched maps.
+    const requiredByMaterial = new Map<string, RequiredMaterial>();
+    for (const item of items) {
+      const product = productById.get(item.productId);
+      if (!product) continue;
+      const spec = specById.get(product.parentId);
+      if (!spec) continue;
+
+      const productOverrides = product.materials ?? [];
+
+      for (const specMaterial of spec.materials) {
+        const override = productOverrides.find((m) => m.lineId && m.lineId === specMaterial.lineId);
+
+        const materialType = override
+          ? (override.type === 'material' ? 'materialVariants' as const : 'fabricVariants' as const)
+          : (specMaterial.type === 'material' ? 'materials' as const : 'fabrics' as const)
+        const materialId = override ? override.id : specMaterial.id;
+        const multiplier = override?.multiplier ?? 1;
+        const quantity = Number(specMaterial.quantity) * multiplier * item.quantity;
+
+        const key = `${materialType}:${materialId}`;
+        const existing = requiredByMaterial.get(key);
+        if (existing) {
+          existing.quantity += quantity;
+        } else {
+          requiredByMaterial.set(key, {
+            unassigned: !override,
+            materialType,
+            materialId,
+            units: specMaterial.units,
+            quantity,
+          });
+        }
+      }
+    }
+
+    // Phase 3: enrich each aggregated material with display info + stock balance.
+    return Promise.all(Array.from(requiredByMaterial.values()).map(async (required) => {
+      if (required.unassigned) {
+        const material = await resolveMaterialParent(ctx, {
+          id: required.materialId,
+          type: required.materialType === 'materials' ? 'material' : 'fabric',
+        });
+        return { ...required, material, inStock: null, reserved: null, available: null };
+      }
+
+      const variantKey = required as { materialType: 'fabricVariants' | 'materialVariants', materialId: Id<'fabricVariants'> | Id<'materialVariants'> };
+      const [material, balance] = await Promise.all([
+        resolveVariantMaterial(ctx, variantKey),
+        ctx.db.query('stockBalances').withIndex('by_materialId', q => q.eq('materialId', variantKey.materialId)).first(),
+      ]);
+      const inStock = balance?.inStock ?? 0;
+      const reserved = balance?.reserved ?? 0;
+      return { ...required, material, inStock, reserved, available: inStock - reserved };
     }));
   }
 })

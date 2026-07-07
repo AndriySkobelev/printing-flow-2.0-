@@ -439,6 +439,7 @@ export const getProductionOrderDetails = query({
         brandingComment:      i.brandingComment ?? null,
         sewingComment:        i.sewingComment ?? null,
         shipmentType:         i.shipmentType,
+        inProduction:         i.inProduction ?? null,
         processingType:       i.processingType ?? null,
         brandingType:         i.brandingType ?? null,
         cuttingBrandingType:  i.cuttingBrandingType ?? null,
@@ -690,10 +691,16 @@ export const createProductionTasks = mutation({
     const plannedShipDate = order.plannedShipDate
     const externalData   = order.keycrmData ?? {}
 
-    const dbItems = await ctx.db
+    const allDbItems = await ctx.db
       .query('productionOrderItems')
       .withIndex('by_productionOrder', q => q.eq('productionOrderId', productionOrderId))
       .collect()
+
+    // Only process items not already sent to production, so re-running this
+    // (e.g. after adding more products to an in-progress order) doesn't
+    // duplicate cutting/sewing/branding tasks or material reservations.
+    const dbItems = allDbItems.filter(item => !item.inProduction)
+    if (dbItems.length === 0) return
 
     const orderItems: OrderItemEntry[] = dbItems.map(item => ({
       id:           item._id as unknown as string,
@@ -928,6 +935,28 @@ export const updateOrderItemDestination = mutation({
       changes: computeDiff(
         { destination: item.destination ?? null },
         { destination },
+      ),
+    })
+  },
+})
+
+export const deleteProductionOrderItem = mutation({
+  args: { itemId: v.id('productionOrderItems') },
+  handler: async (ctx, { itemId }) => {
+    const item = await ctx.db.get(itemId)
+    if (!item) throw new Error('Товар не знайдено')
+    if (item.inProduction) throw new Error('Неможливо видалити товар, який вже у виробництві')
+
+    await ctx.db.delete(itemId)
+
+    await insertLog(ctx, {
+      productionOrderId:     item.productionOrderId,
+      keyCrmOrderId:         item.keycrmOrderId ?? '',
+      productionOrderItemId: itemId,
+      type:    'deleted',
+      changes: computeDiff(
+        { name: item.name, sku: item.sku, color: item.color, size: item.size, quantity: item.quantity },
+        {},
       ),
     })
   },

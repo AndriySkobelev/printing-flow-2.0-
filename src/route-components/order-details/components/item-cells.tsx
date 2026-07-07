@@ -1,7 +1,7 @@
 import { useCallback, useContext, useState } from 'react'
 import { type HeaderObject } from 'simple-table-core'
 import { type Id } from 'convex/_generated/dataModel'
-import { MessageSquare, Pencil, Scissors, Warehouse, Trash2, SquareSplitHorizontal, Save } from 'lucide-react'
+import { MessageSquare, Pencil, Scissors, Warehouse, Trash2, SquareSplitHorizontal, Save, CheckCheck } from 'lucide-react'
 import { ActionsMenu } from '@/components/actions-menu'
 import { MyPopover } from '@/components/my-popover'
 import { Textarea } from '@/components/ui/text-area'
@@ -12,6 +12,7 @@ import {
   useSplitOrderItem,
   useUpdateOrderItemDestination,
   useUpdateOrderItem,
+  useDeleteProductionOrderItem,
 } from '../actions'
 import { type OrderItem, type BrandingTypeValue, BRANDING_LABELS } from '../types'
 import { SplitItemForm } from '../forms/split-item-form'
@@ -175,12 +176,30 @@ const DestinationCell = ({ row }: { row: Record<string, unknown> }) => {
   )
 }
 
+const InProductionCell = ({ row }: { row: Record<string, unknown> }) => {
+  const item = row as OrderItem
+  if (!item._id) return null
+  if (item.inProduction) {
+    return (
+      <span className="flex items-center justify-center text-emerald-600" title="У виробництві">
+        <CheckCheck size={14} />
+      </span>
+    )
+  }
+  return (
+    <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300 text-xs">
+      Новий
+    </span>
+  )
+}
+
 const RowActionsCell = ({ row }: { row: Record<string, unknown> }) => {
   const item = row as OrderItem
   const { openDialog, closeDialog, setIsLoading } = useContext(DialogContext)
   const { mutateAsync: split }             = useSplitOrderItem()
   const { mutateAsync: updateDestination } = useUpdateOrderItemDestination()
   const { mutate: updateItem }             = useUpdateOrderItem()
+  const { mutate: deleteItem }             = useDeleteProductionOrderItem()
 
   const cantSplit   = item.quantity <= 1
   const atWarehouse = item.destination === 'warehouse'
@@ -235,6 +254,25 @@ const RowActionsCell = ({ row }: { row: Record<string, unknown> }) => {
     })
   }, [item, openDialog, closeDialog, updateDestination, setIsLoading])
 
+  const handleDelete = useCallback(() => {
+    const id = openDialog({
+      title:        'Видалити товар',
+      withForm:     true,
+      outerClose:   true,
+      content: (
+        <p className="text-sm text-muted-foreground">
+          Видалити <span className="font-medium text-foreground">{item.name}</span> ({item.color} / {item.size}) із замовлення? Цю дію не можна скасувати.
+        </p>
+      ),
+      actionSubmit: () => {
+        setIsLoading(true)
+        deleteItem({ itemId: item._id as Id<'productionOrderItems'> })
+        setIsLoading(false)
+        closeDialog(id)
+      },
+    })
+  }, [item, openDialog, closeDialog, deleteItem, setIsLoading])
+
   if (!item._id) return null
 
   return (
@@ -243,7 +281,7 @@ const RowActionsCell = ({ row }: { row: Record<string, unknown> }) => {
         { label: 'Редагувати',           icon: <Pencil                className="size-3" />, onClick: handleEdit },
         { label: 'Розділити',            icon: <SquareSplitHorizontal className="size-3" />, onClick: handleSplit,          disabled: cantSplit   },
         { label: 'Перемістити на склад', icon: <Warehouse             className="size-3" />, onClick: handleMoveToWarehouse, disabled: atWarehouse },
-        { label: 'Видалити',             icon: <Trash2                className="size-3" />, onClick: () => {},             destructive: true     },
+        { label: 'Видалити',             icon: <Trash2                className="size-3" />, onClick: handleDelete,         destructive: true, disabled: !!item.inProduction },
       ]}
     />
   )
@@ -301,6 +339,15 @@ export const itemNestedHeaders: HeaderObject[] = [
     type:           'string',
     headerRenderer: renderHeader,
     cellRenderer:   ShipmentTypeCell,
+  },
+  {
+    accessor:       'inProduction',
+    label:          'Статус',
+    width:          90,
+    minWidth:       70,
+    type:           'string',
+    headerRenderer: renderHeader,
+    cellRenderer:   InProductionCell,
   },
   {
     accessor:       'brandingComment',
