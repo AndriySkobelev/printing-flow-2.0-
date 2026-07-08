@@ -114,6 +114,7 @@ const headers: Array<HeaderObject> = [
     }
   },
   { accessor: "manager", label: "Менеджер", width: 150, isSortable: true, type: "string" },
+  { accessor: "description", label: "Опис", width: 150, isSortable: true, type: "string" },
   { accessor: "sku", label: "SKU", width: 100, isSortable: true, type: "string",
     cellRenderer: (props) => {
       const row = props.row as StoreMovements & { material: ResolvedMaterial };

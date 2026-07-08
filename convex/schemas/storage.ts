@@ -61,23 +61,27 @@ export const storeMovementsSchema = {
   productInfo: v.optional(v.array(v.string())),
   productQuantity: v.optional(v.number()),
   balanceAfter: v.optional(v.number()),
+  userId: v.id('users'),
 }
 
 export const reservations = {
+  userId: v.id('users'),
   quantity: v.number(),
   materialType: v.union(
     v.literal('fabricVariants'),
     v.literal('materialVariants'),
   ),
   manager: v.optional(v.string()),
+  fulfilledQty: v.optional(v.number()),
   orderShippingDate: v.optional(v.string()),
   productInfo: v.optional(v.array(v.string())),
-  productionItemId: v.id('productionOrderItems'),
+  productionOrderItemId: v.id('productionOrderItems'),
   materialId: v.union(v.id('materialVariants'), v.id('fabricVariants')),
   status: v.union(v.literal('active'), v.literal('released'), v.literal('fulfilled')),
 }
 
 export const stockBalances = {
+  userId: v.id('users'),
   materialType: v.union(
     v.literal('fabricVariants'),
     v.literal('materialVariants'),

@@ -169,7 +169,7 @@ export default defineSchema({
     .index('by_materialId', ['materialId']),
   plannerEvents: plannerEventsTable,
   reservations: reservationsTable
-    .index('by_productionItemId', ['productionItemId'])
+    .index('by_productionOrderItemId', ['productionOrderItemId'])
     .index('by_materialId', ['materialId'])
     .index('by_status', ['status']),
   stockBalances: stockBalancesTable

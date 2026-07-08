@@ -101,7 +101,10 @@ export const updateSpecification = mutation({
   args: { id: v.id('specifications'), data: v.optional(v.object(productsSpecification)) },
   handler: async (ctx, args) => {
     const { id, data } = args;
-    const req = await ctx.db.patch(id, data || {})
+    const patch = data?.materials
+      ? { ...data, materials: data.materials.map(m => ({ ...m, lineId: m.lineId ?? crypto.randomUUID() })) }
+      : data || {};
+    const req = await ctx.db.patch(id, patch)
     return req;
   }
 })

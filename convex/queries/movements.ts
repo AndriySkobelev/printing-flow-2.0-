@@ -1,7 +1,9 @@
 import { v } from "convex/values";
+import { omit } from "ramda";
 import { UTCDate } from "@date-fns/utc";
-import { query, mutation, internalMutation } from "../_generated/server";
+import { query, mutation } from "../_generated/server";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
+import { getAuthUserId } from "@convex-dev/auth/server";
 import { Id } from "../_generated/dataModel";
 import { storeMovementsSchema } from  "../schemas/storage";
 import { resolveMaterialParent } from "./specifications";
@@ -15,11 +17,13 @@ const applyMovementToStockBalance = async (ctx: MutationCtx, {
   materialId,
   quantity,
   type,
+  userId,
 }: {
   materialType: 'fabricVariants' | 'materialVariants',
   materialId: Id<'fabricVariants'> | Id<'materialVariants'>,
   quantity: number,
   type: 'incoming' | 'outgoing',
+  userId: Id<'users'>,
 }): Promise<number> => {
   const delta = type === 'incoming' ? quantity : -quantity;
   const updateAt = new UTCDate().valueOf();
@@ -34,7 +38,7 @@ const applyMovementToStockBalance = async (ctx: MutationCtx, {
   if (existing) {
     await ctx.db.patch(existing._id, { inStock, updateAt });
   } else {
-    await ctx.db.insert('stockBalances', { materialType, materialId, inStock, reserved: 0, updateAt });
+    await ctx.db.insert('stockBalances', { materialType, materialId, inStock, reserved: 0, updateAt, userId });
   }
 
   return inStock;
@@ -47,10 +51,12 @@ const applyReservationToStockBalance = async (ctx: MutationCtx, {
   materialType,
   materialId,
   quantity,
+  userId,
 }: {
   materialType: 'fabricVariants' | 'materialVariants',
   materialId: Id<'fabricVariants'> | Id<'materialVariants'>,
   quantity: number,
+  userId: Id<'users'>,
 }) => {
   const updateAt = new UTCDate().valueOf();
 
@@ -62,7 +68,7 @@ const applyReservationToStockBalance = async (ctx: MutationCtx, {
   if (existing) {
     await ctx.db.patch(existing._id, { reserved: existing.reserved + quantity, updateAt });
   } else {
-    await ctx.db.insert('stockBalances', { materialType, materialId, inStock: 0, reserved: quantity, updateAt });
+    await ctx.db.insert('stockBalances', { materialType, materialId, inStock: 0, reserved: quantity, updateAt, userId });
   }
 }
 
@@ -206,22 +212,15 @@ export const getOrderRequiredMaterials = query({
 })
 
 export const createIncoming = mutation({
-  args: storeMovementsSchema,
+  args: omit(['userId'], storeMovementsSchema) as Omit<typeof storeMovementsSchema, 'userId'>,
   handler: async (ctx, args) => {
-    const materials = await ctx.db.insert("storeMovements", args);
-    const balanceAfter = await applyMovementToStockBalance(ctx, { materialType: args.materialType, materialId: args.materialId, quantity: args.quantity, type: args.type });
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error('Not authenticated');
+
+    const materials = await ctx.db.insert("storeMovements", { ...args, userId });
+    const balanceAfter = await applyMovementToStockBalance(ctx, { materialType: args.materialType, materialId: args.materialId, quantity: args.quantity, type: args.type, userId });
     await ctx.db.patch(materials, { balanceAfter });
     return materials;
-  }
-})
-
-export const createIncomingInternal = internalMutation({
-  args: storeMovementsSchema,
-  handler: async (ctx, args) => {
-    const movement = await ctx.db.insert("storeMovements", args);
-    const balanceAfter = await applyMovementToStockBalance(ctx, { materialType: args.materialType, materialId: args.materialId, quantity: args.quantity, type: args.type });
-    await ctx.db.patch(movement, { balanceAfter });
-    return movement;
   }
 })
 
@@ -235,15 +234,17 @@ export const createOrderMaterialReservations = async (ctx: MutationCtx, {
   manager,
   orderShippingDate,
   items,
+  userId,
 }: {
   manager: string,
   orderShippingDate?: number,
   items: Array<{ productionOrderItemId: Id<'productionOrderItems'>, productId: Id<'products'>, sku: string, quantity: number, shipmentType: 'manufacturing' | 'warehouse' | null }>,
+  userId: Id<'users'>,
 }) => {
   const shippingDate = orderShippingDate ? new UTCDate(orderShippingDate).toISOString() : undefined;
 
   const pendingReservations: Array<{
-    productionItemId: Id<'productionOrderItems'>,
+    productionOrderItemId: Id<'productionOrderItems'>,
     materialType: 'fabricVariants' | 'materialVariants',
     materialId: Id<'fabricVariants'> | Id<'materialVariants'>,
     quantity: number,
@@ -273,7 +274,7 @@ export const createOrderMaterialReservations = async (ctx: MutationCtx, {
       const quantity = Number(specMaterial.quantity) * multiplier * item.quantity;
 
       pendingReservations.push({
-        productionItemId: item.productionOrderItemId,
+        productionOrderItemId: item.productionOrderItemId,
         materialType,
         materialId: override.id as Id<'fabricVariants'> | Id<'materialVariants'>,
         quantity,
@@ -288,7 +289,7 @@ export const createOrderMaterialReservations = async (ctx: MutationCtx, {
 
   await Promise.all(pendingReservations.map((reservation) =>
     ctx.db.insert('reservations', {
-      productionItemId: reservation.productionItemId,
+      productionOrderItemId: reservation.productionOrderItemId,
       materialType: reservation.materialType,
       materialId: reservation.materialId,
       quantity: reservation.quantity,
@@ -296,6 +297,7 @@ export const createOrderMaterialReservations = async (ctx: MutationCtx, {
       orderShippingDate: shippingDate,
       productInfo: reservation.productInfo,
       status: 'active',
+      userId,
     })
   ));
 
@@ -317,6 +319,109 @@ export const createOrderMaterialReservations = async (ctx: MutationCtx, {
   }
 
   for (const material of quantityByMaterial.values()) {
-    await applyReservationToStockBalance(ctx, material);
+    await applyReservationToStockBalance(ctx, { ...material, userId });
+  }
+}
+
+// Releases a portion of a production-order item's active reservations into
+// actual consumption — called as the item progresses through production
+// (e.g. cutting). `fraction` is how much of the item's total quantity was
+// just completed (0..1): each active reservation for this item has that same
+// fraction of its (fixed, original) `quantity` moved into `fulfilledQty`,
+// subtracted from both `reserved` and `inStock` (the material has physically
+// left the shelf) and logged as an outgoing movement. A reservation whose
+// fulfilledQty reaches its quantity is marked fulfilled.
+//
+// If the requested fraction needs more than what's left un-fulfilled on the
+// reservation (e.g. the item's quantity grew after materials were reserved),
+// the excess ("плюси") is logged as its own outgoing movement — it still
+// reduces inStock, but there's nothing left in `reserved` to release for it.
+export const consumeItemReservations = async (ctx: MutationCtx, {
+  productionOrderItemId,
+  fraction,
+  manager,
+  materialTypes,
+  orderId,
+  productQuantity,
+  userId,
+}: {
+  productionOrderItemId: Id<'productionOrderItems'>,
+  fraction: number,
+  manager?: string,
+  materialTypes?: Array<'fabricVariants' | 'materialVariants'>,
+  orderId?: number,
+  productQuantity?: number,
+  userId: Id<'users'>,
+}) => {
+  if (fraction <= 0) return;
+
+  const activeReservations = await ctx.db
+    .query('reservations')
+    .withIndex('by_productionOrderItemId', q => q.eq('productionOrderItemId', productionOrderItemId))
+    .filter(q => q.eq(q.field('status'), 'active'))
+    .collect();
+
+  const relevantReservations = materialTypes
+    ? activeReservations.filter(r => materialTypes.includes(r.materialType))
+    : activeReservations;
+
+  // Applies an outgoing movement for `qty` of one material: always reduces
+  // inStock, optionally also releases the same amount from `reserved`.
+  const applyOutgoing = async (
+    reservation: { materialType: 'fabricVariants' | 'materialVariants', materialId: Id<'fabricVariants'> | Id<'materialVariants'> },
+    qty: number,
+    { releaseReserved, description }: { releaseReserved: boolean, description?: string },
+  ) => {
+    const updateAt = new UTCDate().valueOf();
+    const balance = await ctx.db
+      .query('stockBalances')
+      .withIndex('by_materialId', q => q.eq('materialId', reservation.materialId))
+      .first();
+    const inStock = (balance?.inStock ?? 0) - qty;
+    const reserved = releaseReserved ? Math.max(0, (balance?.reserved ?? 0) - qty) : (balance?.reserved ?? 0);
+
+    if (balance) {
+      await ctx.db.patch(balance._id, { inStock, reserved, updateAt });
+    } else {
+      await ctx.db.insert('stockBalances', { materialType: reservation.materialType, materialId: reservation.materialId, inStock, reserved, updateAt, userId });
+    }
+
+    await ctx.db.insert('storeMovements', {
+      type: 'outgoing',
+      materialType: reservation.materialType,
+      materialId: reservation.materialId,
+      quantity: qty,
+      manager,
+      orderId,
+      productQuantity,
+      balanceAfter: inStock,
+      description,
+      userId,
+    });
+
+    return inStock;
+  };
+
+  for (const reservation of relevantReservations) {
+    const alreadyFulfilled = reservation.fulfilledQty ?? 0;
+    const remaining = Math.max(0, reservation.quantity - alreadyFulfilled);
+    const desiredQty = reservation.quantity * fraction;
+    if (desiredQty <= 0) continue;
+
+    const consumeQty = Math.min(remaining, desiredQty);
+    const extraQty = desiredQty - consumeQty;
+
+    if (consumeQty > 0) {
+      await applyOutgoing(reservation, consumeQty, { releaseReserved: true });
+
+      const fulfilledQty = alreadyFulfilled + consumeQty;
+      await ctx.db.patch(reservation._id, fulfilledQty >= reservation.quantity - 0.0001
+        ? { fulfilledQty: reservation.quantity, status: 'fulfilled' }
+        : { fulfilledQty });
+    }
+
+    if (extraQty > 0) {
+      await applyOutgoing(reservation, extraQty, { releaseReserved: false, description: 'плюси' });
+    }
   }
 }

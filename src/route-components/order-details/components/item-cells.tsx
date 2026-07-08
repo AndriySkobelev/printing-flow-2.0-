@@ -1,7 +1,7 @@
 import { useCallback, useContext, useState } from 'react'
 import { type HeaderObject } from 'simple-table-core'
 import { type Id } from 'convex/_generated/dataModel'
-import { MessageSquare, Pencil, Scissors, Warehouse, Trash2, SquareSplitHorizontal, Save, CheckCheck } from 'lucide-react'
+import { MessageSquare, Pencil, Warehouse, Trash2, SquareSplitHorizontal, Save, CheckCheck } from 'lucide-react'
 import { ActionsMenu } from '@/components/actions-menu'
 import { MyPopover } from '@/components/my-popover'
 import { Textarea } from '@/components/ui/text-area'
@@ -14,7 +14,7 @@ import {
   useUpdateOrderItem,
   useDeleteProductionOrderItem,
 } from '../actions'
-import { type OrderItem, type BrandingTypeValue, BRANDING_LABELS } from '../types'
+import { type OrderItem, BRANDING_LABELS } from '../types'
 import { SplitItemForm } from '../forms/split-item-form'
 import { EditItemForm } from '../forms/edit-item-form'
 
@@ -28,7 +28,7 @@ const CommentField = ({ value, onSave, placeholder }: { value: string; onSave: (
         value={draft}
         onChange={e => setDraft(e.target.value)}
         placeholder={placeholder}
-        className="text-xs min-h-[60px] resize-none pr-7"
+        className="text-xs min-h-15 resize-none pr-7"
       />
       <button
         onClick={() => onSave(draft.trim())}

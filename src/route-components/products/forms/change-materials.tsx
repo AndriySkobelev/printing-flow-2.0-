@@ -169,7 +169,7 @@ const ChangeMaterials: FunctionComponent<ChangeMaterialsFormProps> = ({
                           modeOption={value.type === 'fabric' ? 'fabric' : 'materials'}
                           asyncOptions={value.type === 'fabric' ? fabricOptions : materialOptions}
                         />
-                        <div className="flex-none self-start text-xs text-muted-foreground min-w-[80px]">
+                        <div className="flex-none self-start text-xs text-muted-foreground min-w-20">
                           {`Осн. матеріал: ${value.parentLabel}`}
                         </div>
                       </div>
