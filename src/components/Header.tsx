@@ -9,6 +9,7 @@ import {
   ClipboardList,
   Layers,
   Menu,
+  FileCog2,
   PackageSearch,
   Scissors,
   PaintRoller,
@@ -100,7 +101,7 @@ const navConfig: NavItem[] = [
   {
     type: 'group',
     label: 'Специфікації',
-    icon: Settings,
+    icon: FileCog2,
     children: [
       {
         type: 'subgroup',

@@ -11,7 +11,7 @@ type Diff = Record<string, { from: any; to: any }>
 
 const computeDiff = (before: Record<string, any>, after: Record<string, any>): Diff => {
   const diff: Diff = {}
-  for (const key of Object.keys(after)) {
+  for (const key of new Set([...Object.keys(before), ...Object.keys(after)])) {
     if (JSON.stringify(before[key] ?? null) !== JSON.stringify(after[key] ?? null)) {
       diff[key] = { from: before[key] ?? null, to: after[key] ?? null }
     }
@@ -683,7 +683,8 @@ export const createProductionTasks = mutation({
   args: { productionOrderId: v.id('productionOrders') },
   handler: async (ctx, { productionOrderId }) => {
     const userId = await getAuthUserId(ctx);
-    const user = await ctx.db.get(userId as Id<'users'>);
+    if (!userId) throw new Error('Not authenticated');
+    const user = await ctx.db.get(userId);
     const order = await ctx.db.get(productionOrderId)
     if (!order) throw new Error('Order not found')
 
@@ -727,6 +728,7 @@ export const createProductionTasks = mutation({
     await createOrderMaterialReservations(ctx, {
       manager: order.keycrmManager ?? user?.name ?? 'Unknown',
       orderShippingDate: plannedShipDate,
+      userId,
       items: dbItems.map(item => ({
         productionOrderItemId: item._id,
         productId: item.productId,
@@ -946,9 +948,7 @@ export const deleteProductionOrderItem = mutation({
     const item = await ctx.db.get(itemId)
     if (!item) throw new Error('Товар не знайдено')
     if (item.inProduction) throw new Error('Неможливо видалити товар, який вже у виробництві')
-
-    await ctx.db.delete(itemId)
-
+    console.log('delete', { name: item.name, sku: item.sku, color: item.color, size: item.size, quantity: item.quantity })
     await insertLog(ctx, {
       productionOrderId:     item.productionOrderId,
       keyCrmOrderId:         item.keycrmOrderId ?? '',
@@ -959,6 +959,8 @@ export const deleteProductionOrderItem = mutation({
         {},
       ),
     })
+
+    await ctx.db.delete(itemId)
   },
 })
 
@@ -1076,7 +1078,7 @@ export const addProductionOrderItems = mutation({
 
       const materialProcessingType = await resolveMaterialProcessingType(ctx, item.sku)
 
-      await ctx.db.insert('productionOrderItems', {
+      const itemId = await ctx.db.insert('productionOrderItems', {
         productionOrderId,
         productId:     productDoc._id,
         keycrmOrderId: order.keycrmOrderId,
@@ -1088,6 +1090,14 @@ export const addProductionOrderItems = mutation({
         shipmentType:  item.shipmentType,
         keycrmProductStatusId: null,
         materialProcessingType,
+      })
+
+      await insertLog(ctx, {
+        productionOrderId,
+        keyCrmOrderId:         order.keycrmOrderId ?? '',
+        productionOrderItemId: itemId,
+        type:    'created',
+        changes: computeDiff({}, { quantity: item.quantity, shipmentType: item.shipmentType }),
       })
     }
   },
@@ -1106,10 +1116,13 @@ export const createManualProductionOrder = mutation({
       .first()
     if (existing) throw new Error(`Замовлення #${keycrmOrderId} вже існує`)
 
+    const userId = await getAuthUserId(ctx)
+    const user = userId ? await ctx.db.get(userId) : null
+
     return ctx.db.insert('productionOrders', {
       status: 'new',
       keycrmOrderId,
-      keycrmManager: keycrmManager ?? '—',
+      keycrmManager: keycrmManager ?? user?.name ?? '—',
       plannedShipDate,
       startDate: Date.now(),
     })

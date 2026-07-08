@@ -135,7 +135,7 @@ export const AddProductForm = ({ onSubmit, defaultValues, formId, isUpdate = fal
               <div key={i} className="grid grid-cols-[1fr_1fr_1fr_auto] gap-2 items-center border rounded-md p-2">
                 <ProductDataComp data={value} />
                 <form.AppField key={`quantity-${i}`} name={`products[${i}].quantity`}
-                  children={f => <f.FormTextField label="Кількість" type="number" />}
+                  children={f => <f.FormTextNumberField label="Кількість" type="number" />}
                 />
                 <form.AppField key={`shipmentType-${i}`} name={`products[${i}].shipmentType`}
                   children={f => <f.FormSelect label="Відвантаження" options={shipmentTypeOptions} />}

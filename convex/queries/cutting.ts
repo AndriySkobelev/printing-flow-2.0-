@@ -4,42 +4,37 @@ import { type Id } from '../_generated/dataModel'
 import { omit } from 'ramda'
 import { getAuthUserId } from '@convex-dev/auth/server'
 import { resolveMaterialParent } from './specifications'
+import { consumeItemReservations } from './movements'
 
 // ─── HELPERS ────────────────────────────────────────────────────────────────
 
-async function resolveSpecForOrder(ctx: QueryCtx, productionOrderId: Id<'productionOrders'>) {
-  const orderItems = await ctx.db
-    .query('productionOrderItems')
-    .withIndex('by_productionOrder', q => q.eq('productionOrderId', productionOrderId))
-    .collect();
+// Resolves the spec for one specific cutting task, via any of its own items
+// (a cutting task groups items by name+color, so they all share one spec) —
+// not by scanning every item in the whole production order, which could span
+// several different products/specs and would return an arbitrary one.
+async function resolveSpecForCuttingTask(ctx: QueryCtx, sizes: Array<{ productionOrderItemId: Id<'productionOrderItems'> }>) {
+  const firstSize = sizes[0];
+  if (!firstSize) return null;
 
-  const skus = [...new Set(orderItems.map((i: any) => i.sku as string))];
+  const item = await ctx.db.get(firstSize.productionOrderItemId);
+  if (!item?.sku) return null;
 
-  const parentIds = new Set<string>();
-  for (const sku of skus) {
-    const product = await ctx.db
-      .query('products')
-      .withIndex('search_sku', q => q.eq('sku', sku))
-      .first();
-    if (product?.parentId) parentIds.add(product.parentId as string);
-  }
+  const product = await ctx.db
+    .query('products')
+    .withIndex('search_sku', q => q.eq('sku', item.sku))
+    .first();
+  if (!product?.parentId) return null;
 
-  const rawSpecs = await Promise.all([...parentIds].map(id => ctx.db.get(id as Id<'specifications'>)));
-  const specs = rawSpecs.filter(Boolean);
+  const spec = await ctx.db.get(product.parentId);
+  if (!spec) return null;
 
-  const resolved = await Promise.all(
-    specs.map(async (spec: any) => {
-      const materials = await Promise.all(
-        spec.materials.map(async (mat: any) => {
-          const resolved = await resolveMaterialParent(ctx, mat);
-          return { ...mat, materialName: resolved.name };
-        })
-      );
-      return { ...omit(['productionPrice'], spec), materials };
+  const materials = await Promise.all(
+    spec.materials.map(async (mat: any) => {
+      const resolved = await resolveMaterialParent(ctx, mat);
+      return { ...mat, materialName: resolved.name };
     })
   );
-
-  return resolved[0] ?? null;
+  return { ...omit(['productionPrice'], spec), materials };
 }
 
 // ─── QUERIES ────────────────────────────────────────────────────────────────
@@ -61,7 +56,7 @@ export const getAllCuttingTasks = query({
           sizesMap[s.size] = s.quantity;
         }
 
-        const spec = await resolveSpecForOrder(ctx, task.productionOrderId);
+        const spec = await resolveSpecForCuttingTask(ctx, sizes);
         const productionOrder = await ctx.db.get(task.productionOrderId);
         const fabricColor = await ctx.db
           .query('fabricColors')
@@ -213,6 +208,26 @@ export const addCuttingTaskSizeLog = mutation({
       completedQty: existing.completedQty + quantity,
       logs,
     });
+
+    // This much of the item's total quantity was just cut — release that
+    // same fraction of its reserved fabric into actual consumption. Other
+    // material types (zippers, labels, etc.) aren't consumed at cutting.
+    if (existing.quantity > 0) {
+      const productionOrderItem = await ctx.db.get(existing.productionOrderItemId);
+      const productionOrder = productionOrderItem ? await ctx.db.get(productionOrderItem.productionOrderId) : null;
+
+      const orderId = productionOrder?.keycrmOrderId ? Number(productionOrder.keycrmOrderId) : undefined;
+
+      await consumeItemReservations(ctx, {
+        productionOrderItemId: existing.productionOrderItemId,
+        fraction: quantity / existing.quantity,
+        manager: productionOrder?.keycrmManager,
+        materialTypes: ['fabricVariants'],
+        orderId: orderId !== undefined && !Number.isNaN(orderId) ? orderId : undefined,
+        productQuantity: quantity,
+        userId,
+      });
+    }
   },
 });
 

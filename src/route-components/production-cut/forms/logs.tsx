@@ -12,10 +12,11 @@ export type LogFormType = z.infer<typeof formSchema>
 interface Props {
   formId: string
   defaultValues: LogFormType
+  max: number
   actionSubmit: (values: LogFormType) => void
 }
 
-const LogForm = ({ formId, defaultValues, actionSubmit }: Props) => {
+const LogForm = ({ formId, defaultValues, max, actionSubmit }: Props) => {
   const form = useAppForm({
     validationLogic: revalidateLogic(),
     validators: { onDynamic: formSchema },
@@ -32,9 +33,9 @@ const LogForm = ({ formId, defaultValues, actionSubmit }: Props) => {
       <form.AppField
         name="completedQty"
         children={field => (
-          <field.FormTextField
+          <field.FormInputNumber
             label="Додати виготовлених"
-            type="number"
+            max={max}
           />
         )}
       />
