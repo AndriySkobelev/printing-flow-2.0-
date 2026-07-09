@@ -57,15 +57,25 @@ export const OrdersList = ({ tasks, selectedId, onSelect }: Props) => {
   const [search, setSearch] = useState('')
   const [view, setView] = useState<View>('list')
 
-  const filtered = tasks.filter(t => {
-    const q = search.toLowerCase()
-    return (
-      !q ||
-      t.keycrmOrderId.toLowerCase().includes(q) ||
-      (t.identifierName ?? '').toLowerCase().includes(q) ||
-      (t.keycrmManager ?? '').toLowerCase().includes(q)
-    )
-  })
+  const isDone = (task: BrandingTask) => {
+    const totalQty = (task.orderItems as { quantity: number }[]).reduce((s, i) => s + (i.quantity ?? 0), 0)
+    const completedQty = (task.logs as { type: string; quantity: number }[])
+      .filter(l => l.type === 'completed')
+      .reduce((s, l) => s + l.quantity, 0)
+    return totalQty > 0 && completedQty >= totalQty
+  }
+
+  const filtered = tasks
+    .filter(t => {
+      const q = search.toLowerCase()
+      return (
+        !q ||
+        t.keycrmOrderId.toLowerCase().includes(q) ||
+        (t.identifierName ?? '').toLowerCase().includes(q) ||
+        (t.keycrmManager ?? '').toLowerCase().includes(q)
+      )
+    })
+    .sort((a, b) => Number(isDone(a)) - Number(isDone(b)))
 
   return (
     <div className="h-full shadow-[0px_0px_3px_#021b333d] rounded-lg bg-background flex flex-col overflow-hidden">

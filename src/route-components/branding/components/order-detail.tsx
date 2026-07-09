@@ -2,7 +2,9 @@ import { DetailHeader } from './detail-header'
 import { ProductItemCard } from './product-item-card'
 import { LogsTable } from './logs-table'
 import { ImagesSection } from './images-section'
+import { ImageGroupsSection } from './image-groups-section'
 import { CuttingSewingProgress } from './cutting-sewing-progress'
+import { useBrandingGroupsStore } from '../store'
 import type { BrandingTask } from '../index'
 import { ScrollArea } from '@/components/ui/scroll-area'
 
@@ -16,6 +18,8 @@ type Props = {
 }
 
 export const OrderDetail = ({ task, onBack }: Props) => {
+  const advanced = useBrandingGroupsStore(s => (task ? s.advancedByOrder[task._id as string] ?? false : false))
+
   if (!task) {
     return (
       <div className="flex flex-col h-full shadow-[0px_0px_3px_#021b333d] rounded-lg bg-background">
@@ -59,41 +63,52 @@ export const OrderDetail = ({ task, onBack }: Props) => {
         brandingTotal={totalQty}
       />
 
-      <div className="flex-1 overflow-y-auto">
-
-        <ImagesSection files={(task.attachedFiles ?? []) as any[]} />
-
-        {/* Products section */}
-        <section className="p-3 flex flex-col gap-2">
-          {orderItems.length === 0 && (
-            <p className="text-sm text-muted-foreground">Немає товарів</p>
-          )}
-          <ScrollArea className="max-h-100">
-            <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
-              {[...orderItems].sort((a, b) => {
-                const aDone = completedByItem(a._id) >= a.quantity ? 1 : 0
-                const bDone = completedByItem(b._id) >= b.quantity ? 1 : 0
-                return aDone - bDone
-              }).map(item => (
-                <ProductItemCard
-                  key={item._id}
-                  item={item}
-                  completedQty={completedByItem(item._id)}
-                  defectQty={defectByItem(item._id)}
-                  brandingTaskId={task._id as string}
-                />
-              ))}
-            </div>
-          </ScrollArea>
-        </section>
-
-        {/* Logs section */}
-        <section className="px-3 pb-4 flex flex-col gap-2">
-          <LogsTable
-            logs={logs}
-            orderItems={orderItems}
+      <div className="flex-1 overflow-y-auto pt-2">
+        {/* Logs section / advanced image-product grouping */}
+        {advanced ? (
+          <ImageGroupsSection
+            orderId={task._id as string}
+            files={(task.attachedFiles ?? []) as any[]}
+            orderItems={orderItems.map(item => ({
+              ...item,
+              completedQty: completedByItem(item._id),
+              defectQty: defectByItem(item._id),
+            }))}
           />
-        </section>
+        ) : (
+          <>
+            <ImagesSection files={(task.attachedFiles ?? []) as any[]} />
+            {/* Products section */}
+            <section className="p-3 flex flex-col gap-2">
+              {orderItems.length === 0 && (
+                <p className="text-sm text-muted-foreground">Немає товарів</p>
+              )}
+              <ScrollArea className="max-h-100">
+                <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
+                  {[...orderItems].sort((a, b) => {
+                    const aDone = completedByItem(a._id) >= a.quantity ? 1 : 0
+                    const bDone = completedByItem(b._id) >= b.quantity ? 1 : 0
+                    return aDone - bDone
+                  }).map(item => (
+                    <ProductItemCard
+                      key={item._id}
+                      item={item}
+                      completedQty={completedByItem(item._id)}
+                      defectQty={defectByItem(item._id)}
+                      brandingTaskId={task._id as string}
+                    />
+                  ))}
+                </div>
+              </ScrollArea>
+            </section>
+            <section className="px-3 pb-4 flex flex-col gap-2">
+              <LogsTable
+                logs={logs}
+                orderItems={orderItems}
+              />
+            </section>
+          </>
+        )}
 
       </div>
     </div>

@@ -100,17 +100,6 @@ export const CuttingSewingProgress = ({ productionOrderId, brandingDone, brandin
             <ProgressBar done={sewing.done} total={sewing.total} size="md" color="bg-violet-500" />
           </button>
         </div>
-
-        {/* Branding */}
-        {brandingTotal > 0 && (
-          <div className="flex flex-col w-full gap-0.5">
-            <div className="flex items-center justify-between text-[10px] text-muted-foreground">
-              <span>Брендування</span>
-              <span className="tabular-nums">{brandingDone}/{brandingTotal} шт</span>
-            </div>
-            <ProgressBar done={brandingDone} total={brandingTotal} size="md" />
-          </div>
-        )}
       </div>
 
       {/* Logs panel */}
