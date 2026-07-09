@@ -4,7 +4,10 @@ import { ProgressBar } from '@/components/progress-bar'
 import { Plus, Scissors, Boxes, CircleQuestionMarkIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { DialogContext } from '@/contexts/dialog'
-import { BrandingLogForm } from '@/route-components/branding/forms/branding-log-form'
+import { type Id } from 'convex/_generated/dataModel'
+import { BrandingLogForm, type BrandingLogFormValues } from '@/route-components/branding/forms/branding-log-form'
+import { useCreateBrandingLog } from '@/route-components/branding/actions'
+import { useBrandingGroupsStore } from '../store'
 
 // ─── Config ──────────────────────────────────────────────────────────────────
 
@@ -30,6 +33,10 @@ type Props = {
   completedQty: number
   defectQty: number
   brandingTaskId: string
+  // Set only when this card renders a single split of the product within
+  // an image group — lets handleSubmitLog attribute the log to that split.
+  imageUrl?: string
+  assignmentId?: string
 }
 
 // ─── ProductDescription ──────────────────────────────────────────────────────
@@ -74,23 +81,48 @@ const ProductDescription = ({ item, completedQty }: ProductDescriptionProps) => 
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
-export const ProductItemCard = ({ item, completedQty, defectQty, brandingTaskId }: Props) => {
+export const ProductItemCard = ({ item, completedQty, defectQty, brandingTaskId, imageUrl, assignmentId }: Props) => {
   const { openDialog, closeDialog } = useContext(DialogContext)
+  const { mutate: createLog } = useCreateBrandingLog(closeDialog)
+  const addAssignmentLocalComplete = useBrandingGroupsStore(s => s.addAssignmentLocalComplete)
+  const localCompleteQty = useBrandingGroupsStore(s =>
+    imageUrl && assignmentId
+      ? s.assignmentsByOrder[brandingTaskId]?.[imageUrl]?.find(a => a.id === assignmentId)?.localCompleteQty
+      : undefined
+  )
 
-  const pct = item.quantity > 0 ? Math.min(100, Math.round((completedQty / item.quantity) * 100)) : 0
-  const restQuantity = item.quantity - completedQty
+  // Real completedQty is shared across all splits of this product — until the
+  // split has its own confirmed logs (localCompleteQty), cap what this split
+  // shows so unrelated splits' progress doesn't leak into its display.
+  const displayCompletedQty = localCompleteQty !== undefined
+    ? Math.min(completedQty, localCompleteQty)
+    : completedQty
+
+  const pct = item.quantity > 0 ? Math.min(100, Math.round((displayCompletedQty / item.quantity) * 100)) : 0
+  const restQuantity = item.quantity - (localCompleteQty ?? completedQty)
+
+  const handleSubmitLog = (values: BrandingLogFormValues) => {
+    createLog({
+      brandingTaskId:        brandingTaskId as Id<'brandingTasks'>,
+      productionOrderItemId: item._id as Id<'productionOrderItems'>,
+      type:     values.type,
+      quantity: values.quantity,
+      comment:  values.comment,
+    })
+
+    if (values.type === 'completed' && imageUrl && assignmentId)
+      addAssignmentLocalComplete(brandingTaskId, imageUrl, assignmentId, values.quantity)
+  }
 
   const handleAddLog = () => {
     openDialog({
       title: item.name,
-      description: <ProductDescription item={item} completedQty={completedQty} />,
+      description: <ProductDescription item={item} completedQty={displayCompletedQty} />,
       outerClose: true,
       content: (
         <BrandingLogForm
-          onDone={closeDialog}
           maxQuantity={restQuantity}
-          brandingTaskId={brandingTaskId}
-          productionOrderItemId={item._id}
+          actionSubmit={handleSubmitLog}
           />
         ),
     })
@@ -129,13 +161,13 @@ export const ProductItemCard = ({ item, completedQty, defectQty, brandingTaskId 
 
       {/* Stats */}
       <div className="flex items-center justify-between text-xs text-muted-foreground">
-        <span>Виконано: <b className="text-foreground">{completedQty}</b> / {item.quantity} шт</span>
+        <span>Виконано: <b className="text-foreground">{displayCompletedQty}</b> / {item.quantity} шт</span>
         {defectQty > 0 && <span className="text-red-500">Брак: {defectQty}</span>}
         <span>{pct}%</span>
       </div>
 
       {/* Progress bar */}
-      <ProgressBar done={completedQty} total={item.quantity} />
+      <ProgressBar done={displayCompletedQty} total={item.quantity} />
     </div>
   )
 }

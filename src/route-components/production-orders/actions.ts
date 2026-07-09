@@ -1,4 +1,5 @@
 import { useMutation } from '@tanstack/react-query'
+import { ConvexError } from 'convex/values'
 import { useConvexMutation } from '@convex-dev/react-query'
 import { useAction } from 'convex/react'
 import { api } from 'convex/_generated/api'
@@ -11,7 +12,12 @@ export const useCreateProductionOrder = (onSuccess?: () => void) =>
       toast.success('Замовлення створено')
       onSuccess?.()
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => {
+     const mesage = e instanceof ConvexError
+        ? (e.data as { message: string }).message
+        : "Unexpected error occurred";
+      toast.error(mesage)
+    },
   })
 
 export const useDeleteProductionOrder = () =>

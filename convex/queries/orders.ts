@@ -1,4 +1,4 @@
-import { v } from 'convex/values'
+import { v, ConvexError } from 'convex/values'
 import { query, mutation, action } from '../_generated/server'
 import type { MutationCtx } from '../_generated/server'
 import type { Id } from '../_generated/dataModel'
@@ -6,6 +6,16 @@ import { api } from '../_generated/api'
 import { getAuthUserId } from '@convex-dev/auth/server'
 import { omit } from 'ramda'
 import { createOrderMaterialReservations } from './movements'
+
+// Only these branding types are actually done by the branding department —
+// items with no type, or only types handled elsewhere (embroidery,
+// sublimation, dtg), don't count toward branding progress/tasks.
+const BRANDING_TYPES = new Set(['dtf', 'flok'])
+
+export const itemNeedsBranding = (item: { brandingType?: string[] | null; cuttingBrandingType?: string[] | null }): boolean => {
+  const types = [...(item.brandingType ?? []), ...(item.cuttingBrandingType ?? [])]
+  return types.some(t => BRANDING_TYPES.has(t))
+}
 
 type Diff = Record<string, { from: any; to: any }>
 
@@ -287,7 +297,7 @@ export const getAllProductionOrdersWithProgress = query({
         .query('brandingTasks')
         .withIndex('by_productionOrder', q => q.eq('productionOrderId', order._id))
         .first()
-      const brandingTotal = 0
+      const brandingTotal = items.filter(itemNeedsBranding).reduce((s, i) => s + i.quantity, 0)
       let brandingDone = 0
       if (brandingTask) {
         const logs = await ctx.db
@@ -389,7 +399,7 @@ export const getProductionOrderDetails = query({
       .query('brandingTasks')
       .withIndex('by_productionOrder', q => q.eq('productionOrderId', productionOrderId))
       .first()
-    const brandingTotal = 0
+    const brandingTotal = items.filter(itemNeedsBranding).reduce((s, i) => s + i.quantity, 0)
     let brandingDone = 0
     if (brandingTask) {
       const logs = await ctx.db
@@ -716,12 +726,7 @@ export const createProductionTasks = mutation({
     const cuttingTaskIds = await createCuttingTasks(ctx, { productionOrderId, plannedShipDate, keycrmOrderId, orderItems })
     await createSewingTasks(ctx, { productionOrderId, plannedShipDate, keycrmOrderId, orderItems, cuttingTaskIds })
 
-    const BRANDING_TYPES = new Set(['dtf', 'flok'])
-    const needsBranding = dbItems.some(item => {
-      const types = [...(item.brandingType ?? []), ...(item.cuttingBrandingType ?? [])]
-      return types.some(t => BRANDING_TYPES.has(t))
-    })
-    if (needsBranding) {
+    if (dbItems.some(itemNeedsBranding)) {
       await createBrandingTasks(ctx, { productionOrderId, keycrmOrderId, plannedShipDate, externalData })
     }
 
@@ -948,7 +953,6 @@ export const deleteProductionOrderItem = mutation({
     const item = await ctx.db.get(itemId)
     if (!item) throw new Error('Товар не знайдено')
     if (item.inProduction) throw new Error('Неможливо видалити товар, який вже у виробництві')
-    console.log('delete', { name: item.name, sku: item.sku, color: item.color, size: item.size, quantity: item.quantity })
     await insertLog(ctx, {
       productionOrderId:     item.productionOrderId,
       keyCrmOrderId:         item.keycrmOrderId ?? '',
@@ -1114,7 +1118,7 @@ export const createManualProductionOrder = mutation({
       .query('productionOrders')
       .withIndex('by_keycrmOrderId', q => q.eq('keycrmOrderId', keycrmOrderId))
       .first()
-    if (existing) throw new Error(`Замовлення #${keycrmOrderId} вже існує`)
+    if (existing) throw new ConvexError({message: `Замовлення #${keycrmOrderId} вже існує`})
 
     const userId = await getAuthUserId(ctx)
     const user = userId ? await ctx.db.get(userId) : null
