@@ -58,7 +58,6 @@ const toggle = (current: BrandingTypeValue[], type: BrandingTypeValue): Branding
   current.includes(type) ? current.filter(t => t !== type) : [...current, type]
 
 export const EditItemForm = ({ item, onSubmit }: Props) => {
-  console.log("🚀 ~ EditItemForm ~ item:", item)
   const form = useAppForm({
     validationLogic: revalidateLogic(),
     validators: {
@@ -69,7 +68,6 @@ export const EditItemForm = ({ item, onSubmit }: Props) => {
       quantity: String(item.quantity ?? '1'),
     },
     onSubmit: ({ value }) => {
-      console.log('EditItemForm onSubmit', value)
       onSubmit({
         quantity: Number(value.quantity),
         shipmentType:        value.shipmentType as 'manufacturing' | 'warehouse' | null,
@@ -85,9 +83,8 @@ export const EditItemForm = ({ item, onSubmit }: Props) => {
       })
     },
   })
-    const formState = useStore(form.store, (state: any) => state
-    );
-    console.log('formState', formState)
+    // const formState = useStore(form.store, (state: any) => state
+    // );
   return (
     <form
       onSubmit={e => { e.preventDefault(); form.handleSubmit() }}

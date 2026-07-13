@@ -2,6 +2,7 @@ import { v } from 'convex/values'
 import { query, mutation } from '../_generated/server'
 import { type Id } from '../_generated/dataModel'
 import { getAuthUserId } from '@convex-dev/auth/server'
+import { itemNeedsBranding } from './orders'
 
 // ─── QUERIES ────────────────────────────────────────────────────────────────
 
@@ -13,10 +14,11 @@ export const getAllBrandingTasks = query({
     const enriched = await Promise.all(
       tasks.map(async (task) => {
         const productionOrder = await ctx.db.get(task.productionOrderId);
-        const orderItems = await ctx.db
+        const allOrderItems = await ctx.db
           .query('productionOrderItems')
           .withIndex('by_productionOrder', q => q.eq('productionOrderId', task.productionOrderId))
           .collect();
+        const orderItems = allOrderItems.filter(itemNeedsBranding);
         const logs = await ctx.db
           .query('brandingLogs')
           .withIndex('by_brandingTask', q => q.eq('brandingTaskId', task._id))
@@ -47,10 +49,11 @@ export const getBrandingTasksByOrder = query({
 
     return Promise.all(
       tasks.map(async (task) => {
-        const orderItems = await ctx.db
+        const allOrderItems = await ctx.db
           .query('productionOrderItems')
           .withIndex('by_productionOrder', q => q.eq('productionOrderId', task.productionOrderId))
           .collect();
+        const orderItems = allOrderItems.filter(itemNeedsBranding);
         const logs = await ctx.db
           .query('brandingLogs')
           .withIndex('by_brandingTask', q => q.eq('brandingTaskId', task._id))
@@ -69,10 +72,11 @@ export const getBrandingTaskById = query({
     if (!task) return null;
 
     const productionOrder = await ctx.db.get(task.productionOrderId);
-    const orderItems = await ctx.db
+    const allOrderItems = await ctx.db
       .query('productionOrderItems')
       .withIndex('by_productionOrder', q => q.eq('productionOrderId', task.productionOrderId))
       .collect();
+    const orderItems = allOrderItems.filter(itemNeedsBranding);
     const logs = await ctx.db
       .query('brandingLogs')
       .withIndex('by_brandingTask', q => q.eq('brandingTaskId', args.brandingTaskId))

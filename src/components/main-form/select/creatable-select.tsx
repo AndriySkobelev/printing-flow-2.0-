@@ -1,10 +1,10 @@
-import { type FunctionComponent, useMemo } from 'react';
+import { type FunctionComponent, useMemo, useState } from 'react';
 import { DotIcon } from 'lucide-react';
 import { type SingleValue, MultiValue } from 'react-select';
 import CreatableSelect from 'react-select/creatable';
 import { useFieldContext } from "@/components/main-form";
 import clsx from 'clsx';
-import { is } from 'ramda';
+import { is, over } from 'ramda';
 
 export type Option = {
   value: string | number | null | undefined;
@@ -107,7 +107,7 @@ interface FormAsyncSelectProps {
   defaultOptions?: Array<{ value: string | number; label: string }> | any;
 }
 
-const FormAsyncSelect: FunctionComponent<FormAsyncSelectProps> = ({ defaultOptions = [], label, options, className, isMulti = true, modeOption = 'default' }) => {
+const FormCreatableSelect: FunctionComponent<FormAsyncSelectProps> = ({ defaultOptions = [], label, options, className, isMulti = true, modeOption = 'default' }) => {
   const field = useFieldContext();
   const name = useMemo(() => field.name, [field.name]);
   const value = useMemo(() => field.state.value as string | number | undefined, [field.state.value]);
@@ -116,53 +116,81 @@ const FormAsyncSelect: FunctionComponent<FormAsyncSelectProps> = ({ defaultOptio
   const errors = useMemo(() => field.state.meta.errors as Array<{ message: string }> | undefined, [field.state.meta.errors]);
   const isValid = useMemo(() => field.state.meta.isValid as boolean | undefined, [field.state.meta.isValid]);
 
+  const [splitMode, setSplitMode] = useState(false);
+
+  const handleCreateOption = (inputValue: string) => {
+    const current = Array.isArray(field.state.value) ? (field.state.value as Option[]) : [];
+    if (splitMode) {
+      const newOptions = inputValue
+        .split(/[,\n]+/)
+        .map(v => v.trim())
+        .filter(Boolean)
+        .map(v => ({ value: v, label: v }));
+      field.handleChange([...current, ...newOptions] as any);
+    } else {
+      field.handleChange([...current, { value: inputValue, label: inputValue }] as any);
+    }
+  };
+
+  const selectStyles = {
+    control: (baseStyles: any) => ({
+      ...baseStyles,
+      borderRadius: '8px',
+      borderColor: '#e7e3e4',
+      maxHeight: '80px',
+      overflowY: 'auto',
+    }),
+  };
+
   return (
     <div className={clsx('flex flex-col gap-1 w-full', className)}>
-      <label className="text-sm ml-2 text-[#bbbfc7]">{label}</label>
-      {
-        isMulti
-        ? <CreatableSelect
-            name={name}
-            isMulti={true}
-            options={options}
-            placeholder="Пошук..."
-            onChange={fieldOnChangeMulti}
-            className='hover:active:border-none'
-            value={valueToOption(value, defaultOptions)}
-            defaultValue={valueToOption(value, defaultOptions)}
-            components={{
-              Option: OptionModes[modeOption || 'default'],
-            }}
-            styles={{
-              control: (baseStyles, state) => ({
-                ...baseStyles,
-                borderRadius: '8px',
-                borderColor: '#e7e3e4',
-              }),
-            }}/>
-        : <CreatableSelect
-            name={name}
-            isMulti={false}
-            placeholder="Пошук..."
-            className='hover:active:border-none'
-            value={valueToOption(value, defaultOptions)}
-            defaultValue={valueToOption(value, defaultOptions)}
-            // onChange={isMulti ? fieldOnChangeMulti : fieldOnChange}
-            onChange={fieldOnChangeSingle}
-            components={{
-              Option: OptionModes[modeOption || 'default'],
-            }}
-            styles={{
-              control: (baseStyles, state) => ({
-                ...baseStyles,
-                borderRadius: '8px',
-                borderColor: '#e7e3e4',
-              }),
-            }}/>
+      <div className="flex items-center justify-between ml-2 mr-1">
+        <label className="text-sm text-[#bbbfc7]">{label}</label>
+        {isMulti && (
+          <label className="flex items-center gap-1 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              className="accent-primary w-3 h-3"
+              checked={splitMode}
+              onChange={e => setSplitMode(e.target.checked)}
+            />
+            <span className="text-xs text-[#bbbfc7]">Split</span>
+          </label>
+        )}
+      </div>
+      {isMulti ? (
+        <CreatableSelect
+          name={name}
+          isMulti={true}
+          options={options}
+          placeholder={'Пошук...'}
+          onChange={fieldOnChangeMulti}
+          onCreateOption={handleCreateOption}
+          formatCreateLabel={(input) => splitMode
+            ? `Створити: ${input.split(/[,\n]+/).map(v => v.trim()).filter(Boolean).join(', ')}`
+            : `Створити "${input}"`
           }
-        {!isValid && <div className="text-sm text-red-500 ml-2">{errors?.[0]?.message}</div>}
+          className='hover:active:border-none'
+          value={(field.state.value as any) ?? []}
+          components={{ Option: OptionModes[modeOption || 'default'] }}
+          styles={selectStyles}
+        />
+      ) : (
+        <CreatableSelect
+          name={name}
+          isMulti={false}
+          placeholder="Пошук..."
+          className='hover:active:border-none'
+          value={valueToOption(value, defaultOptions)}
+          defaultValue={valueToOption(value, defaultOptions)}
+          onChange={fieldOnChangeSingle}
+          components={{ Option: OptionModes[modeOption || 'default'] }}
+          styles={selectStyles}
+        />
+      )}
+      {!isValid && <div className="text-sm text-red-500 ml-2">{errors?.[0]?.message}</div>}
     </div>
   );
 }
  
-export default FormAsyncSelect;
+export default FormCreatableSelect;

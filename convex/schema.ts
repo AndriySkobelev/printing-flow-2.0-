@@ -21,12 +21,16 @@ import {
 } from './schemas/prdouction';
 import {
   fabricsTable,
+  fabricVariantsTable,
+  fabricColorsTable,
   materialsTable,
+  materialVariantsTable,
   proudctsTable,
   specifications,
   shiftReportsTabel,
-  fabricColorsTable,
-  icomingMaterialsTable
+  icomingMaterialsTable,
+  reservationsTable,
+  stockBalancesTable,
 } from './schemas/storage';
 
 
@@ -103,9 +107,11 @@ const plannerEventsTable = defineTable(plannerEventsSchema)
   .index('by_sewer_date', ['sewerId', 'date'])
 
 export type Materials = Doc<'materials'>;
+export type MaterialVariants = Doc<'materialVariants'>;
 export type Users = Doc<'users'>;
 export type ShiftReportsType = Doc<'shiftReports'>;
 export type Fabrics = Doc<'fabrics'>;
+export type FabricVariants = Doc<'fabricVariants'>;
 export type Orders = Doc<'orders'>;
 export type Products = Doc<'products'>;
 export type Specifications = Doc<'specifications'>;
@@ -132,21 +138,26 @@ export default defineSchema({
   orders: ordersTable.index("orderId", ["orderId"]),
   fabrics: fabricsTable
     .searchIndex('search_name', {
-      searchField: 'fabricName',
-    })
-    .searchIndex('search_color', {
-      searchField: 'color',
+      searchField: 'name',
     })
     .searchIndex('search_skuPrefix', {
       searchField: 'skuPrefix',
-    })
-    .index('by_skuNumber', ['skuNumber']),
+    }),
+  fabricVariants: fabricVariantsTable
+    .index('by_parentId', ['parentId']),
   materials: materialsTable
     .searchIndex('search_name', {
-      searchField: 'searchText'
+      searchField: 'name',
+    })
+    .index('by_skuPrefix', ['skuPrefix']),
+  materialVariants: materialVariantsTable
+    .index('by_parentId', ['parentId'])
+    .searchIndex('search_text', {
+      searchField: 'searchText',
     }),
   products: proudctsTable
     .index('search_sku', ['sku'])
+    .index('by_parentId', ['parentId'])
     .searchIndex('search_text', {
       searchField: 'searchText'
     }),
@@ -154,6 +165,13 @@ export default defineSchema({
     .index('search_skuPrefix', ['skuPrefix']),
   shiftReports: shiftReportsTabel
     .index('by_timeStamp', ['timeStamp']),
-  storeMovements: icomingMaterialsTable,
+  storeMovements: icomingMaterialsTable
+    .index('by_materialId', ['materialId']),
   plannerEvents: plannerEventsTable,
+  reservations: reservationsTable
+    .index('by_productionOrderItemId', ['productionOrderItemId'])
+    .index('by_materialId', ['materialId'])
+    .index('by_status', ['status']),
+  stockBalances: stockBalancesTable
+    .index('by_materialId', ['materialId']),
 });

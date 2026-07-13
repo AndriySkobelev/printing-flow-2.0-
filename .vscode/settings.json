@@ -8,5 +8,6 @@
   "files.readonlyInclude": {
     "**/routeTree.gen.ts": true
   },
-  "claudeCode.useTerminal": true
+  "claudeCode.useTerminal": true,
+  "window.zoomLevel": -0.5
 }

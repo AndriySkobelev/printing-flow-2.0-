@@ -1,15 +1,27 @@
-import { v } from 'convex/values'
+import { v, ConvexError } from 'convex/values'
 import { query, mutation, action } from '../_generated/server'
 import type { MutationCtx } from '../_generated/server'
+import type { Id } from '../_generated/dataModel'
 import { api } from '../_generated/api'
 import { getAuthUserId } from '@convex-dev/auth/server'
 import { omit } from 'ramda'
+import { createOrderMaterialReservations } from './movements'
+
+// Only these branding types are actually done by the branding department —
+// items with no type, or only types handled elsewhere (embroidery,
+// sublimation, dtg), don't count toward branding progress/tasks.
+const BRANDING_TYPES = new Set(['dtf', 'flok'])
+
+export const itemNeedsBranding = (item: { brandingType?: string[] | null; cuttingBrandingType?: string[] | null }): boolean => {
+  const types = [...(item.brandingType ?? []), ...(item.cuttingBrandingType ?? [])]
+  return types.some(t => BRANDING_TYPES.has(t))
+}
 
 type Diff = Record<string, { from: any; to: any }>
 
 const computeDiff = (before: Record<string, any>, after: Record<string, any>): Diff => {
   const diff: Diff = {}
-  for (const key of Object.keys(after)) {
+  for (const key of new Set([...Object.keys(before), ...Object.keys(after)])) {
     if (JSON.stringify(before[key] ?? null) !== JSON.stringify(after[key] ?? null)) {
       diff[key] = { from: before[key] ?? null, to: after[key] ?? null }
     }
@@ -50,11 +62,11 @@ async function resolveFabricName(ctx: MutationCtx, sku: string): Promise<string>
 
   if (!spec) return sku
 
-  const fabricMaterial = (spec.materials ?? []).find((m: any) => m.fabricId)
-  if (!fabricMaterial?.fabricId) return sku
+  const fabricMaterial = (spec.materials ?? []).find((m: any) => m.type === 'fabric')
+  if (!fabricMaterial) return sku
 
-  const fabric = await ctx.db.get(fabricMaterial.fabricId)
-  return fabric?.fabricName ?? sku
+  const fabric = await ctx.db.get('fabrics', fabricMaterial.id as Id<'fabrics'>)
+  return fabric?.name ?? sku
 }
 
 type OrderItemEntry = {
@@ -62,8 +74,8 @@ type OrderItemEntry = {
   product: any;
   color: string;
   size: string;
-  needsCutting: boolean;
   shipmentType: 'manufacturing' | 'warehouse' | null;
+  isCustomCut?: boolean | null;
 };
 
 async function createCuttingTasks(ctx: MutationCtx, { productionOrderId, plannedShipDate, keycrmOrderId, orderItems }: {
@@ -72,21 +84,25 @@ async function createCuttingTasks(ctx: MutationCtx, { productionOrderId, planned
   plannedShipDate: number,
   orderItems: OrderItemEntry[]
 }): Promise<Map<string, string>> {
-  const cuttingGroups = new Map<string, OrderItemEntry[]>();
-  for (const item of orderItems.filter(i => i.shipmentType === 'manufacturing')) {
-    const key = `${item.product.name}__${item.color}`;
-    if (!cuttingGroups.has(key)) cuttingGroups.set(key, []);
-    cuttingGroups.get(key)!.push(item);
+  const manufacturingItems = orderItems.filter(i => i.shipmentType === 'manufacturing')
+  const customItems  = manufacturingItems.filter(i => i.isCustomCut)
+  const normalItems  = manufacturingItems.filter(i => !i.isCustomCut)
+
+  const cuttingGroups = new Map<string, OrderItemEntry[]>()
+  for (const item of normalItems) {
+    const key = `${item.product.name}__${item.color}`
+    if (!cuttingGroups.has(key)) cuttingGroups.set(key, [])
+    cuttingGroups.get(key)!.push(item)
   }
 
-  const totalTasks = cuttingGroups.size
+  const totalTasks = cuttingGroups.size + customItems.length
   let taskIndex = 1
   const groupToCuttingTaskId = new Map<string, string>()
 
   for (const [key, items] of cuttingGroups.entries()) {
-    const { product, color } = items[0];
-    const specName = product.name as string;
-    const fabric   = await resolveFabricName(ctx, items[0].product.sku as string);
+    const { product, color } = items[0]
+    const specName = product.name as string
+    const fabric   = await resolveFabricName(ctx, items[0].product.sku as string)
 
     const cuttingTaskId = await ctx.db.insert('cuttingTasks', {
       color,
@@ -97,7 +113,7 @@ async function createCuttingTasks(ctx: MutationCtx, { productionOrderId, planned
       productionOrderId,
       endDate: plannedShipDate,
       orderIndex: totalTasks === 1 ? keycrmOrderId : `${keycrmOrderId}-(${taskIndex++})`,
-    });
+    })
 
     groupToCuttingTaskId.set(key, cuttingTaskId as unknown as string)
 
@@ -108,8 +124,36 @@ async function createCuttingTasks(ctx: MutationCtx, { productionOrderId, planned
         size: item.size,
         quantity: item.product.quantity,
         completedQty: 0,
-      });
+      })
     }
+  }
+
+  for (const item of customItems) {
+    const fabric   = await resolveFabricName(ctx, item.product.sku as string)
+    const dbItem   = await ctx.db.get(item.id as Id<'productionOrderItems'>)
+
+    const cuttingTaskId = await ctx.db.insert('cuttingTasks', {
+      color:     item.color,
+      fabric,
+      specName:  item.product.name as string,
+      keycrmOrderId,
+      status:    'new',
+      productionOrderId,
+      endDate:   plannedShipDate,
+      isCustomCut:      true,
+      customCutComment: dbItem?.customCutComment ?? undefined,
+      orderIndex: totalTasks === 1 ? keycrmOrderId : `${keycrmOrderId}-(${taskIndex++})`,
+    })
+
+    groupToCuttingTaskId.set(item.id, cuttingTaskId as unknown as string)
+
+    await ctx.db.insert('cuttingTaskSizes', {
+      cuttingTaskId,
+      productionOrderItemId: item.id as any,
+      size:         item.size,
+      quantity:     item.product.quantity,
+      completedQty: 0,
+    })
   }
 
   return groupToCuttingTaskId
@@ -253,7 +297,7 @@ export const getAllProductionOrdersWithProgress = query({
         .query('brandingTasks')
         .withIndex('by_productionOrder', q => q.eq('productionOrderId', order._id))
         .first()
-      const brandingTotal = items.filter(i => i.needsBranding).reduce((s, i) => s + i.quantity, 0)
+      const brandingTotal = items.filter(itemNeedsBranding).reduce((s, i) => s + i.quantity, 0)
       let brandingDone = 0
       if (brandingTask) {
         const logs = await ctx.db
@@ -268,7 +312,7 @@ export const getAllProductionOrdersWithProgress = query({
         .query('packagingTasks')
         .withIndex('by_productionOrder', q => q.eq('productionOrderId', order._id))
         .first()
-      const packingTotal = items.filter(i => i.needsPackaging).reduce((s, i) => s + i.quantity, 0)
+      const packingTotal = 0
       let packingDone = 0
       if (packagingTask) {
         const logs = await ctx.db
@@ -355,7 +399,7 @@ export const getProductionOrderDetails = query({
       .query('brandingTasks')
       .withIndex('by_productionOrder', q => q.eq('productionOrderId', productionOrderId))
       .first()
-    const brandingTotal = items.filter(i => i.needsBranding).reduce((s, i) => s + i.quantity, 0)
+    const brandingTotal = items.filter(itemNeedsBranding).reduce((s, i) => s + i.quantity, 0)
     let brandingDone = 0
     if (brandingTask) {
       const logs = await ctx.db
@@ -370,7 +414,7 @@ export const getProductionOrderDetails = query({
       .query('packagingTasks')
       .withIndex('by_productionOrder', q => q.eq('productionOrderId', productionOrderId))
       .first()
-    const packingTotal = items.filter(i => i.needsPackaging).reduce((s, i) => s + i.quantity, 0)
+    const packingTotal = 0
     let packingDone = 0
     if (packagingTask) {
       const logs = await ctx.db
@@ -405,6 +449,7 @@ export const getProductionOrderDetails = query({
         brandingComment:      i.brandingComment ?? null,
         sewingComment:        i.sewingComment ?? null,
         shipmentType:         i.shipmentType,
+        inProduction:         i.inProduction ?? null,
         processingType:       i.processingType ?? null,
         brandingType:         i.brandingType ?? null,
         cuttingBrandingType:  i.cuttingBrandingType ?? null,
@@ -602,6 +647,7 @@ export const creatreProductionOrder = mutation({
       const size  = product.properties.find((p: any) => p.name === 'розмір')?.value ?? '';
       const productSkuPrefix = product.sku ? String(product.sku).split('-')[0] : '';
       const productDoc = await ctx.db.query('products').withIndex('search_sku', q => q.eq('sku', product.sku)).first();
+      if (!productDoc) continue;
 
       const spec = await ctx.db.query('specifications').withIndex('search_skuPrefix', q => q.eq('skuPrefix', productSkuPrefix)).first();
       let processingType: 'branding' | 'embroidery' | 'silkscreen' | 'none' = 'none';
@@ -613,10 +659,10 @@ export const creatreProductionOrder = mutation({
         if (mapping) processingType = mapping.processingType;
       }
       const shipmentType = product.shipment_type as 'manufacturing' | 'warehouse';
-      const needsCutting = shipmentType === 'manufacturing';
 
       const itemId = await ctx.db.insert('productionOrderItems', {
         productionOrderId,
+        productId: productDoc._id,
         keycrmOrderId,
         keycrmProductId: product.offer.product_id,
         name: spec?.name ?? product?.name,
@@ -628,17 +674,11 @@ export const creatreProductionOrder = mutation({
         shipmentType,
         keycrmProductStatusId: product.product_status_id ?? null,
         processingType,
-        needsCutting,
-        needsSewing:        needsCutting,
-        needsBranding:      true,
-        needsSubcontractor: processingType === 'embroidery' || processingType === 'silkscreen',
-        needsPackaging:     true,
       });
 
       orderItems.push({
         id:           itemId as unknown as string,
         product,
-        needsCutting,
         shipmentType,
         size:  productDoc?.size  ?? size,
         color: productDoc?.color ?? color,
@@ -652,6 +692,9 @@ export const creatreProductionOrder = mutation({
 export const createProductionTasks = mutation({
   args: { productionOrderId: v.id('productionOrders') },
   handler: async (ctx, { productionOrderId }) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error('Not authenticated');
+    const user = await ctx.db.get(userId);
     const order = await ctx.db.get(productionOrderId)
     if (!order) throw new Error('Order not found')
 
@@ -659,31 +702,46 @@ export const createProductionTasks = mutation({
     const plannedShipDate = order.plannedShipDate
     const externalData   = order.keycrmData ?? {}
 
-    const dbItems = await ctx.db
+    const allDbItems = await ctx.db
       .query('productionOrderItems')
       .withIndex('by_productionOrder', q => q.eq('productionOrderId', productionOrderId))
       .collect()
+
+    // Only process items not already sent to production, so re-running this
+    // (e.g. after adding more products to an in-progress order) doesn't
+    // duplicate cutting/sewing/branding tasks or material reservations.
+    const dbItems = allDbItems.filter(item => !item.inProduction)
+    if (dbItems.length === 0) return
 
     const orderItems: OrderItemEntry[] = dbItems.map(item => ({
       id:           item._id as unknown as string,
       product:      { quantity: item.quantity, sku: item.sku, name: item.name },
       color:        item.color,
       size:         item.size,
-      needsCutting: item.needsCutting ?? false,
       shipmentType: item.shipmentType,
+      isCustomCut:      item.isCustomCut ?? false,
+      customCutComment: item.customCutComment ?? undefined,
     }))
 
     const cuttingTaskIds = await createCuttingTasks(ctx, { productionOrderId, plannedShipDate, keycrmOrderId, orderItems })
     await createSewingTasks(ctx, { productionOrderId, plannedShipDate, keycrmOrderId, orderItems, cuttingTaskIds })
 
-    const BRANDING_TYPES = new Set(['dtf', 'flok'])
-    const needsBranding = dbItems.some(item => {
-      const types = [...(item.brandingType ?? []), ...(item.cuttingBrandingType ?? [])]
-      return types.some(t => BRANDING_TYPES.has(t))
-    })
-    if (needsBranding) {
+    if (dbItems.some(itemNeedsBranding)) {
       await createBrandingTasks(ctx, { productionOrderId, keycrmOrderId, plannedShipDate, externalData })
     }
+
+    await createOrderMaterialReservations(ctx, {
+      manager: order.keycrmManager ?? user?.name ?? 'Unknown',
+      orderShippingDate: plannedShipDate,
+      userId,
+      items: dbItems.map(item => ({
+        productionOrderItemId: item._id,
+        productId: item.productId,
+        sku: item.sku,
+        quantity: item.quantity,
+        shipmentType: item.shipmentType,
+      })),
+    })
 
     await Promise.all([
       ctx.db.patch(productionOrderId, { inProduction: true, status: 'in_progress' }),
@@ -889,6 +947,27 @@ export const updateOrderItemDestination = mutation({
   },
 })
 
+export const deleteProductionOrderItem = mutation({
+  args: { itemId: v.id('productionOrderItems') },
+  handler: async (ctx, { itemId }) => {
+    const item = await ctx.db.get(itemId)
+    if (!item) throw new Error('Товар не знайдено')
+    if (item.inProduction) throw new Error('Неможливо видалити товар, який вже у виробництві')
+    await insertLog(ctx, {
+      productionOrderId:     item.productionOrderId,
+      keyCrmOrderId:         item.keycrmOrderId ?? '',
+      productionOrderItemId: itemId,
+      type:    'deleted',
+      changes: computeDiff(
+        { name: item.name, sku: item.sku, color: item.color, size: item.size, quantity: item.quantity },
+        {},
+      ),
+    })
+
+    await ctx.db.delete(itemId)
+  },
+})
+
 const brandingTypeValidator = v.array(v.union(
   v.literal('dtf'),
   v.literal('dtg'),
@@ -984,8 +1063,9 @@ export const addProductionOrderItems = mutation({
   args: {
     productionOrderId: v.id('productionOrders'),
     items: v.array(v.object({
+      productId:    v.id('products'),
       name:         v.string(),
-      sku:          v.optional(v.string()),
+      sku:          v.string(),
       color:        v.string(),
       size:         v.string(),
       quantity:     v.number(),
@@ -997,24 +1077,31 @@ export const addProductionOrderItems = mutation({
     if (!order) throw new Error('Order not found')
 
     for (const item of items) {
-      const needsCutting = item.shipmentType === 'manufacturing'
-      const materialProcessingType = item.sku ? await resolveMaterialProcessingType(ctx, item.sku) : null
+      const productDoc = await ctx.db.get(item.productId)
+      if (!productDoc) continue
 
-      await ctx.db.insert('productionOrderItems', {
+      const materialProcessingType = await resolveMaterialProcessingType(ctx, item.sku)
+
+      const itemId = await ctx.db.insert('productionOrderItems', {
         productionOrderId,
+        productId:     productDoc._id,
         keycrmOrderId: order.keycrmOrderId,
         name:          item.name,
-        sku:           item.sku ?? '',
+        sku:           item.sku,
         color:         item.color,
         size:          item.size,
         quantity:      item.quantity,
         shipmentType:  item.shipmentType,
         keycrmProductStatusId: null,
         materialProcessingType,
-        needsCutting,
-        needsSewing:    needsCutting,
-        needsBranding:  true,
-        needsPackaging: true,
+      })
+
+      await insertLog(ctx, {
+        productionOrderId,
+        keyCrmOrderId:         order.keycrmOrderId ?? '',
+        productionOrderItemId: itemId,
+        type:    'created',
+        changes: computeDiff({}, { quantity: item.quantity, shipmentType: item.shipmentType }),
       })
     }
   },
@@ -1031,12 +1118,15 @@ export const createManualProductionOrder = mutation({
       .query('productionOrders')
       .withIndex('by_keycrmOrderId', q => q.eq('keycrmOrderId', keycrmOrderId))
       .first()
-    if (existing) throw new Error(`Замовлення #${keycrmOrderId} вже існує`)
+    if (existing) throw new ConvexError({message: `Замовлення #${keycrmOrderId} вже існує`})
+
+    const userId = await getAuthUserId(ctx)
+    const user = userId ? await ctx.db.get(userId) : null
 
     return ctx.db.insert('productionOrders', {
       status: 'new',
       keycrmOrderId,
-      keycrmManager: keycrmManager ?? '—',
+      keycrmManager: keycrmManager ?? user?.name ?? '—',
       plannedShipDate,
       startDate: Date.now(),
     })

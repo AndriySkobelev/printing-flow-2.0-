@@ -9,6 +9,7 @@ import {
   ClipboardList,
   Layers,
   Menu,
+  FileCog2,
   PackageSearch,
   Scissors,
   PaintRoller,
@@ -82,22 +83,7 @@ const navConfig: NavItem[] = [
     icon: Warehouse,
     children: [
       { to: '/app/inventory-movement', label: 'Рух матеріалів', icon: ArrowLeftRight },
-      {
-        type: 'subgroup',
-        label: 'Матеріали',
-        children: [
-          { to: '/app/materials', label: 'Матеріали', icon: Layers   },
-          { to: '/app/fabrics',   label: 'Тканини',   icon: Scissors },
-        ],
-      },
-      {
-        type: 'subgroup',
-        label: 'Продукція',
-        children: [
-          { to: '/app/products',       label: 'Товари',       icon: ShoppingBag   },
-          { to: '/app/specifications', label: 'Специфікації', icon: ClipboardList },
-        ],
-      },
+      { to: '/app/stock-balance', label: 'Залишки', icon: Layers },
     ],
   },
   {
@@ -113,17 +99,34 @@ const navConfig: NavItem[] = [
     ],
   },
   {
-    type: 'link',
-    label: 'Користувачі',
-    to: '/app/users',
-    icon: Users,
+    type: 'group',
+    label: 'Специфікації',
+    icon: FileCog2,
+    children: [
+      {
+        type: 'subgroup',
+        label: 'Матеріали',
+        children: [
+          { to: '/app/materials', label: 'Матеріалів', icon: Layers   },
+          { to: '/app/fabrics',   label: 'Тканин',   icon: Scissors },
+          { to: '/app/specifications', label: 'Виробів', icon: ClipboardList },
+        ],
+      },
+    ],
     roles: ['admin', 'super_admin'],
   },
   {
-    type: 'link',
-    label: 'Адмін',
-    to: '/app/admin',
+    type: 'group',
+    label: 'Налаштування',
     icon: Settings,
+    children: [
+      {
+        label: 'Користувачі',
+        to: '/app/users',
+        icon: Users,
+        roles: ['admin', 'super_admin'],
+      },
+    ],
     roles: ['admin', 'super_admin'],
   },
 ]

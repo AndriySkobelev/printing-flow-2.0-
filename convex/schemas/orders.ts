@@ -45,6 +45,7 @@ export const productionOrderItems = {
   keycrmOrderId: v.optional(v.string()),
   keycrmProductId: v.optional(v.number()),
   isNew: v.optional(v.boolean()),
+  productId: v.id("products"),
   inProduction: v.optional(v.boolean()),
   name: v.string(),
   sku: v.string(),
@@ -74,12 +75,7 @@ export const productionOrderItems = {
     v.literal("silkscreen"),
     v.literal("none")
   )),
-  needsCutting: v.optional(v.boolean()),
-  needsSewing: v.optional(v.boolean()),
-  needsBranding: v.optional(v.boolean()),
   destination: v.optional(v.nullable(destinationTypeV)),
-  needsSubcontractor: v.optional(v.boolean()),
-  needsPackaging: v.optional(v.boolean()),
   brandingType: v.optional(v.nullable(v.array(brandingTypeV))),
   cuttingBrandingType: v.optional(v.nullable(v.array(brandingTypeV))),
 };

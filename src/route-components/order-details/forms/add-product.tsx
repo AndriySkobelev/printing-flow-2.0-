@@ -9,6 +9,7 @@ import { api } from 'convex/_generated/api'
 // ─── Schema ───────────────────────────────────────────────────────────────────
 
 const productRowSchema = z.object({
+  productId:    z.string(),
   name:         z.string({ error: 'Обовʼязкове поле' }).min(1),
   sku:          z.string().optional(),
   color:        z.string({ error: 'Обовʼязкове поле' }).min(1),
@@ -31,14 +32,6 @@ const shipmentTypeOptions = [
   { value: 'manufacturing', label: 'Виробництво' },
   { value: 'warehouse',     label: 'Склад' },
 ]
-
-const defaultProductRow: ProductRow = {
-  name:         '',
-  color:        '',
-  size:         '',
-  quantity:     '',
-  shipmentType: 'manufacturing',
-}
 
 // ─── ProductDataComp ──────────────────────────────────────────────────────────
 
@@ -70,7 +63,7 @@ type ProductOption = { value: string; label: string; price?: number }
 const parseProductOption = (opt: ProductOption): Omit<ProductRow, 'quantity' | 'shipmentType'> => {
   const match = (opt.label ?? '').match(regex4)
   const [, name = '', size = '', color = '', sku = ''] = match ?? []
-  return { name: name.trim(), size: size.trim(), color: color.trim(), sku: sku.trim() || undefined }
+  return { productId: opt.value, name: name.trim(), size: size.trim(), color: color.trim(), sku: sku.trim() || undefined }
 }
 
 // ─── AddProductForm ───────────────────────────────────────────────────────────
@@ -92,10 +85,10 @@ export const AddProductForm = ({ onSubmit, defaultValues, formId, isUpdate = fal
   const handleAddProduct = () => {
     const product = form.store.state.values.product as ProductOption | undefined
     if (!product?.value) return
-    const { name, size, color, sku } = parseProductOption(product)
+    const parsed = parseProductOption(product)
     form.setFieldValue('products', [
       ...form.store.state.values.products,
-      { name, color, size, sku, quantity: '1', shipmentType: 'manufacturing' },
+      { ...parsed, quantity: '1', shipmentType: 'manufacturing' },
     ])
     form.setFieldValue('product', null)
   }
@@ -142,7 +135,7 @@ export const AddProductForm = ({ onSubmit, defaultValues, formId, isUpdate = fal
               <div key={i} className="grid grid-cols-[1fr_1fr_1fr_auto] gap-2 items-center border rounded-md p-2">
                 <ProductDataComp data={value} />
                 <form.AppField key={`quantity-${i}`} name={`products[${i}].quantity`}
-                  children={f => <f.FormTextField label="Кількість" type="number" />}
+                  children={f => <f.FormTextNumberField label="Кількість" type="number" />}
                 />
                 <form.AppField key={`shipmentType-${i}`} name={`products[${i}].shipmentType`}
                   children={f => <f.FormSelect label="Відвантаження" options={shipmentTypeOptions} />}

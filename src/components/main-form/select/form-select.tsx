@@ -91,13 +91,14 @@ interface FormSelectProps {
   isMulti?: boolean,
   disabled?: boolean;
   className?: string,
+  placeholder?: string;
   addOnChange?: () => void;
   modeOption?: keyof OptionTypes;
   valueMode?: 'value' | 'object';
   options: Array<{ value: string | number; label: string }> | any;
 }
 
-const FormSelect: FunctionComponent<FormSelectProps> = ({ options, label, disabled, isMulti = false, valueMode = 'value', className, modeOption = 'default', addOnChange }) => {
+const FormSelect: FunctionComponent<FormSelectProps> = ({ options, label, placeholder, disabled, isMulti = false, valueMode = 'value', className, modeOption = 'default', addOnChange }) => {
   const field = useFieldContext();
   const name = useMemo(() => field.name, [field.name]);
   const value = useMemo(() => field.state.value as string | number | undefined, [field.state.value]);
@@ -120,8 +121,8 @@ const FormSelect: FunctionComponent<FormSelectProps> = ({ options, label, disabl
         options={options}
         isMulti={isMulti}
         isDisabled={disabled}
-        placeholder="Виберіть..."
         className='hover:active:border-none'
+        placeholder={placeholder ?? "Виберіть..."}
         value={
           typeof value === 'string' || typeof value === 'number'
           ? valueToOption(value, options)

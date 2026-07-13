@@ -27,4 +27,5 @@ export type OrderItem = {
   destination?: 'customer' | 'warehouse' | 'defects' | null
   brandingType?: BrandingTypeValue[] | null
   cuttingBrandingType?: BrandingTypeValue[] | null
+  inProduction?: boolean | null
 }

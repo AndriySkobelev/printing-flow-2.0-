@@ -17,6 +17,7 @@ import { ProductGroup } from './components/product-group'
 import { BulkBrandingForm } from './forms/bulk-branding-form'
 import AddProductForm from './forms/add-product'
 import { SubcontractorSection } from './components/subcontractor-section'
+import { MaterialsSection } from './components/materials-section'
 import { OrderLogs } from '@/components/order-logs'
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -81,8 +82,9 @@ const ProductsSection = ({ items, productionOrderId }: { items: OrderItem[]; pro
               {
                 productionOrderId: productionOrderId as Id<'productionOrders'>,
                 items: products.map(p => ({
+                  productId:    p.productId as Id<'products'>,
                   name:         p.name,
-                  sku:          p.sku,
+                  sku:          p.sku ?? '',
                   color:        p.color,
                   size:         p.size,
                   quantity:     Number(p.quantity),
@@ -197,6 +199,11 @@ const OrderDetailsContent = ({ productionOrderId, onBack }: { productionOrderId:
           keycrmOrderId={order.keycrmOrderId}
           files={(order.attachedFiles ?? []) as any[]}
         />
+        {order.keycrmCustomFields.length > 0 && (
+          <div className="border-t">
+            <KeycrmCustomFields fields={order.keycrmCustomFields} />
+          </div>
+        )}
         <div className="border-t">
           <ProgressSection
             productionOrderId={productionOrderId}
@@ -205,14 +212,14 @@ const OrderDetailsContent = ({ productionOrderId, onBack }: { productionOrderId:
             brandingDone={order.brandingDone} brandingTotal={order.brandingTotal}
             packingDone={order.packingDone}   packingTotal={order.packingTotal}
             inProduction={order?.inProduction}
-            itemsCount={items.length}
+            items={items}
           />
         </div>
-        {order.keycrmCustomFields.length > 0 && (
-          <div className="border-t">
-            <KeycrmCustomFields fields={order.keycrmCustomFields} />
-          </div>
-        )}
+
+        <div className="border-t">
+          <MaterialsSection productionOrderId={productionOrderId} />
+        </div>
+
         <div className="border-t">
           <SubcontractorSection productionOrderId={productionOrderId} />
         </div>

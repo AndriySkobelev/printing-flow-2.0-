@@ -15,6 +15,8 @@ export const cuttingTasks = {
   status: extendedTaskStatusV,
   assignedTo: v.optional(v.id("users")),
   note: v.optional(v.string()),
+  isCustomCut: v.optional(v.boolean()),
+  customCutComment: v.optional(v.string()),
 };
 
 export const cuttingTaskSizes = {

@@ -17,6 +17,7 @@ import { Route as AuthenticatedAppRouteRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedAppWorkloadRouteImport } from './routes/_authenticated/app/workload'
 import { Route as AuthenticatedAppUsersRouteImport } from './routes/_authenticated/app/users'
 import { Route as AuthenticatedAppStoreRouteImport } from './routes/_authenticated/app/store'
+import { Route as AuthenticatedAppStockBalanceRouteImport } from './routes/_authenticated/app/stock-balance'
 import { Route as AuthenticatedAppSpecificationsRouteImport } from './routes/_authenticated/app/specifications'
 import { Route as AuthenticatedAppSewingTasksRouteImport } from './routes/_authenticated/app/sewing-tasks'
 import { Route as AuthenticatedAppRegisterRouteImport } from './routes/_authenticated/app/register'
@@ -31,6 +32,7 @@ import { Route as AuthenticatedAppLoginRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedAppInventoryMovementRouteImport } from './routes/_authenticated/app/inventory-movement'
 import { Route as AuthenticatedAppFabricsRouteImport } from './routes/_authenticated/app/fabrics'
 import { Route as AuthenticatedAppBrandingRouteImport } from './routes/_authenticated/app/branding'
+import { Route as AuthenticatedAppSpecificationsSpecIdRouteImport } from './routes/_authenticated/app/specifications_.$specId'
 import { Route as AuthenticatedAppProductionOrdersOrderIdRouteImport } from './routes/_authenticated/app/production-orders_.$orderId'
 
 const LoginRoute = LoginRouteImport.update({
@@ -73,6 +75,12 @@ const AuthenticatedAppStoreRoute = AuthenticatedAppStoreRouteImport.update({
   path: '/store',
   getParentRoute: () => AuthenticatedAppRouteRoute,
 } as any)
+const AuthenticatedAppStockBalanceRoute =
+  AuthenticatedAppStockBalanceRouteImport.update({
+    id: '/stock-balance',
+    path: '/stock-balance',
+    getParentRoute: () => AuthenticatedAppRouteRoute,
+  } as any)
 const AuthenticatedAppSpecificationsRoute =
   AuthenticatedAppSpecificationsRouteImport.update({
     id: '/specifications',
@@ -153,6 +161,12 @@ const AuthenticatedAppBrandingRoute =
     path: '/branding',
     getParentRoute: () => AuthenticatedAppRouteRoute,
   } as any)
+const AuthenticatedAppSpecificationsSpecIdRoute =
+  AuthenticatedAppSpecificationsSpecIdRouteImport.update({
+    id: '/specifications_/$specId',
+    path: '/specifications/$specId',
+    getParentRoute: () => AuthenticatedAppRouteRoute,
+  } as any)
 const AuthenticatedAppProductionOrdersOrderIdRoute =
   AuthenticatedAppProductionOrdersOrderIdRouteImport.update({
     id: '/production-orders_/$orderId',
@@ -179,10 +193,12 @@ export interface FileRoutesByFullPath {
   '/app/register': typeof AuthenticatedAppRegisterRoute
   '/app/sewing-tasks': typeof AuthenticatedAppSewingTasksRoute
   '/app/specifications': typeof AuthenticatedAppSpecificationsRoute
+  '/app/stock-balance': typeof AuthenticatedAppStockBalanceRoute
   '/app/store': typeof AuthenticatedAppStoreRoute
   '/app/users': typeof AuthenticatedAppUsersRoute
   '/app/workload': typeof AuthenticatedAppWorkloadRoute
   '/app/production-orders/$orderId': typeof AuthenticatedAppProductionOrdersOrderIdRoute
+  '/app/specifications/$specId': typeof AuthenticatedAppSpecificationsSpecIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -203,10 +219,12 @@ export interface FileRoutesByTo {
   '/app/register': typeof AuthenticatedAppRegisterRoute
   '/app/sewing-tasks': typeof AuthenticatedAppSewingTasksRoute
   '/app/specifications': typeof AuthenticatedAppSpecificationsRoute
+  '/app/stock-balance': typeof AuthenticatedAppStockBalanceRoute
   '/app/store': typeof AuthenticatedAppStoreRoute
   '/app/users': typeof AuthenticatedAppUsersRoute
   '/app/workload': typeof AuthenticatedAppWorkloadRoute
   '/app/production-orders/$orderId': typeof AuthenticatedAppProductionOrdersOrderIdRoute
+  '/app/specifications/$specId': typeof AuthenticatedAppSpecificationsSpecIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -229,10 +247,12 @@ export interface FileRoutesById {
   '/_authenticated/app/register': typeof AuthenticatedAppRegisterRoute
   '/_authenticated/app/sewing-tasks': typeof AuthenticatedAppSewingTasksRoute
   '/_authenticated/app/specifications': typeof AuthenticatedAppSpecificationsRoute
+  '/_authenticated/app/stock-balance': typeof AuthenticatedAppStockBalanceRoute
   '/_authenticated/app/store': typeof AuthenticatedAppStoreRoute
   '/_authenticated/app/users': typeof AuthenticatedAppUsersRoute
   '/_authenticated/app/workload': typeof AuthenticatedAppWorkloadRoute
   '/_authenticated/app/production-orders_/$orderId': typeof AuthenticatedAppProductionOrdersOrderIdRoute
+  '/_authenticated/app/specifications_/$specId': typeof AuthenticatedAppSpecificationsSpecIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -255,10 +275,12 @@ export interface FileRouteTypes {
     | '/app/register'
     | '/app/sewing-tasks'
     | '/app/specifications'
+    | '/app/stock-balance'
     | '/app/store'
     | '/app/users'
     | '/app/workload'
     | '/app/production-orders/$orderId'
+    | '/app/specifications/$specId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -279,10 +301,12 @@ export interface FileRouteTypes {
     | '/app/register'
     | '/app/sewing-tasks'
     | '/app/specifications'
+    | '/app/stock-balance'
     | '/app/store'
     | '/app/users'
     | '/app/workload'
     | '/app/production-orders/$orderId'
+    | '/app/specifications/$specId'
   id:
     | '__root__'
     | '/'
@@ -304,10 +328,12 @@ export interface FileRouteTypes {
     | '/_authenticated/app/register'
     | '/_authenticated/app/sewing-tasks'
     | '/_authenticated/app/specifications'
+    | '/_authenticated/app/stock-balance'
     | '/_authenticated/app/store'
     | '/_authenticated/app/users'
     | '/_authenticated/app/workload'
     | '/_authenticated/app/production-orders_/$orderId'
+    | '/_authenticated/app/specifications_/$specId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -372,6 +398,13 @@ declare module '@tanstack/react-router' {
       path: '/store'
       fullPath: '/app/store'
       preLoaderRoute: typeof AuthenticatedAppStoreRouteImport
+      parentRoute: typeof AuthenticatedAppRouteRoute
+    }
+    '/_authenticated/app/stock-balance': {
+      id: '/_authenticated/app/stock-balance'
+      path: '/stock-balance'
+      fullPath: '/app/stock-balance'
+      preLoaderRoute: typeof AuthenticatedAppStockBalanceRouteImport
       parentRoute: typeof AuthenticatedAppRouteRoute
     }
     '/_authenticated/app/specifications': {
@@ -472,6 +505,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppBrandingRouteImport
       parentRoute: typeof AuthenticatedAppRouteRoute
     }
+    '/_authenticated/app/specifications_/$specId': {
+      id: '/_authenticated/app/specifications_/$specId'
+      path: '/specifications/$specId'
+      fullPath: '/app/specifications/$specId'
+      preLoaderRoute: typeof AuthenticatedAppSpecificationsSpecIdRouteImport
+      parentRoute: typeof AuthenticatedAppRouteRoute
+    }
     '/_authenticated/app/production-orders_/$orderId': {
       id: '/_authenticated/app/production-orders_/$orderId'
       path: '/production-orders/$orderId'
@@ -497,10 +537,12 @@ interface AuthenticatedAppRouteRouteChildren {
   AuthenticatedAppRegisterRoute: typeof AuthenticatedAppRegisterRoute
   AuthenticatedAppSewingTasksRoute: typeof AuthenticatedAppSewingTasksRoute
   AuthenticatedAppSpecificationsRoute: typeof AuthenticatedAppSpecificationsRoute
+  AuthenticatedAppStockBalanceRoute: typeof AuthenticatedAppStockBalanceRoute
   AuthenticatedAppStoreRoute: typeof AuthenticatedAppStoreRoute
   AuthenticatedAppUsersRoute: typeof AuthenticatedAppUsersRoute
   AuthenticatedAppWorkloadRoute: typeof AuthenticatedAppWorkloadRoute
   AuthenticatedAppProductionOrdersOrderIdRoute: typeof AuthenticatedAppProductionOrdersOrderIdRoute
+  AuthenticatedAppSpecificationsSpecIdRoute: typeof AuthenticatedAppSpecificationsSpecIdRoute
 }
 
 const AuthenticatedAppRouteRouteChildren: AuthenticatedAppRouteRouteChildren = {
@@ -520,11 +562,14 @@ const AuthenticatedAppRouteRouteChildren: AuthenticatedAppRouteRouteChildren = {
   AuthenticatedAppRegisterRoute: AuthenticatedAppRegisterRoute,
   AuthenticatedAppSewingTasksRoute: AuthenticatedAppSewingTasksRoute,
   AuthenticatedAppSpecificationsRoute: AuthenticatedAppSpecificationsRoute,
+  AuthenticatedAppStockBalanceRoute: AuthenticatedAppStockBalanceRoute,
   AuthenticatedAppStoreRoute: AuthenticatedAppStoreRoute,
   AuthenticatedAppUsersRoute: AuthenticatedAppUsersRoute,
   AuthenticatedAppWorkloadRoute: AuthenticatedAppWorkloadRoute,
   AuthenticatedAppProductionOrdersOrderIdRoute:
     AuthenticatedAppProductionOrdersOrderIdRoute,
+  AuthenticatedAppSpecificationsSpecIdRoute:
+    AuthenticatedAppSpecificationsSpecIdRoute,
 }
 
 const AuthenticatedAppRouteRouteWithChildren =

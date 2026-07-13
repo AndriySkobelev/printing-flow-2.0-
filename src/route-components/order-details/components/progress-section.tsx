@@ -1,10 +1,11 @@
-import { memo, useState } from 'react'
+import { memo, useState, useMemo } from 'react'
 import { type Id } from 'convex/_generated/dataModel'
-import { Scissors, Wand2, Palette, Package, PlusIcon, ChevronDown, ChevronUp, CheckCheck, Loader2 } from 'lucide-react'
+import { Scissors, Wand2, Palette, Package, PlusIcon, ChevronDown, ChevronUp, CheckCheck, RefreshCw, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ProgressBar } from '@/components/progress-bar'
 import { ProgressStat } from './progress-stat'
 import { useCreateProductionTasks } from '../actions'
+import { type OrderItem } from '../types'
 
 type Props = {
   productionOrderId: string
@@ -17,7 +18,7 @@ type Props = {
   packingDone: number
   packingTotal: number
   inProduction?: boolean
-  itemsCount?: number
+  items?: OrderItem[]
 }
 
 export const ProgressSection = memo(({
@@ -27,7 +28,7 @@ export const ProgressSection = memo(({
   brandingDone, brandingTotal,
   packingDone, packingTotal,
   inProduction,
-  itemsCount = 0,
+  items = [],
 }: Props) => {
   const [expanded, setExpanded] = useState(false)
   const { mutate: createTasks, isPending } = useCreateProductionTasks()
@@ -35,6 +36,11 @@ export const ProgressSection = memo(({
   const totalDone = cutDone + sewDone + brandingDone + packingDone
   const totalItems = cutTotal + sewTotal + brandingTotal + packingTotal
   const overallPct = totalItems > 0 ? Math.min(100, Math.round((totalDone / totalItems) * 100)) : 0
+
+  // hasNewItems: there's something not yet sent to production (either the
+  // whole order is new, or products were added after the initial send).
+  const hasNewItems = useMemo(() => items.some(i => !i.inProduction), [items])
+  const isUpdate = inProduction && hasNewItems
 
   const handleCreate = () => {
     createTasks(
@@ -54,19 +60,21 @@ export const ProgressSection = memo(({
         <div className="flex items-center gap-1">
         <div className="flex items-center gap-1">
           <Button
-            key={`${isPending}-${inProduction}`}
+            key={`${isPending}-${inProduction}-${hasNewItems}`}
             size="sm"
             onClick={handleCreate}
-            disabled={isPending || inProduction || itemsCount === 0}
-            className={`h-6 text-[11px] px-2 ${inProduction ? 'bg-green-600 hover:bg-green-600 text-white' : ''}`}
+            disabled={isPending || !hasNewItems || items.length === 0}
+            className={`h-6 text-[11px] px-2 ${inProduction && !hasNewItems ? 'bg-green-600 hover:bg-green-600 text-white' : ''}`}
           >
             {isPending
               ? <Loader2 size={10} className="mr-1 animate-spin" />
-              : inProduction
-                ? <CheckCheck size={10} className="mr-1" />
-                : <PlusIcon size={10} className="mr-1" />
+              : isUpdate
+                ? <RefreshCw size={10} className="mr-1" />
+                : inProduction
+                  ? <CheckCheck size={10} className="mr-1" />
+                  : <PlusIcon size={10} className="mr-1" />
             }
-            Виробництво
+            {isUpdate ? 'Оновити' : 'Виробництво'}
           </Button>
           {
             inProduction && (

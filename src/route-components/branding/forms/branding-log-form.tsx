@@ -1,10 +1,7 @@
 import z from 'zod'
 import { useState } from 'react'
 import { Loader2 } from 'lucide-react'
-import { useMutation } from 'convex/react'
 import { revalidateLogic } from '@tanstack/react-form'
-import { api } from 'convex/_generated/api'
-import { type Id } from 'convex/_generated/dataModel'
 import { useAppForm } from '@/components/main-form'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -17,7 +14,13 @@ const LOG_TYPES = [
   { value: 'defect_print',  label: 'Брак друку',    color: '#ef4444' },
 ] as const
 
-type LogType = typeof LOG_TYPES[number]['value']
+export type LogType = typeof LOG_TYPES[number]['value']
+
+export type BrandingLogFormValues = {
+  type: LogType
+  quantity: number
+  comment?: string
+}
 
 const QUICK_NOTES: Record<LogType, string[]> = {
   completed:     [],
@@ -37,16 +40,13 @@ const makeSchema = (maxQuantity: number) =>
 // ─── Props ───────────────────────────────────────────────────────────────────
 
 type Props = {
-  brandingTaskId: string
-  productionOrderItemId: string
   maxQuantity: number
-  onDone?: () => void
+  actionSubmit: (values: BrandingLogFormValues) => void
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
-export const BrandingLogForm = ({ brandingTaskId, productionOrderItemId, maxQuantity, onDone }: Props) => {
-  const createLog = useMutation(api.queries.branding.createBrandingLog)
+export const BrandingLogForm = ({ maxQuantity, actionSubmit }: Props) => {
   const [activeType, setActiveType] = useState<LogType>('completed')
 
   const form = useAppForm({
@@ -57,16 +57,12 @@ export const BrandingLogForm = ({ brandingTaskId, productionOrderItemId, maxQuan
       quantity: 1,
       comment:  '',
     },
-    onSubmit: async ({ value }) => {
-      await createLog({
-        brandingTaskId:        brandingTaskId as Id<'brandingTasks'>,
-        productionOrderItemId: productionOrderItemId as Id<'productionOrderItems'>,
+    onSubmit: ({ value }) => {
+      actionSubmit({
         type:     value.type as LogType,
         quantity: value.quantity,
         comment:  value.comment.trim() || undefined,
       })
-      form.reset()
-      onDone?.()
     },
   })
 

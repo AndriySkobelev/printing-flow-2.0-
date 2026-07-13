@@ -1,63 +1,95 @@
-import { type FunctionComponent, memo, useContext } from "react";
+import { type FunctionComponent, type MutableRefObject, memo, useContext, useMemo } from "react";
 import { useQuery } from '@tanstack/react-query'
 import { convexQuery } from '@convex-dev/react-query'
 import { api } from "convex/_generated/api";
-import { type HeaderObject } from "simple-table-core";
+import { type HeaderObject, type CellClickProps } from "simple-table-core";
+import { useNavigate } from '@tanstack/react-router'
+import { Route as specificationsRoute } from '@/routes/_authenticated/app/specifications'
+import { Route as specDetailsRoute } from '@/routes/_authenticated/app/specifications_.$specId'
 import { DialogContext } from '@/contexts/dialog'
 import { useCreateSpecification } from "./utils/queries";
 import { Button } from "@/components/ui/button";
 import { type Specifications } from 'convex/schema'
-import SpecificationForm, { type SpecificationFormType } from './forms/create-specefication';
-import { Ellipsis, Trash2, Copy, SquarePen, Shirt } from "lucide-react";
+import SpecificationForm, { type SpecificationFormType } from './forms/create-specification';
+import { Trash2, Copy, SquarePen, Shirt } from "lucide-react";
 import AppTable from "@/components/ui/app-table";
 import { MyPopover } from "@/components/my-popover";
-import clsx from "clsx";
-import { useDeleteSpecification, useDuplicateSpecification, useUpdateSpecification } from "./utils/queries";
+import { ActionsMenu } from "@/components/actions-menu";
+import { useDeleteSpecification, useUpdateSpecification } from "./utils/queries";
 import { Separator } from "radix-ui";
 import { EditSpecifications } from "./forms/edit-specifications";
+import { DuplicateSpecification } from "./forms/duplicate-specification";
 import { omit } from "ramda";
 import { Id } from "convex/_generated/dataModel";
+import { useSpecificationDraftsStore, type SpecificationDraft } from "./utils/drafts-store";
 interface SpecificationsProps {
 }
 
+const DraftBadge = () => (
+  <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-600 shrink-0">Чернетка</span>
+);
 
-const actionsList = [
-  {icon: <SquarePen size={12} />, label: 'Редагувати', isDisable: false, actionName: 'edit'},
-  {icon: <Copy size={12} />, label: 'Дублювати', isDisable: false, actionName: 'duplicate'},
-  {icon: <Trash2 size={12} />, label: 'Видалити', isDisable: false, actionName: 'delete' },
-];
-
-const ActionsListComponent = ({ row, handleEditSpec }: { row: any, handleEditSpec: (data: any) => void }) => {
-  const { mutate: duplicateAction } = useDuplicateSpecification();
+const SpecActionsCell = ({
+  row,
+  handleEditSpec,
+  handleEditDraft,
+  handleDeleteDraft,
+  handleDuplicateSpec,
+}: {
+  row: any;
+  handleEditSpec: (data: any) => void;
+  handleEditDraft: (draft: any) => void;
+  handleDeleteDraft: (id: string) => void;
+  handleDuplicateSpec: (data: any) => void;
+}) => {
   const { mutate: deleteAction } = useDeleteSpecification();
+  const { openDialog, closeDialog } = useContext(DialogContext);
+  const isDraft = row._isDraft === true;
 
-  const handleActions = (actionName: string) => {
-    const actionData = { id: row._id };
-    const actions = {
-      duplicate: () => duplicateAction(actionData),
-      delete: () => deleteAction(actionData),
-      edit: () => handleEditSpec(row)
-    }
-    actions[actionName as keyof typeof actions]?.();
+  const handleDelete = (id: Id<'specifications'>) => {
+    openDialog({
+      title: 'Видалення специфікації',
+      withForm: true,
+      content: <div>Ви впевнені, що хочете видалити специфікацію?</div>,
+      actionSubmit: () => {
+        deleteAction({ id })
+        closeDialog()
+      },
+    });
+  }
+
+  const handleDeleteDraftConfirm = (id: string) => {
+    openDialog({
+      title: 'Видалення чернетки',
+      withForm: true,
+      content: <div>Ви впевнені, що хочете видалити чернетку?</div>,
+      actionSubmit: () => {
+        handleDeleteDraft(id)
+        closeDialog()
+      },
+    });
+  }
+
+  if (isDraft) {
+    return (
+      <ActionsMenu
+        items={[
+          { label: 'Редагувати', icon: <SquarePen className="size-3" />, onClick: () => handleEditDraft(row) },
+          { label: 'Видалити', icon: <Trash2 className="size-3" />, destructive: true, onClick: () => handleDeleteDraftConfirm(row._id) },
+        ]}
+      />
+    );
   }
 
   return (
-    <div className="flex flex-col">
-      {actionsList.map((action) => (
-        <div 
-          key={action.label} 
-          onClick={() => action.isDisable ? null : handleActions(action.actionName)}
-          className={clsx(
-            "flex flex-row items-center gap-2 cursor-pointer hover:bg-gray-100 p-2 rounded",
-            action.isDisable && "cursor-not-allowed opacity-50 hover:bg-transparent"
-          )}
-        >
-          {action.icon}
-          <span className="text-sm">{action.label}</span>
-        </div>
-      ))}
-    </div>
-  )
+    <ActionsMenu
+      items={[
+        { label: 'Редагувати', icon: <SquarePen className="size-3" />, onClick: () => handleEditSpec(row) },
+        { label: 'Дублювати', icon: <Copy className="size-3" />, onClick: () => handleDuplicateSpec(row) },
+        { label: 'Видалити', icon: <Trash2 className="size-3" />, destructive: true, onClick: () => handleDelete(row._id) },
+      ]}
+    />
+  );
 };
 
 export const MaterialsCellComponent = memo(({ materials }: { materials: any }) => {
@@ -84,24 +116,24 @@ export const MaterialsCellComponent = memo(({ materials }: { materials: any }) =
 
 type HeaderProps = {
   handleEditSpec: (data: any) => void
+  handleEditDraft: (draft: any) => void
+  handleDeleteDraft: (id: string) => void
+  handleDuplicateSpec: (data: any) => void
 }
 
-const headers: ({ handleEditSpec }: HeaderProps) => Array<HeaderObject> = ({ handleEditSpec }: HeaderProps) => [
+const headers: (props: HeaderProps) => Array<HeaderObject> = ({ handleEditSpec, handleEditDraft, handleDeleteDraft, handleDuplicateSpec }: HeaderProps) => [
   {
     accessor: "name",
     label: "Назва",
     width: 80,
     // isSortable: true,
     type: "string",
-    // cellRenderer: ({ row }) => {
-    //   const name = row['fabricName'];
-    //   const count = `(${row['groupCount']})`;
-    //   if (!row['groupCount']) return null 
-    //   return <div className="flex flex-row gap-2">
-    //     <span>{name as string}</span>
-    //     <span>{count}</span>
-    //   </div>
-    // },
+    cellRenderer: ({ row }) => (
+      <div className="flex items-center gap-2">
+        <span>{row['name'] as string}</span>
+        {row['_isDraft'] === true && <DraftBadge />}
+      </div>
+    ),
     minWidth: 250
   },
   { accessor: "category", label: "Категорія", width: 200, isSortable: true, type: "string" },
@@ -128,39 +160,71 @@ const headers: ({ handleEditSpec }: HeaderProps) => Array<HeaderObject> = ({ han
     width: 50,
     type: 'other',
     label: "",
-    accessor: "",
+    accessor: "_actions",
     pinned: 'right',
     cellRenderer: ({ row }) => (
-      <MyPopover
-        trigger={<Ellipsis className="cursor-pointer" size={14}/>}
-        content={<ActionsListComponent row={row} handleEditSpec={handleEditSpec} />}
+      <SpecActionsCell
+        row={row}
+        handleEditSpec={handleEditSpec}
+        handleEditDraft={handleEditDraft}
+        handleDeleteDraft={handleDeleteDraft}
+        handleDuplicateSpec={handleDuplicateSpec}
       />
     )
   },
 ];
- 
+
 const Specifications: FunctionComponent<SpecificationsProps> = () => {
   const { data } = useQuery(convexQuery(api.queries.specifications.getSpecificationsWithMaterials));
   const { mutate: createSpec } = useCreateSpecification();
   const { mutate: updateSpec } = useUpdateSpecification();
   const { openDialog, closeDialog } = useContext(DialogContext);
+  const navigate = useNavigate({ from: specificationsRoute.to });
+  const drafts = useSpecificationDraftsStore((s) => s.drafts);
+  const saveDraft = useSpecificationDraftsStore((s) => s.saveDraft);
+  const removeDraft = useSpecificationDraftsStore((s) => s.removeDraft);
+
+  const draftRows = useMemo(() => Object.values(drafts).map((draft) => ({
+    _id: draft.id,
+    _isDraft: true,
+    name: draft.values.name || 'Без назви',
+    category: draft.values.category || '',
+    skuPrefix: draft.values.skuPrefix || '',
+    materials: [],
+  })), [drafts]);
+
+  const rows = useMemo(() => [...(data || []), ...draftRows], [data, draftRows]);
+
+  const handleCellClick = ({ row, accessor }: CellClickProps) => {
+    if (accessor === '_actions') return;
+    const r = row as any;
+    if (!r._id) return;
+    if (r._isDraft) {
+      const draft = drafts[r._id];
+      if (draft) handleAddSpec(draft);
+      return;
+    }
+    navigate({ to: specDetailsRoute.to, params: { specId: r._id } });
+  };
 
   const handleSubmitAdd = (values: SpecificationFormType) => {
     const newMaterials = values.materials.map((material) => ({
-      fabricId: 'fabricId' in material ? material.fabricId?.value as Id<'fabrics'> : undefined,
-      materialId: 'materialId' in material ? material.materialId?.value as Id<'materials'>: undefined,
+      lineId: (material as any).lineId,
       units: material.units,
       quantity: material.quantity,
+      type: material.type,
+      id: material.id?.value as Id<'fabrics'> | Id<'materials'>,
     }));
-    createSpec({...values, materials: newMaterials} as Specifications);
+    createSpec(omit(['_id', '_creationTime'], {...values, materials: newMaterials} as any) as Specifications);
     closeDialog();
   }
 
   const handleSubmitEdit = (values: SpecificationFormType | (SpecificationFormType & { _id: Id<'specifications'>, _creationTime: string })) => {
     if ('_id' in values && '_creationTime' in values) {
       const newMaterials = values.materials.map((material) => ({
-        fabricId: 'fabricId' in material ? material.fabricId?.value as Id<'fabrics'> : undefined,
-        materialId: 'materialId' in material ? material.materialId?.value as Id<'materials'>: undefined,
+        lineId: (material as any).lineId,
+        id: material.id?.value as Id<'fabrics'> | Id<'materials'>,
+        type: material.type,
         units: material.units,
         quantity: material.quantity,
       }));
@@ -174,20 +238,43 @@ const Specifications: FunctionComponent<SpecificationsProps> = () => {
     closeDialog();
   }
 
-  const handleAddSpec = () => {
+  const handleAddSpec = (draft?: SpecificationDraft) => {
+    const draftId = draft?.id ?? Math.random().toString(36).slice(2, 9);
+    const formApiRef: MutableRefObject<(() => SpecificationFormType) | null> = { current: null };
+
     openDialog({
-      title: 'Створення специфікації',
+      title: draft ? 'Редагування чернетки' : 'Створення специфікації',
+      className: 'sm:w-250 sm:max-w-250',
       content: <SpecificationForm
         formId="create-specification-form"
-        actionSubmit={handleSubmitAdd}/>,
+        formApiRef={formApiRef}
+        defaultValues={draft?.values as SpecificationFormType}
+        actionSubmit={(values) => {
+          handleSubmitAdd(values as SpecificationFormType);
+          removeDraft(draftId);
+        }}/>,
       withForm: true,
       formId: 'create-specification-form',
+      onDismiss: () => {
+        const values = formApiRef.current?.();
+        if (values) saveDraft(draftId, values);
+      },
     });
   }
+
+  const handleDeleteDraft = (id: string) => {
+    removeDraft(id);
+  };
+
+  const handleEditDraft = (row: any) => {
+    const draft = drafts[row._id];
+    if (draft) handleAddSpec(draft);
+  };
 
   const handleEditSpec = (data: Omit<Specifications, 'productionPrice'> & { productionPrice: number }) => {
     openDialog({
       title: 'Редагування специфікації',
+      className: 'sm:w-250 sm:max-w-250',
       content: <EditSpecifications
         formId="edit-specification-form"
         actionSubmit={handleSubmitEdit}
@@ -196,17 +283,42 @@ const Specifications: FunctionComponent<SpecificationsProps> = () => {
       formId: 'edit-specification-form',
     });
   };
-  
+
+  const handleDuplicateSpec = (data: any) => {
+    const draftId = Math.random().toString(36).slice(2, 9);
+    const formApiRef: MutableRefObject<(() => SpecificationFormType) | null> = { current: null };
+
+    openDialog({
+      title: 'Дублювання специфікації',
+      className: 'sm:w-250 sm:max-w-250',
+      content: <DuplicateSpecification
+        formId="duplicate-specification-form"
+        formApiRef={formApiRef}
+        specification={omit(['_id', '_creationTime'], data) as any}
+        actionSubmit={(values) => {
+          handleSubmitAdd(values);
+          removeDraft(draftId);
+        }}/>,
+      withForm: true,
+      formId: 'duplicate-specification-form',
+      onDismiss: () => {
+        const values = formApiRef.current?.();
+        if (values) saveDraft(draftId, values);
+      },
+    });
+  };
+
   return (
     <div className="flex flex-col gap-4 p-4">
       <div className="w-fit">
-        <Button className="w-full" onClick={handleAddSpec}>Додати специфікацію</Button>
+        <Button className="w-full" onClick={() => handleAddSpec()}>Додати специфікацію</Button>
       </div>
       <AppTable
         height={600}
-        rows={data || []}
-        defaultHeaders={headers({ handleEditSpec })}
-        getRowId={({ row }: any) => row.id as string}
+        rows={rows}
+        defaultHeaders={headers({ handleEditSpec, handleEditDraft, handleDeleteDraft, handleDuplicateSpec })}
+        getRowId={({ row }: any) => row._id as string}
+        onCellClick={handleCellClick}
       />
     </div>
   );

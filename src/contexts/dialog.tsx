@@ -1,23 +1,24 @@
 import MyDialog from "@/components/myDialog";
-import { createContext, useState, useCallback, useMemo } from "react";
+import { createContext, useState, useCallback, useMemo, ReactElement } from "react";
 
 type DialogOptions = {
   trigger?: any
   content: any
   title?: string
-  description?: string
+  description?: string | ReactElement
   withForm?: boolean
   form?: any
   formId?: string
   outerClose?: boolean
   className?: string
   actionSubmit?: (data: any) => void
+  onDismiss?: () => void
 }
 
 type DialogEntry = DialogOptions & { id: string }
 
 type DialogContextValue = {
-  openDialog: (options: DialogOptions) => string
+  openDialog: (options: DialogOptions) => void
   closeDialog: (id?: string) => void
   isLoading: boolean
   setIsLoading: (loading: boolean) => void
@@ -59,7 +60,7 @@ export const ContextDialogComponent = ({ children }: { children: React.ReactNode
           outerClose={dialog.outerClose}
           description={dialog.description}
           actionSubmit={dialog.actionSubmit}
-          setOpen={open => { if (!open) closeDialog(dialog.id); }}
+          setOpen={open => { if (!open) { dialog.onDismiss?.(); closeDialog(dialog.id); } }}
         />
       ))}
     </DialogContext.Provider>

@@ -20,7 +20,6 @@ type Props = {
 const TYPE_LABELS: Record<string, string> = {
   fabric:   'Тканина',
   material: 'Матеріал',
-  base:     'База',
 }
 
 export function SpecInfo({ spec }: Props) {

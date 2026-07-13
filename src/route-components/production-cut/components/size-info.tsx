@@ -33,6 +33,7 @@ export function SizeInfo({ detail, onViewLogs }: Props) {
         <LogForm
           formId={FORM_ID}
           defaultValues={{ completedQty: '', comment: '' }}
+          max={quantity - completedQty + 5}
           actionSubmit={(values: LogFormType) => {
             setIsLoading(true)
             mutate({

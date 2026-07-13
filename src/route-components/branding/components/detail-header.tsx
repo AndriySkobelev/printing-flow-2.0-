@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import { ArrowLeft, Pencil, Truck } from 'lucide-react'
 import { useMutation } from 'convex/react'
+import clsx from 'clsx'
 import { api } from 'convex/_generated/api'
 import { type Id } from 'convex/_generated/dataModel'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { MyPopover } from '@/components/my-popover'
+import { useBrandingGroupsStore } from '../store'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -66,6 +68,32 @@ const IdentifierPopoverContent = ({ brandingTaskId, identifierName }: Identifier
   )
 }
 
+// ─── AdvancedToggle ───────────────────────────────────────────────────────────
+
+const AdvancedToggle = ({ brandingTaskId }: { brandingTaskId: string }) => {
+  const advanced = useBrandingGroupsStore(s => s.advancedByOrder[brandingTaskId] ?? false)
+  const setAdvanced = useBrandingGroupsStore(s => s.setAdvanced)
+
+  return (
+    <div className="flex items-center rounded-md border p-0.5 text-xs">
+      <button
+        type="button"
+        onClick={() => setAdvanced(brandingTaskId, false)}
+        className={clsx('px-2 py-1 rounded-sm transition-colors', !advanced ? 'bg-primary text-primary-foreground' : 'text-muted-foreground')}
+      >
+        Простий
+      </button>
+      <button
+        type="button"
+        onClick={() => setAdvanced(brandingTaskId, true)}
+        className={clsx('px-2 py-1 rounded-sm transition-colors', advanced ? 'bg-primary text-primary-foreground' : 'text-muted-foreground')}
+      >
+        Розширений
+      </button>
+    </div>
+  )
+}
+
 // ─── DetailHeader ─────────────────────────────────────────────────────────────
 
 export const DetailHeader = ({ brandingTaskId, orderId, manager, identifierName, endDate, totalQty, completedTotal, tags, onBack }: Props) => (
@@ -117,8 +145,10 @@ export const DetailHeader = ({ brandingTaskId, orderId, manager, identifierName,
       </div>
     </div>
 
-    {/* Stats row */}
-
+    {/* View mode toggle row */}
+    <div className="flex items-center justify-end px-3 pb-2">
+      <AdvancedToggle brandingTaskId={brandingTaskId} />
+    </div>
 
     {/* Tags row */}
     {tags.length > 0 && (
