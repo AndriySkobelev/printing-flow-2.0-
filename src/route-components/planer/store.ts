@@ -22,6 +22,7 @@ export type PlannedTask = {
   specName:        string
   color:           string
   size:            string | undefined
+  status:          'new' | 'in_progress' | 'done' | 'paused'
   isDirty:         boolean
 }
 

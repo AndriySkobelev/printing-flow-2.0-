@@ -190,6 +190,7 @@ export const getPlannerSubTasks = query({
             orderNumber:     sewingTask.orderIndex ?? sewingTask.keycrmOrderId,
             specName:        sewingTask.specName,
             color:           colorHex,
+            status:          st.status,
           }
         }),
     )
@@ -207,7 +208,13 @@ export const getMySubTasks = query({
       .collect()
 
     return Promise.all(subTasks.map(async (st) => {
-      const task = await ctx.db.get(st.sewingTaskId)
+      const task           = await ctx.db.get(st.sewingTaskId)
+      const productionOrder = task ? await ctx.db.get(task.productionOrderId) : null
+
+      const item    = st.productionOrderItemId ? await ctx.db.get(st.productionOrderItemId) : null
+      const product = item ? await ctx.db.get(item.productId) : null
+      const spec    = product ? await ctx.db.get(product.parentId) : null
+
       return {
         ...st,
         keycrmOrderId: task?.keycrmOrderId ?? null,
@@ -215,6 +222,7 @@ export const getMySubTasks = query({
         specName:      task?.specName      ?? null,
         color:         task?.color         ?? null,
         taskEndDate:   task?.endDate       ?? null,
+        images:        [...(productionOrder?.attachedFiles ?? []), ...(spec?.attachedFiles ?? [])],
       }
     }))
   },

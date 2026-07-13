@@ -1,11 +1,12 @@
-import { useContext } from 'react'
+import { useContext, useState, type ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { convexQuery } from '@convex-dev/react-query'
 import { api } from 'convex/_generated/api'
 import { type Id } from 'convex/_generated/dataModel'
 import { AuthContext } from '@/contexts/auth'
-import { CheckCheck, Scissors } from 'lucide-react'
+import { CheckCheck, Scissors, Play, Pause, ChevronDown, ChevronRight, ImageIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { ImagesSection, type AttachedFile } from '@/route-components/branding/components/images-section'
 import { useUpdateSewingSubTaskStatus, useCompleteSewingSubTask } from './actions'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -23,6 +24,7 @@ type SubTask = {
   specName: string | null
   color: string | null
   taskEndDate: number | null
+  images: AttachedFile[]
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -33,11 +35,42 @@ const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
   done:        { label: 'Готово',    className: 'bg-green-100 text-green-700' },
   paused:      { label: 'Пауза',     className: 'bg-gray-100 text-gray-500' },
 }
+const startAction = { label: 'В роботі', icon: <Play size={11}/>, next: 'in_progress' as const }
 
-const STATUS_OPTIONS = ['new', 'in_progress', 'paused'] as const
+const toggleAction: Record<SubTask['status'], { label: string; icon: ReactNode; next: 'in_progress' | 'paused' }> = {
+  new:         startAction,
+  paused:      startAction,
+  in_progress: { label: 'Пауза', icon: <Pause size={11}/>, next: 'paused' as const },
+  done:        startAction, // never rendered — the button is hidden once a task is done
+}
 
 const formatDate = (ts: number) =>
   new Date(ts).toLocaleDateString('uk-UA', { day: '2-digit', month: '2-digit', year: '2-digit' })
+
+// ─── TaskImages ───────────────────────────────────────────────────────────────
+
+const TaskImages = ({ images }: { images: AttachedFile[] }) => {
+  const [isOpen, setIsOpen] = useState(false)
+
+  if (images.length === 0) return null
+
+  return (
+    <div className="flex flex-col gap-2 -mx-3">
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        className="h-6 text-[11px] px-3 mx-3 justify-start text-muted-foreground"
+        onClick={() => setIsOpen(v => !v)}
+      >
+        {isOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+        <ImageIcon size={12} />
+        Зображення ({images.length})
+      </Button>
+      {isOpen && <ImagesSection files={images} />}
+    </div>
+  )
+}
 
 // ─── TaskCard ─────────────────────────────────────────────────────────────────
 
@@ -50,6 +83,10 @@ const TaskCard = ({ task }: { task: SubTask }) => {
   const { mutate: changeStatus, isPending: isChanging } = useUpdateSewingSubTaskStatus()
   const { mutate: complete, isPending: isCompleting }   = useCompleteSewingSubTask()
 
+  // Before the task is started, the only move is new → in_progress.
+  // Once it's running, this same button toggles between the remaining
+  // statuses (in_progress ↔ paused); "done" is handled by its own button.
+  
   return (
     <div className="border rounded-lg px-4 py-3 flex flex-col gap-3 bg-background">
       <div className="flex items-start justify-between gap-2">
@@ -78,23 +115,21 @@ const TaskCard = ({ task }: { task: SubTask }) => {
         {deadline && <span>до <b className="text-foreground">{formatDate(deadline)}</b></span>}
       </div>
 
+      <TaskImages images={task.images} />
+
       {!isDone && (
         <div className="flex items-center gap-2 flex-wrap border-t pt-2.5">
-          {STATUS_OPTIONS.map(s => (
-            <button
-              key={s}
-              type="button"
-              disabled={isChanging || task.status === s}
-              onClick={() => changeStatus({ sewingSubTaskId: task._id as Id<'sewingSubTasks'>, status: s })}
-              className={`text-[11px] px-2 py-0.5 rounded-full border transition-colors disabled:opacity-50 ${
-                task.status === s
-                  ? `${STATUS_CONFIG[s].className} border-transparent`
-                  : 'border-border text-muted-foreground hover:border-foreground/30 hover:text-foreground'
-              }`}
-            >
-              {STATUS_CONFIG[s].label}
-            </button>
-          ))}
+          <Button
+            key={task.status}
+            variant="outline"
+            size="sm"
+            className="h-6 text-[11px] px-2"
+            disabled={isChanging}
+            onClick={() => changeStatus({ sewingSubTaskId: task._id as Id<'sewingSubTasks'>, status: toggleAction[task.status].next })}
+          >
+            {toggleAction[task.status].icon}
+            {toggleAction[task.status].label}
+          </Button>
           <Button
             size="sm"
             className="ml-auto h-6 text-[11px] px-2"

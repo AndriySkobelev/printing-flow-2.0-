@@ -204,10 +204,38 @@ export const addCuttingTaskSizeLog = mutation({
     const newLog = { quantity, timestamp: Date.now(), userId, comment };
     const logs = [...(existing.logs ?? []), newLog];
 
+    const newCompletedQty = existing.completedQty + quantity;
+
     await ctx.db.patch(cuttingTaskSizeId, {
-      completedQty: existing.completedQty + quantity,
+      completedQty: newCompletedQty,
       logs,
     });
+
+    // Cut more of this size than was planned (e.g. extra fabric allowed for
+    // waste, or the plan undercounted). Only the newly-crossed overrun from
+    // this log gets its own subSewingTask — not the whole overrun again on
+    // every later log — so sewers get exactly the extra pieces to sew.
+    const overrunBefore = Math.max(0, existing.completedQty - existing.quantity);
+    const overrunAfter  = Math.max(0, newCompletedQty - existing.quantity);
+    const extraQty = overrunAfter - overrunBefore;
+
+    if (extraQty > 0) {
+      const sewingTask = await ctx.db
+        .query('sewingTasks')
+        .withIndex('by_cuttingTask', q => q.eq('cuttingTaskId', existing.cuttingTaskId))
+        .first();
+
+      if (sewingTask) {
+        await ctx.db.insert('sewingSubTasks', {
+          sewingTaskId: sewingTask._id,
+          productionOrderItemId: existing.productionOrderItemId,
+          size: existing.size,
+          quantity: extraQty,
+          completedQty: 0,
+          status: 'new',
+        });
+      }
+    }
 
     // This much of the item's total quantity was just cut — release that
     // same fraction of its reserved fabric into actual consumption. Other

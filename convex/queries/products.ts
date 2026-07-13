@@ -217,10 +217,16 @@ export const createSpecVariants = mutation({
     const baseFabric = await ctx.db.get('fabrics', baseMaterial.id as Id<'fabrics'>);
     if (!baseFabric?.name) throw new Error('Base fabric not found');
 
+    // Fetch the fabric's variants once instead of re-querying (and re-reading
+    // every variant of the fabric) on each loop iteration — with enough
+    // variants requested at once that blew past Convex's per-mutation read limit.
+    const fabricVariants = await getFabricsByNameAndColors(ctx, baseFabric.name);
+    const fabricVariantByColor = new Map(fabricVariants.map(v => [v.color, v]));
+
     let skuNumber = spec.lastVariantIndex ?? 0;
 
     for (const { color, size } of variants) {
-      const [colorFabricVariant] = await getFabricsByNameAndColors(ctx, baseFabric.name, [color]);
+      const colorFabricVariant = fabricVariantByColor.get(color);
       const numberSku = ++skuNumber;
       await ctx.db.insert('products', {
         size,
