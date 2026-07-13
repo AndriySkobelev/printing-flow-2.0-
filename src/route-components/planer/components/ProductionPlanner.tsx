@@ -34,6 +34,20 @@ const LABEL_W  = 148
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+const STATUS_COLOR: Record<PlannedTask['status'], string> = {
+  new:         '#60a5fa',
+  in_progress: '#fbbf24',
+  done:        '#22c55e',
+  paused:      '#9ca3af',
+}
+
+const STATUS_LABEL: Record<PlannedTask['status'], string> = {
+  new:         'Нове',
+  in_progress: 'В роботі',
+  done:        'Готово',
+  paused:      'Пауза',
+}
+
 const minuteToPx = (min: number) => (min / 60) * HOUR_W
 
 const pxToPosition = (px: number, dayStrs: string[]) => {
@@ -140,6 +154,12 @@ const TaskPopoverContent = ({ task }: { task: PlannedTask }) => {
       <div className="flex items-center gap-1.5">
         <span className="size-2 rounded-full shrink-0" style={{ background: c }} />
         <span className="text-[12px] font-semibold">#{task.orderNumber}</span>
+        <span
+          className="ml-auto text-[10px] font-semibold px-1.5 py-0.5 rounded-full leading-none"
+          style={{ background: STATUS_COLOR[task.status] + '25', color: STATUS_COLOR[task.status] }}
+        >
+          {STATUS_LABEL[task.status]}
+        </span>
       </div>
       <div className='flex gap-2 items-center'>
         <p className="text-[11px] text-muted-foreground">{task.specName}</p>
@@ -174,7 +194,8 @@ const TaskBar = ({ task, left, onCheck }: {
   const width  = minuteToPx(task.durationMinutes)
   const top    = (ROW_H - TASK_H) / 2
   const narrow = width < 72
-  const c      = task.color
+  const c      = task.color               // fabric color — fill, border, left accent
+  const sc     = STATUS_COLOR[task.status] // status color — small dot only
 
   return (
     <MyPopover
@@ -207,6 +228,7 @@ const TaskBar = ({ task, left, onCheck }: {
           {/* content */}
           {!narrow && (
             <div className="absolute inset-0 flex items-center gap-1 pl-2.5 pr-2 pointer-events-none">
+              <span className="size-1.5 rounded-full shrink-0" style={{ background: sc }} />
               <span className="text-[11px] font-semibold truncate leading-none flex-1" style={{ color: c }}>
                 #{task.orderNumber}
               </span>
@@ -452,6 +474,7 @@ const ProductionPlanner = () => {
         orderNumber:     pt.orderNumber,
         specName:        pt.specName,
         color:           pt.color,
+        status:          pt.status,
       })
     }
   }, [plannerSubTasks])

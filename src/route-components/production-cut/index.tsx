@@ -1,6 +1,6 @@
 import { useState, useMemo, useContext, useCallback } from 'react'
 import { useNavigate } from '@tanstack/react-router'
-import { CalendarIcon, History } from 'lucide-react'
+import { History } from 'lucide-react'
 import { type HeaderObject } from 'simple-table-core'
 import clsx from 'clsx'
 import { Button } from '@/components/ui/button'
@@ -23,7 +23,8 @@ import { useUpdateCuttingTaskPlanedEndDate, useUpdateCuttingTaskStatus } from '.
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-const SIZES = ['4XS', '3XS', 'XXS', 'XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', '4XL'] as const
+// const SIZES = ['4XS', '3XS', 'XXS', 'XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', '4XL'] as const
+const SIZES = ['6XS', '5XS', '4XS', '3XS', 'XXS', 'XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', '4XL', '5XL', '6XL'] as const
 type Size = typeof SIZES[number]
 
 const ORDER_TYPES = {

@@ -4,7 +4,6 @@ import { type SingleValue, MultiValue } from 'react-select';
 import CreatableSelect from 'react-select/creatable';
 import { useFieldContext } from "@/components/main-form";
 import clsx from 'clsx';
-import { is, over } from 'ramda';
 
 export type Option = {
   value: string | number | null | undefined;
@@ -185,6 +184,7 @@ const FormCreatableSelect: FunctionComponent<FormAsyncSelectProps> = ({ defaultO
           defaultValue={valueToOption(value, defaultOptions)}
           onChange={fieldOnChangeSingle}
           components={{ Option: OptionModes[modeOption || 'default'] }}
+          options={options}
           styles={selectStyles}
         />
       )}

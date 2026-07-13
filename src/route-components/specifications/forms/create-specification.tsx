@@ -1,8 +1,10 @@
-import { type FunctionComponent, type MutableRefObject } from "react";
+import { type FunctionComponent, type MutableRefObject, useMemo } from "react";
 import { Trash2Icon } from 'lucide-react'
 import { z } from 'zod';
 import clsx from "clsx";
 import { revalidateLogic } from '@tanstack/react-form';
+import { useQuery } from '@tanstack/react-query';
+import { convexQuery } from '@convex-dev/react-query';
 import { useAppForm } from "@/components/main-form";
 import { Button } from "@/components/ui/button";
 import { useAsyncOptions } from '../utils/hooks'
@@ -77,6 +79,8 @@ const SpecificationForm: FunctionComponent<SpecificationFormProps> = ({
   const { loadOptions: fabricOptions } = useAsyncOptions(api.queries.fabrics.getFabricsOptions, 'fabric');
   const { loadOptions: materialOptions } = useAsyncOptions(api.queries.materials.getMaterialOptions, 'materials');
 
+  const { data: categories = [] } = useQuery(convexQuery(api.queries.specifications.getSpecificationCategories, {}));
+  const categoryOptions = useMemo(() => categories.map(c => ({ value: c, label: c })), [categories]);
 
   const form = useAppForm({
     validationLogic: revalidateLogic(),
@@ -121,7 +125,14 @@ const SpecificationForm: FunctionComponent<SpecificationFormProps> = ({
               children={(field) => <field.FormTextField type="text" label='Назва'/>} />
             <form.AppField
               name='category'
-              children={(field) => <field.FormTextField type="text" label='Категорія'/>} />
+              children={(field) => (
+                <field.FormCreatableSelect
+                  isMulti={false}
+                  label='Категорія'
+                  options={categoryOptions}
+                  defaultOptions={categoryOptions}
+                />
+              )} />
           </div>
           <div className="flex gap-2 w-full">
             <form.AppField

@@ -1,7 +1,8 @@
 import { useState } from 'react'
+import { UTCDate } from '@date-fns/utc'
 import { ProgressBar } from '@/components/progress-bar'
 import { useQuery } from '@tanstack/react-query'
-import { convexQuery, useConvexMutation } from '@convex-dev/react-query'
+import { convexQuery } from '@convex-dev/react-query'
 import { api } from 'convex/_generated/api'
 import { type FunctionReturnType } from 'convex/server'
 import { Search, ChevronDown, ChevronRight, SplitSquareHorizontal, UserPlus, Check, X } from 'lucide-react'
@@ -10,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { MyPopover } from '@/components/my-popover'
 import { usePlannerStore } from '../store'
+import { useUpdateSewingSubTaskAssignee, useSplitSewingSubTask } from '../queries'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -36,13 +38,15 @@ const STATUS_LABEL: Record<string, string> = {
 }
 
 const formatDate = (ts?: number | null) =>
-  ts ? new Date(ts).toLocaleDateString('uk-UA', { day: '2-digit', month: '2-digit' }) : '—'
+  ts ? new UTCDate(ts).toLocaleDateString('uk-UA', { day: '2-digit', month: '2-digit' }) : '—'
 
 const formatTime = (ts: number) =>
-  new Date(ts).toLocaleString('uk-UA', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+  new UTCDate(ts).toLocaleString('uk-UA', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+
+const durationMinutesFor = (qty: number) => Math.max(20, qty * 3)
 
 const calcDuration = (qty: number) => {
-  const mins = Math.max(20, qty * 3)
+  const mins = durationMinutesFor(qty)
   const h = Math.floor(mins / 60)
   const m = mins % 60
   return h > 0 ? `${h}г${m > 0 ? ` ${m}хв` : ''}` : `${m}хв`
@@ -91,8 +95,8 @@ const SubTaskItem = ({
   sub, taskMeta, sewerUsers, splitId, splitQty,
   onSplit, onSplitQtyChange, onSplitConfirm, onSplitCancel,
 }: SubTaskProps) => {
-  const updateAssignee          = useConvexMutation(api.queries.sewing.updateSewingSubTaskAssignee)
-  const { assign, unassign }    = usePlannerStore.getState()
+  const { mutate: updateAssignee } = useUpdateSewingSubTaskAssignee()
+  const { assign, unassign }       = usePlannerStore.getState()
 
   const handleAssign = (userId: string | undefined) => {
     updateAssignee({ sewingSubTaskId: sub._id as any, assignedTo: userId as any })
@@ -103,12 +107,13 @@ const SubTaskItem = ({
         isScheduled:     false,
         startDate:       '',
         startMinute:     0,
-        durationMinutes: Math.max(20, sub.quantity * 3),
+        durationMinutes: durationMinutesFor(sub.quantity),
         quantity:        sub.quantity,
         size:            sub.size ?? undefined,
         orderNumber:     taskMeta.orderNumber,
         specName:        taskMeta.specName,
         color:           taskMeta.color,
+        status:          sub.status,
       })
     } else {
       unassign(sub._id)
@@ -155,18 +160,19 @@ const SubTaskItem = ({
                 const fullName  = `${user.name} ${user.lastName}`.trim()
                 const isCurrent = sub.assignedTo === user._id
                 return (
-                  <button
+                  <Button
                     key={user._id}
                     type="button"
+                    variant="ghost"
                     onClick={() => handleAssign(isCurrent ? undefined : user._id)}
-                    className="flex items-center gap-2 px-1 py-1.5 rounded text-[11px] hover:bg-muted/60 transition-colors text-left"
+                    className="h-auto justify-start gap-2 px-1 py-1.5 rounded text-[11px] font-normal text-left"
                   >
                     <span className="size-5 rounded-full bg-muted flex items-center justify-center text-[10px] font-bold shrink-0">
                       {user.name[0]}{user.lastName[0]}
                     </span>
                     <span className="flex-1 truncate">{fullName || '—'}</span>
                     {isCurrent && <Check size={11} className="shrink-0 text-primary" />}
-                  </button>
+                  </Button>
                 )
               })}
               {sewerUsers.length === 0 && (
@@ -175,14 +181,15 @@ const SubTaskItem = ({
               {isAssigned && (
                 <>
                   <div className="border-t border-border/40 my-0.5" />
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
                     onClick={() => handleAssign(undefined)}
-                    className="flex items-center gap-2 px-1 py-1.5 rounded text-[11px] text-destructive hover:bg-destructive/10 transition-colors"
+                    className="h-auto justify-start gap-2 px-1 py-1.5 rounded text-[11px] font-normal text-destructive hover:bg-destructive/10 hover:text-destructive"
                   >
                     <X size={11} />
                     Зняти призначення
-                  </button>
+                  </Button>
                 </>
               )}
             </div>
@@ -240,8 +247,8 @@ const SewingTaskCard = ({ task, isSelected, isExpanded, sewerUsers, onSelect, on
   const [logsOpen, setLogsOpen]     = useState(false)
   const [splitState, setSplitState] = useState<{ id: string | null; qty: string }>({ id: null, qty: '' })
 
-  const splitMutation = useConvexMutation(api.queries.sewing.splitSewingSubTask)
-  const { unassign }  = usePlannerStore.getState()
+  const { mutate: splitMutation } = useSplitSewingSubTask()
+  const { unassign }              = usePlannerStore.getState()
 
   const accent = task.fabricColorHex ?? '#6b7280'
   const { totalQty, completedQty, logs } = task.cuttingProgress
@@ -266,7 +273,7 @@ const SewingTaskCard = ({ task, isSelected, isExpanded, sewerUsers, onSelect, on
     <div className={cn('rounded-lg border transition-colors overflow-hidden', isSelected ? 'border-primary' : 'border-border')}>
       {/* Header — always visible */}
       <div
-        className={cn('flex overflow-hidden cursor-pointer', isSelected ? 'bg-primary/5' : 'bg-card hover:bg-muted/40')}
+        className={cn('flex overflow-hidden', isSelected ? 'bg-primary/5' : 'bg-card hover:bg-muted/40')}
         onClick={() => onSelect(task._id)}
       >
         <div className="w-0.75 shrink-0" style={{ backgroundColor: accent }} />
@@ -299,9 +306,15 @@ const SewingTaskCard = ({ task, isSelected, isExpanded, sewerUsers, onSelect, on
               <span>Розкрій</span>
               <span className="tabular-nums">{completedQty}/{totalQty} шт</span>
             </div>
-            <button type="button" className="w-full" onClick={(e) => { e.stopPropagation(); setLogsOpen((v) => !v) }} title="Переглянути записи розкрою">
+            <Button
+              type="button"
+              variant="ghost"
+              className="w-full h-auto p-0 justify-start hover:bg-transparent"
+              onClick={(e) => { e.stopPropagation(); setLogsOpen((v) => !v) }}
+              title="Переглянути записи розкрою"
+            >
               <ProgressBar done={completedQty} total={totalQty} size="md" hex={accent} />
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -309,7 +322,7 @@ const SewingTaskCard = ({ task, isSelected, isExpanded, sewerUsers, onSelect, on
           type="button"
           variant="ghost"
           size="icon-sm"
-          className="shrink-0 self-center mr-1"
+          className="shrink-0 self-center mr-1 cursor-pointer"
           onClick={(e) => { e.stopPropagation(); onToggleExpand(task._id) }}
         >
           {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
