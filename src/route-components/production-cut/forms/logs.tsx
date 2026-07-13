@@ -3,7 +3,7 @@ import { useAppForm } from '@/components/main-form'
 import { revalidateLogic } from '@tanstack/react-form'
 
 const formSchema = z.object({
-  completedQty: z.string().min(1, 'Введіть кількість'),
+  completedQty: z.number().min(1, 'Введіть кількість'),
   comment: z.string().optional(),
 })
 

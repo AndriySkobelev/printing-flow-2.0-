@@ -1,20 +1,20 @@
-import { useMemo, useState, useContext } from 'react'
+import { useMemo, useState, useContext, useCallback } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { convexQuery } from '@convex-dev/react-query'
-import { type HeaderObject, type CellClickProps } from 'simple-table-core'
+import { type HeaderObject, type CellClickProps, type RowSelectionChangeProps } from 'simple-table-core'
 import { Route as orderDetailsRoute } from '@/routes/_authenticated/app/production-orders_.$orderId'
 import { Route as productionOrdersRoute } from '@/routes/_authenticated/app/production-orders'
 import { api } from 'convex/_generated/api'
 import AppTable from '@/components/ui/app-table'
 import { MyPopover } from '@/components/my-popover'
 import { useNavigate } from '@tanstack/react-router'
-import { Search, Plus, Trash2, RefreshCw, Loader2 } from 'lucide-react'
-import { useCreateProductionOrder, useDeleteProductionOrder, useSyncKeyCrmOrders } from './actions'
+import { Search, Plus, Trash2, RefreshCw, Loader2, ChevronDown } from 'lucide-react'
+import { useCreateProductionOrder, useDeleteProductionOrder, useDeleteProductionOrders, useSyncKeyCrmOrders } from './actions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import Divider from '@/components/ui/divider'
 import { DialogContext } from '@/contexts/dialog'
-import { ActionsMenu } from '@/components/actions-menu'
+import { ActionsMenu, type ActionItem } from '@/components/actions-menu'
 import CreateOrderForm from './forms/create-order'
 import { cn } from '@/lib/utils'
 
@@ -232,8 +232,41 @@ const ProductionOrdersPage = () => {
   const [search, setSearch] = useState<string | undefined>(undefined)
   const [status, setStatus] = useState<StatusKey | null>(null)
 
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+
   const { mutate: createOrder } = useCreateProductionOrder(closeDialog)
   const { mutate: syncOrders, isPending: isSyncing } = useSyncKeyCrmOrders()
+  const { mutate: deleteOrders, isPending: isDeleting } = useDeleteProductionOrders(() => setSelectedIds(new Set()))
+
+  const handleSelectionChange = useCallback(({ selectedRows }: RowSelectionChangeProps) => {
+    // simple-table-core prefixes our getRowId value with its own row-index
+    // path (e.g. "3-<realId>"), so pull the real _id back out before storing it.
+    const realIds = [...selectedRows].map(id => String(id).match(/-(\w+)$/)?.[1] ?? String(id))
+    setSelectedIds(new Set(realIds))
+  }, [])
+
+  const handleMassDelete = () => {
+    const productionOrderIds = [...selectedIds]
+    openDialog({
+      title: 'Видалення замовлень',
+      withForm: true,
+      content: <div>Ви впевнені, що хочете видалити {productionOrderIds.length} замовлень?</div>,
+      actionSubmit: () => {
+        deleteOrders({ productionOrderIds: productionOrderIds as any })
+        closeDialog()
+      },
+    })
+  }
+
+  const massActions: ActionItem[] = [
+    {
+      label: 'Видалити',
+      icon: <Trash2 size={12} />,
+      destructive: true,
+      disabled: isDeleting || selectedIds.size === 0,
+      onClick: handleMassDelete,
+    },
+  ]
 
   const handleOpenCreate = () => {
     openDialog({
@@ -322,10 +355,28 @@ const ProductionOrdersPage = () => {
         </div>
       </div>
 
+      <div
+        className={cn(
+          'flex items-center gap-2 px-2.5 py-1.5 shrink-0 opacity-30 transition-opacity',
+          selectedIds.size > 0 && 'opacity-100'
+        )}
+      >
+        <span className="text-xs font-medium text-primary">{selectedIds.size} вибрано</span>
+        <ActionsMenu
+          items={massActions}
+          trigger={
+            <Button size="sm" variant="outline" disabled={selectedIds.size === 0} className="h-6 text-[11px] px-2">
+              Масові дії <ChevronDown size={12} />
+            </Button>
+          }
+        />
+      </div>
+
       <AppTable
         editColumns
         expandAll={false}
         enableStickyParents
+        enableRowSelection
         shouldPaginate
         rowsPerPage={50}
         rows={rows}
@@ -334,6 +385,7 @@ const ProductionOrdersPage = () => {
         getRowId={({ row }) => (row._id ?? row.sku) as string}
         height="calc(100vh - 180px)"
         onCellClick={handleCellClick}
+        onRowSelectionChange={handleSelectionChange}
       />
     </div>
   )

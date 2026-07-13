@@ -1156,6 +1156,54 @@ export const addAttachedFile = mutation({
   },
 })
 
+async function deleteConnectedTasks(ctx: MutationCtx, productionOrderId: Id<'productionOrders'>) {
+  const cuttingTasks = await ctx.db
+    .query('cuttingTasks')
+    .withIndex('by_productionOrder', q => q.eq('productionOrderId', productionOrderId))
+    .collect()
+  await Promise.all(cuttingTasks.map(async task => {
+    const sizes = await ctx.db
+      .query('cuttingTaskSizes')
+      .withIndex('by_cuttingTask', q => q.eq('cuttingTaskId', task._id))
+      .collect()
+    await Promise.all(sizes.map(s => ctx.db.delete(s._id)))
+    await ctx.db.delete(task._id)
+  }))
+
+  const sewingTasks = await ctx.db
+    .query('sewingTasks')
+    .withIndex('by_productionOrder', q => q.eq('productionOrderId', productionOrderId))
+    .collect()
+  await Promise.all(sewingTasks.map(async task => {
+    const subTasks = await ctx.db
+      .query('sewingSubTasks')
+      .withIndex('by_sewingTask', q => q.eq('sewingTaskId', task._id))
+      .collect()
+    await Promise.all(subTasks.map(async subTask => {
+      const logs = await ctx.db
+        .query('sewingLogs')
+        .withIndex('by_sewingSubTask', q => q.eq('sewingSubTaskId', subTask._id))
+        .collect()
+      await Promise.all(logs.map(l => ctx.db.delete(l._id)))
+      await ctx.db.delete(subTask._id)
+    }))
+    await ctx.db.delete(task._id)
+  }))
+
+  const brandingTasks = await ctx.db
+    .query('brandingTasks')
+    .withIndex('by_productionOrder', q => q.eq('productionOrderId', productionOrderId))
+    .collect()
+  await Promise.all(brandingTasks.map(async task => {
+    const logs = await ctx.db
+      .query('brandingLogs')
+      .withIndex('by_brandingTask', q => q.eq('brandingTaskId', task._id))
+      .collect()
+    await Promise.all(logs.map(l => ctx.db.delete(l._id)))
+    await ctx.db.delete(task._id)
+  }))
+}
+
 export const deleteProductionOrder = mutation({
   args: { productionOrderId: v.id('productionOrders') },
   handler: async (ctx, { productionOrderId }) => {
@@ -1164,6 +1212,22 @@ export const deleteProductionOrder = mutation({
       .withIndex('by_productionOrder', q => q.eq('productionOrderId', productionOrderId))
       .collect()
     await Promise.all(items.map(i => ctx.db.delete(i._id)))
+    await deleteConnectedTasks(ctx, productionOrderId)
     await ctx.db.delete(productionOrderId)
+  },
+})
+
+export const deleteProductionOrders = mutation({
+  args: { productionOrderIds: v.array(v.id('productionOrders')) },
+  handler: async (ctx, { productionOrderIds }) => {
+    await Promise.all(productionOrderIds.map(async productionOrderId => {
+      const items = await ctx.db
+        .query('productionOrderItems')
+        .withIndex('by_productionOrder', q => q.eq('productionOrderId', productionOrderId))
+        .collect()
+      await Promise.all(items.map(i => ctx.db.delete(i._id)))
+      await deleteConnectedTasks(ctx, productionOrderId)
+      await ctx.db.delete(productionOrderId)
+    }))
   },
 })

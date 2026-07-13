@@ -43,6 +43,13 @@ export const getSpecifications = query({
   }
 })
 
+export const getSpecificationCategories = query({
+  handler: async (ctx) => {
+    const specifications = await ctx.db.query('specifications').collect();
+    return [...new Set(specifications.map(s => s.category).filter(Boolean))];
+  }
+})
+
 export const getSpecificationsWithMaterials = query({
   handler: async (ctx) => {
     const specifications = await ctx.db.query('specifications').collect();

@@ -10,6 +10,20 @@ export function useUpdateSewingSubTaskDates() {
   })
 }
 
+export function useUpdateSewingSubTaskAssignee() {
+  return useMutation({
+    mutationFn: useConvexMutation(api.queries.sewing.updateSewingSubTaskAssignee),
+    onError: (e: Error) => toast.error(e.message),
+  })
+}
+
+export function useSplitSewingSubTask() {
+  return useMutation({
+    mutationFn: useConvexMutation(api.queries.sewing.splitSewingSubTask),
+    onError: (e: Error) => toast.error(e.message),
+  })
+}
+
 export function usePlannerEvents(from: string, to: string) {
   return useQuery(convexQuery(api.queries.planner.getEventsByDateRange, { from, to }))
 }

@@ -7,6 +7,7 @@ const asUnion = <T extends string>(values: readonly [T, T, ...T[]]) =>
 export const TASK_STATUSES = ['new', 'in_progress', 'done', 'delayed'] as const
 export type TaskStatus = typeof TASK_STATUSES[number]
 export const taskStatusV = asUnion(TASK_STATUSES)
+export const taskSewingStatus = asUnion([...TASK_STATUSES, 'distributed'])
 
 // shared by brandingTasks.status and packagingTasks.status
 export const EXTENDED_TASK_STATUSES = ['new', 'in_progress', 'done', 'paused', 'waiting'] as const

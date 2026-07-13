@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { defineTable } from "convex/server";
-import { taskStatusV, extendedTaskStatusV, destinationTypeV } from './constants'
+import { taskSewingStatus, extendedTaskStatusV, destinationTypeV } from './constants'
 
 export const cuttingTasks = {
   color: v.string(),
@@ -46,7 +46,7 @@ export const sewingTasks = {
   totalQuantity: v.number(),
   startDate: v.number(),
   endDate: v.number(),
-  status: taskStatusV,
+  status: taskSewingStatus,
   note: v.optional(v.string()),
 };
 
