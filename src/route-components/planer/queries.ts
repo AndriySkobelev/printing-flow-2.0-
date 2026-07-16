@@ -10,6 +10,13 @@ export function useUpdateSewingSubTaskDates() {
   })
 }
 
+export function useUpdateSewingTaskStatus() {
+  return useMutation({
+    mutationFn: useConvexMutation(api.queries.sewing.updateSewingTaskStatus),
+    onError: (e: Error) => toast.error(e.message),
+  })
+}
+
 export function useUpdateSewingSubTaskAssignee() {
   return useMutation({
     mutationFn: useConvexMutation(api.queries.sewing.updateSewingSubTaskAssignee),

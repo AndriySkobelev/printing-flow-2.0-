@@ -4,6 +4,7 @@ import { ProgressBar } from '@/components/progress-bar'
 import { Plus, Scissors, Boxes, CircleQuestionMarkIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { DialogContext } from '@/contexts/dialog'
+import { CustomBadge } from './custom-badge'
 import { type Id } from 'convex/_generated/dataModel'
 import { BrandingLogForm, type BrandingLogFormValues } from '@/route-components/branding/forms/branding-log-form'
 import { useCreateBrandingLog } from '@/route-components/branding/actions'
@@ -26,6 +27,10 @@ type ProductItem = {
   quantity: number
   shipmentType: string
   materialProcessingType: string
+  isCustomCut?: boolean
+  isCustomSewing?: boolean
+  customCutComment?: string
+  customSewingComment?: string
 }
 
 type Props = {
@@ -134,7 +139,13 @@ export const ProductItemCard = ({ item, completedQty, defectQty, brandingTaskId,
       {/* Name + add button */}
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
-          <div className="bg-muted rounded-md p-1 flex items-center justify-center shrink-0">
+          <CustomBadge
+            isCustomCut={item.isCustomCut}
+            isCustomSewing={item.isCustomSewing}
+            customCutComment={item.customCutComment}
+            customSewingComment={item.customSewingComment}
+          />
+          <div className="flex bg-muted rounded-md p-1 items-center justify-center shrink-0">
             {ICON_BY_TYPE[item.shipmentType as keyof typeof ICON_BY_TYPE] ?? <CircleQuestionMarkIcon className="size-4" />}
           </div>
           <div className="min-w-0">

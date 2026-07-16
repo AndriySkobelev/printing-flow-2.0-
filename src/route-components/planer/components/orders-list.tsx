@@ -5,13 +5,14 @@ import { useQuery } from '@tanstack/react-query'
 import { convexQuery } from '@convex-dev/react-query'
 import { api } from 'convex/_generated/api'
 import { type FunctionReturnType } from 'convex/server'
-import { Search, ChevronDown, ChevronRight, SplitSquareHorizontal, UserPlus, Check, X } from 'lucide-react'
+import { Search, ChevronDown, ChevronRight, SplitSquareHorizontal, UserPlus, Check, X, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { MyPopover } from '@/components/my-popover'
 import { usePlannerStore } from '../store'
-import { useUpdateSewingSubTaskAssignee, useSplitSewingSubTask } from '../queries'
+import { useUpdateSewingSubTaskAssignee, useSplitSewingSubTask, useUpdateSewingTaskStatus } from '../queries'
+import { OrderNumberLink } from './order-number-link'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -25,20 +26,45 @@ const STATUS_DOT: Record<string, string> = {
   new:         'bg-blue-400',
   in_progress: 'bg-amber-400',
   done:        'bg-green-500',
-  delayed:     'bg-red-400',
   paused:      'bg-gray-400',
+  distributed: 'bg-violet-400',
 }
 
 const STATUS_LABEL: Record<string, string> = {
   new:         'Новий',
   in_progress: 'В роботі',
   done:        'Готово',
-  delayed:     'Затримка',
   paused:      'Пауза',
+  distributed: 'Розподілено',
 }
+
+// The only statuses a planner can manually toggle between on a sewing task —
+// in_progress/done/paused come from elsewhere in the task's lifecycle.
+const TOGGLABLE_STATUSES = new Set(['new', 'distributed'])
+
+// Statuses a sewingTask can actually hold (taskSewingStatus in the schema).
+const STATUS_FILTER_OPTIONS = ['new', 'distributed', 'in_progress', 'done', 'paused'] as const
 
 const formatDate = (ts?: number | null) =>
   ts ? new UTCDate(ts).toLocaleDateString('uk-UA', { day: '2-digit', month: '2-digit' }) : '—'
+
+// Whole calendar days between today and the given timestamp (negative once it's overdue).
+const daysUntil = (ts?: number | null) => {
+  if (!ts) return null
+  const end   = new UTCDate(ts)
+  const now   = new UTCDate()
+  const endDay = Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), end.getUTCDate())
+  const today  = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
+  return Math.round((endDay - today) / 86_400_000)
+}
+
+const endDateColor = (ts?: number | null) => {
+  const days = daysUntil(ts)
+  if (days === null) return 'text-muted-foreground'
+  if (days < 0)  return 'text-red-500 font-semibold'
+  if (days <= 2) return 'text-amber-500 font-semibold'
+  return 'text-muted-foreground'
+}
 
 const formatTime = (ts: number) =>
   new UTCDate(ts).toLocaleString('uk-UA', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
@@ -123,9 +149,19 @@ const SubTaskItem = ({
   const isAssigned = sub.userName && sub.userName !== '—'
 
   return (
-    <div className="flex flex-col gap-1">
+    <div
+      className={cn(
+        'flex flex-col gap-1',
+        sub.isCustomSewing && 'border border-violet-300 dark:border-violet-800 bg-violet-50/50 dark:bg-violet-950/20 rounded-md px-1.5 py-1 -mx-1.5',
+      )}
+    >
       <div className="flex items-center gap-1.5 text-[11px]">
         <span className={cn('size-1.5 rounded-full shrink-0', STATUS_DOT[sub.status])} />
+        {sub.isCustomSewing && (
+          <span className="shrink-0 text-violet-500" title={sub.customSewingComment || 'Індивідуальний пошив'}>
+            <Sparkles size={11} />
+          </span>
+        )}
         {sub.size && (
           <span className="shrink-0 text-[10px] font-semibold px-1 py-0.5 rounded bg-muted border border-border/60 leading-none">
             {sub.size}
@@ -247,12 +283,16 @@ const SewingTaskCard = ({ task, isSelected, isExpanded, sewerUsers, onSelect, on
   const [logsOpen, setLogsOpen]     = useState(false)
   const [splitState, setSplitState] = useState<{ id: string | null; qty: string }>({ id: null, qty: '' })
 
-  const { mutate: splitMutation } = useSplitSewingSubTask()
-  const { unassign }              = usePlannerStore.getState()
+  const { mutate: splitMutation }       = useSplitSewingSubTask()
+  const { mutate: updateTaskStatus }    = useUpdateSewingTaskStatus()
+  const { unassign }                    = usePlannerStore.getState()
 
   const accent = task.fabricColorHex ?? '#6b7280'
   const { totalQty, completedQty, logs } = task.cuttingProgress
   const pct = totalQty > 0 ? Math.min(100, Math.round((completedQty / totalQty) * 100)) : 0
+
+  const customSubTasks  = task.subTasks.filter((s) => s.isCustomSewing)
+  const hasCustomSewing = customSubTasks.length > 0
 
   const taskMeta: TaskMeta = {
     orderNumber: String(task.orderIndex ?? task.keycrmOrderId ?? ''),
@@ -269,6 +309,15 @@ const SewingTaskCard = ({ task, isSelected, isExpanded, sewerUsers, onSelect, on
     setSplitState({ id: null, qty: '' })
   }
 
+  const canToggleStatus = TOGGLABLE_STATUSES.has(task.status)
+  const handleToggleStatus = () => {
+    if (!canToggleStatus) return
+    updateTaskStatus({
+      sewingTaskId: task._id as any,
+      status: task.status === 'new' ? 'distributed' : 'new',
+    })
+  }
+
   return (
     <div className={cn('rounded-lg border transition-colors overflow-hidden', isSelected ? 'border-primary' : 'border-border')}>
       {/* Header — always visible */}
@@ -281,10 +330,18 @@ const SewingTaskCard = ({ task, isSelected, isExpanded, sewerUsers, onSelect, on
         <div className="flex flex-col gap-1 px-2.5 py-2 min-w-0 flex-1">
           <div className="flex items-center justify-between gap-1">
             <div className="flex items-center gap-2 min-w-0">
-              <span className="text-[10px] font-bold shrink-0">#{task.orderIndex}</span>
+              {hasCustomSewing && (
+                <span
+                  className="shrink-0 text-violet-500"
+                  title={customSubTasks.map((s) => s.customSewingComment).filter(Boolean).join('; ') || 'Індивідуальний пошив'}
+                >
+                  <Sparkles size={12} />
+                </span>
+              )}
+              <OrderNumberLink productionOrderId={task.productionOrderId} orderIndex={task.orderIndex} />
               <p className="text-[12px] font-medium leading-tight truncate">{task.specName}</p>
             </div>
-            <span className="text-[11px] text-muted-foreground shrink-0 tabular-nums">{formatDate(task.endDate)}</span>
+            <span className={cn('text-[11px] shrink-0 tabular-nums', endDateColor(task.endDate))}>{formatDate(task.endDate)}</span>
           </div>
 
           <div className="flex items-center gap-1.5">
@@ -296,8 +353,25 @@ const SewingTaskCard = ({ task, isSelected, isExpanded, sewerUsers, onSelect, on
                 {task.colorName}
               </span>
             )}
-            <span className={cn('size-1.5 rounded-full shrink-0', STATUS_DOT[task.status])} />
-            <span className="text-[10px] text-muted-foreground">{STATUS_LABEL[task.status]}</span>
+            {canToggleStatus ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                key={task.status}
+                className="h-auto p-0 gap-1 text-[10px] text-muted-foreground hover:bg-transparent hover:text-foreground"
+                title="Змінити статус"
+                onClick={(e) => { e.stopPropagation(); handleToggleStatus() }}
+              >
+                <span className={cn('size-1.5 rounded-full shrink-0', STATUS_DOT[task.status])} />
+                {STATUS_LABEL[task.status]}
+              </Button>
+            ) : (
+              <>
+                <span className={cn('size-1.5 rounded-full shrink-0', STATUS_DOT[task.status])} />
+                <span className="text-[10px] text-muted-foreground">{STATUS_LABEL[task.status]}</span>
+              </>
+            )}
             <span className="text-[10px] text-muted-foreground ml-auto">{task.totalQuantity} шт</span>
           </div>
 
@@ -377,14 +451,15 @@ export const OrdersList = ({ selectedId, onSelect }: Props) => {
   const { data: tasks      = [] } = useQuery(convexQuery(api.queries.sewing.getSewingTasksWithCuttingProgress, {}))
   const { data: sewerUsers = [] } = useQuery(convexQuery(api.queries.sewing.getSewerUsers, {}))
   const [search, setSearch]         = useState('')
+  const [statusFilter, setStatusFilter] = useState<string[]>([])
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
-  const filtered = search.trim()
-    ? tasks.filter((t) =>
-        t.keycrmOrderId.includes(search) ||
-        t.specName?.toLowerCase().includes(search.toLowerCase())
-      )
-    : tasks
+  const toggleStatusFilter = (status: string) =>
+    setStatusFilter((prev) => prev.includes(status) ? prev.filter((s) => s !== status) : [...prev, status])
+
+  const filtered = tasks
+    .filter((t) => !search.trim() || t.keycrmOrderId.includes(search) || t.specName?.toLowerCase().includes(search.toLowerCase()))
+    .filter((t) => statusFilter.length === 0 || statusFilter.includes(t.status))
 
   const toggleExpand = (id: string) => setExpandedId((prev) => (prev === id ? null : id))
 
@@ -394,7 +469,7 @@ export const OrdersList = ({ selectedId, onSelect }: Props) => {
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Замовлення</p>
       </div>
 
-      <div className="px-1.5 py-1.5 border-b shrink-0">
+      <div className="px-1.5 py-1.5 border-b shrink-0 flex flex-col gap-1.5">
         <div className="flex items-center gap-1.5 rounded-md border border-border bg-muted/30 px-2 h-7">
           <Search size={12} className="text-muted-foreground shrink-0" />
           <input
@@ -404,6 +479,39 @@ export const OrdersList = ({ selectedId, onSelect }: Props) => {
             placeholder="Пошук..."
             className="flex-1 min-w-0 bg-transparent text-xs outline-none placeholder:text-muted-foreground/60"
           />
+        </div>
+
+        <div className="flex items-center gap-1 flex-wrap">
+          {STATUS_FILTER_OPTIONS.map((status) => {
+            const active = statusFilter.includes(status)
+            return (
+              <Button
+                key={status}
+                type="button"
+                variant="outline"
+                onClick={() => toggleStatusFilter(status)}
+                className={cn(
+                  'h-auto gap-1 text-[10px] px-1.5 py-0.5 rounded-full font-normal',
+                  active
+                    ? 'border-primary/60 bg-primary/10 text-foreground'
+                    : 'text-muted-foreground hover:border-foreground/30 hover:text-foreground',
+                )}
+              >
+                <span className={cn('size-1.5 rounded-full shrink-0', STATUS_DOT[status])} />
+                {STATUS_LABEL[status]}
+              </Button>
+            )
+          })}
+          {statusFilter.length > 0 && (
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setStatusFilter([])}
+              className="h-auto text-[10px] px-1.5 py-0.5 text-muted-foreground hover:text-foreground font-normal"
+            >
+              Скинути
+            </Button>
+          )}
         </div>
       </div>
       <ScrollArea className="max-h-200">

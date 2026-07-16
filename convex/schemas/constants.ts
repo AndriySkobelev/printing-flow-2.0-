@@ -3,8 +3,8 @@ import { v } from 'convex/values'
 const asUnion = <T extends string>(values: readonly [T, T, ...T[]]) =>
   v.union(...values.map(t => v.literal(t)) as [any, any, ...any[]])
 
-// shared by cuttingTasks.status and sewingTasks.status
-export const TASK_STATUSES = ['new', 'in_progress', 'done', 'delayed'] as const
+// base statuses for sewingTasks.status (via taskSewingStatus below)
+export const TASK_STATUSES = ['new', 'in_progress', 'done', 'paused'] as const
 export type TaskStatus = typeof TASK_STATUSES[number]
 export const taskStatusV = asUnion(TASK_STATUSES)
 export const taskSewingStatus = asUnion([...TASK_STATUSES, 'distributed'])

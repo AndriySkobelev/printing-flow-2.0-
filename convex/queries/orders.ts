@@ -76,6 +76,8 @@ type OrderItemEntry = {
   size: string;
   shipmentType: 'manufacturing' | 'warehouse' | null;
   isCustomCut?: boolean | null;
+  isCustomSewing?: boolean | null;
+  customSewingComment?: string | null;
 };
 
 async function createCuttingTasks(ctx: MutationCtx, { productionOrderId, plannedShipDate, keycrmOrderId, orderItems }: {
@@ -205,6 +207,8 @@ async function createSewingTasks(ctx: MutationCtx, { productionOrderId, plannedS
         quantity:     item.product.quantity as number,
         completedQty: 0,
         status:       'new',
+        isCustomSewing:      item.isCustomSewing ?? undefined,
+        customSewingComment: item.customSewingComment ?? undefined,
       })
     }
   }
@@ -719,8 +723,10 @@ export const createProductionTasks = mutation({
       color:        item.color,
       size:         item.size,
       shipmentType: item.shipmentType,
-      isCustomCut:      item.isCustomCut ?? false,
-      customCutComment: item.customCutComment ?? undefined,
+      isCustomCut:         item.isCustomCut ?? false,
+      customCutComment:    item.customCutComment ?? undefined,
+      isCustomSewing:      item.isCustomSewing ?? false,
+      customSewingComment: item.customSewingComment ?? undefined,
     }))
 
     const cuttingTaskIds = await createCuttingTasks(ctx, { productionOrderId, plannedShipDate, keycrmOrderId, orderItems })

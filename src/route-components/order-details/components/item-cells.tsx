@@ -90,6 +90,40 @@ const CommentsCell = ({ row }: { row: Record<string, unknown> }) => {
   )
 }
 
+const CommentsCellReadOnly = ({ row }: { row: Record<string, unknown> }) => {
+  const item = row as OrderItem
+  if (!item._id) return null
+  const hasAny = !!(item.brandingComment || item.sewingComment)
+  if (!hasAny) return <span className="text-muted-foreground/30 text-xs">—</span>
+  return (
+    <MyPopover
+      align="start"
+      trigger={
+        <button className="flex items-center gap-1 text-xs text-primary">
+          <MessageSquare size={13} />
+          <span className="size-1.5 rounded-full bg-primary" />
+        </button>
+      }
+      content={
+        <div className="flex flex-col gap-3 p-3 w-64">
+          {item.brandingComment && (
+            <div className="flex flex-col gap-1">
+              <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Брендування</span>
+              <p className="text-xs text-muted-foreground">{item.brandingComment}</p>
+            </div>
+          )}
+          {item.sewingComment && (
+            <div className="flex flex-col gap-1">
+              <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Пошив</span>
+              <p className="text-xs text-muted-foreground">{item.sewingComment}</p>
+            </div>
+          )}
+        </div>
+      }
+    />
+  )
+}
+
 const CustomCell = ({ row }: { row: Record<string, unknown> }) => {
   const item = row as OrderItem
   const hasCustom = item.isCustomCut || item.isCustomSewing
@@ -295,7 +329,7 @@ const renderHeader = ({ header }: { header: HeaderObject }) => (
   </span>
 )
 
-export const itemNestedHeaders: HeaderObject[] = [
+export const itemNestedHeaders = (readOnly?: boolean): HeaderObject[] => [
   {
     accessor:       'color',
     label:          'Розмір / Колір',
@@ -356,7 +390,7 @@ export const itemNestedHeaders: HeaderObject[] = [
     minWidth:       50,
     type:           'string',
     headerRenderer: renderHeader,
-    cellRenderer:   CommentsCell,
+    cellRenderer:   readOnly ? CommentsCellReadOnly : CommentsCell,
   },
   {
     accessor:       'isCustomCut',
@@ -393,7 +427,7 @@ export const itemNestedHeaders: HeaderObject[] = [
     headerRenderer: renderHeader,
     cellRenderer:   DestinationCell,
   },
-  {
+  ...(readOnly ? [] : [{
     accessor:       '_actions',
     label:          '',
     width:          40,
@@ -401,10 +435,10 @@ export const itemNestedHeaders: HeaderObject[] = [
     type:           'string',
     headerRenderer: renderHeader,
     cellRenderer:   RowActionsCell,
-  },
+  } as HeaderObject]),
 ]
 
-export const itemHeaders: (nestedRef: any, nestedSelectRows: any) => HeaderObject[] = (nestedRef: any, nestedSelectRows) => [
+export const itemHeaders: (nestedRef: any, nestedSelectRows: any, readOnly?: boolean) => HeaderObject[] = (nestedRef: any, nestedSelectRows, readOnly) => [
   {
     accessor:       'name',
     label:          'Виріб',
@@ -415,8 +449,8 @@ export const itemHeaders: (nestedRef: any, nestedSelectRows: any) => HeaderObjec
     headerRenderer: renderHeader,
     nestedTable: {
       tableRef: nestedRef,
-      enableRowSelection: true,
-      defaultHeaders: itemNestedHeaders,
+      enableRowSelection: !readOnly,
+      defaultHeaders: itemNestedHeaders(readOnly),
       onRowSelectionChange: nestedSelectRows,
       hideFooter: true,
       getRowId: ({ row }) => (row as OrderItem)._id

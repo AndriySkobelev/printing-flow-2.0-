@@ -98,9 +98,16 @@ export const getAllCuttingTasks = query({
           }
         }
 
-        const sizesWithChanges = sizes.map(s => ({
-          ...s,
-          quantityChange: unseenQtyChanges.get(String(s.productionOrderItemId)) ?? null,
+        // Per-size custom-cut flag comes from the linked productionOrderItem —
+        // no separate field needed on cuttingTaskSizes itself.
+        const sizesWithChanges = await Promise.all(sizes.map(async s => {
+          const item = await ctx.db.get(s.productionOrderItemId)
+          return {
+            ...s,
+            quantityChange:   unseenQtyChanges.get(String(s.productionOrderItemId)) ?? null,
+            isCustomCut:      item?.isCustomCut ?? false,
+            customCutComment: item?.customCutComment ?? null,
+          }
         }))
 
         return {

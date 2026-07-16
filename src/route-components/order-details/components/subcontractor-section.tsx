@@ -59,6 +59,7 @@ type TaskCardProps = {
   onEditDates: (task: Task) => void
   onDelete: (task: Task) => void
   onChangeStatus: (task: Task, status: TaskStatus) => void
+  readOnly?: boolean
 }
 
 const statusOptions: { value: TaskStatus; label: string }[] = [
@@ -98,7 +99,7 @@ const taskMenuItems = (
   },
 ]
 
-const SubcontractorTaskCard = ({ task, onEditDates, onDelete, onChangeStatus }: TaskCardProps) => (
+const SubcontractorTaskCard = ({ task, onEditDates, onDelete, onChangeStatus, readOnly }: TaskCardProps) => (
   <div className="border rounded-md px-2.5 py-2 flex flex-col gap-1">
     <div className="flex items-center justify-between gap-2">
       <div className="flex gap-2 items-center min-w-0">
@@ -109,7 +110,7 @@ const SubcontractorTaskCard = ({ task, onEditDates, onDelete, onChangeStatus }: 
         <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${statusColors[task.status]}`}>
           {statusLabels[task.status]}
         </span>
-        <ActionsMenu items={taskMenuItems(task, onEditDates, onDelete, onChangeStatus)} />
+        {!readOnly && <ActionsMenu items={taskMenuItems(task, onEditDates, onDelete, onChangeStatus)} />}
       </div>
     </div>
 
@@ -141,7 +142,7 @@ const SubcontractorTaskCard = ({ task, onEditDates, onDelete, onChangeStatus }: 
   </div>
 )
 
-export const SubcontractorSection = ({ productionOrderId }: { productionOrderId: string }) => {
+export const SubcontractorSection = ({ productionOrderId, readOnly }: { productionOrderId: string; readOnly?: boolean }) => {
   const { mutateAsync: createTask } = useCreateSubcontractorTask()
   const { openDialog, closeDialog } = useContext(DialogContext)
 
@@ -214,9 +215,11 @@ export const SubcontractorSection = ({ productionOrderId }: { productionOrderId:
         <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
           Підрядники ({tasks.length})
         </p>
-        <Button size="sm" variant="secondary" className="h-6 text-[11px] px-2" onClick={handleAdd}>
-          <Plus size={10} className="mr-1" /> Додати Підряд
-        </Button>
+        {!readOnly && (
+          <Button size="sm" variant="secondary" className="h-6 text-[11px] px-2" onClick={handleAdd}>
+            <Plus size={10} className="mr-1" /> Додати Підряд
+          </Button>
+        )}
       </div>
 
       {tasks.length > 0 && (
@@ -228,6 +231,7 @@ export const SubcontractorSection = ({ productionOrderId }: { productionOrderId:
               onEditDates={handleEditDates}
               onDelete={handleDelete}
               onChangeStatus={handleChangeStatus}
+              readOnly={readOnly}
             />
           ))}
         </div>
