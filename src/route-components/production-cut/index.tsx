@@ -24,7 +24,7 @@ import { useUpdateCuttingTaskPlanedEndDate, useUpdateCuttingTaskStatus } from '.
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 // const SIZES = ['4XS', '3XS', 'XXS', 'XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', '4XL'] as const
-const SIZES = ['6XS', '5XS', '4XS', '3XS', 'XXS', 'XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', '4XL', '5XL', '6XL'] as const
+const SIZES = ['4XS', '3XS', 'XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL', '4XL', '5XL', '6XL'] as const
 type Size = typeof SIZES[number]
 
 const ORDER_TYPES = {
@@ -59,6 +59,8 @@ export type SizeDetail = {
   comment?: string
   logs?: SizeLog[]
   quantityChange?: { logId: string; oldQty: number } | null
+  isCustomCut?: boolean
+  customCutComment?: string | null
 }
 
 interface Order {
@@ -76,6 +78,7 @@ interface Order {
   planedEndDate?: number
   status: Status
   note: string
+  isCustomCut: boolean
   customCutComment: string | null
   relevantLogsCount: number
   unseenLogsCount: number
@@ -208,7 +211,13 @@ const makeHeaders = (
                                     : 'text-gray-300 hover:text-gray-600'
 
       return (
-        <div className="flex items-center gap-1.5">
+        <div
+          className={clsx(
+            'flex items-center gap-1.5 h-full',
+            o.isCustomCut && 'border-l-2 border-violet-400 pl-1.5 -ml-1.5',
+          )}
+          title={o.isCustomCut ? (o.customCutComment || 'Індивідуальний крій') : undefined}
+        >
           {numberEl}
           {hasLogs && (
             <button
@@ -270,7 +279,12 @@ const makeHeaders = (
           align="center"
           withArrow
           trigger={
-            <Button variant="ghost" size="icon-sm" className={clsx('relative w-9 h-9 text-sm font-normal', bgClass)}>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className={clsx('relative w-9 h-9 text-sm font-normal', bgClass, detail?.isCustomCut && 'ring-2 ring-inset ring-violet-400')}
+              title={detail?.isCustomCut ? (detail.customCutComment || 'Індивідуальний крій') : undefined}
+            >
               {n}
               {quantityChange && (
                 <span className="absolute top-0 -right-1.5 min-w-4 h-4 px-0.5 rounded bg-red-500 text-white text-[9px] line-through font-semibold flex items-center justify-center leading-none">
@@ -357,18 +371,21 @@ export default function ProductionCut() {
       spec:              (task.spec as SpecData | null) ?? null,
       sizes:             task.sizesMap as Partial<Record<Size, number>>,
       sizeDetails:       task.sizes.map(s => ({
-        _id:            s._id,
-        size:           s.size,
-        quantity:       s.quantity,
-        completedQty:   s.completedQty,
-        comment:        s.comment,
-        logs:           s.logs ?? [],
-        quantityChange: (s as any).quantityChange ?? null,
+        _id:              s._id,
+        size:             s.size,
+        quantity:         s.quantity,
+        completedQty:     s.completedQty,
+        comment:          s.comment,
+        logs:             s.logs ?? [],
+        quantityChange:   (s as any).quantityChange ?? null,
+        isCustomCut:      (s as any).isCustomCut ?? false,
+        customCutComment: (s as any).customCutComment ?? null,
       })),
       deadline:          formatDate(task.endDate),
       planedEndDate:     task.planedEndDate,
       status:            task.status as Status,
       note:              task.note ?? '',
+      isCustomCut:       (task as any).isCustomCut ?? false,
       customCutComment:  (task as any).customCutComment ?? null,
       relevantLogsCount: task.relevantLogsCount ?? 0,
       unseenLogsCount:   task.unseenLogsCount   ?? 0,

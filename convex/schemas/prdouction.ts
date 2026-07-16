@@ -68,6 +68,8 @@ export const sewingSubTasks = {
     v.literal("paused")
   ),
   note: v.optional(v.string()),
+  isCustomSewing: v.optional(v.boolean()),
+  customSewingComment: v.optional(v.string()),
 };
 
 export const sewingLogs = {

@@ -4,23 +4,25 @@ import { revalidateLogic } from '@tanstack/react-form'
 
 const formSchema = z.object({
   completedQty: z.number().min(1, 'Введіть кількість'),
-  comment: z.string().optional(),
+  comment: z.string(),
 })
 
 export type LogFormType = z.infer<typeof formSchema>
 
 interface Props {
   formId: string
-  defaultValues: LogFormType
   max: number
   actionSubmit: (values: LogFormType) => void
 }
 
-const LogForm = ({ formId, defaultValues, max, actionSubmit }: Props) => {
+const LogForm = ({ formId, max, actionSubmit }: Props) => {
   const form = useAppForm({
     validationLogic: revalidateLogic(),
     validators: { onDynamic: formSchema },
-    defaultValues,
+    defaultValues: {
+      completedQty: 1,
+      comment: '',
+    },
     onSubmit: ({ value }) => actionSubmit(value as LogFormType),
   })
 

@@ -19,6 +19,7 @@ type Props = {
   packingTotal: number
   inProduction?: boolean
   items?: OrderItem[]
+  readOnly?: boolean
 }
 
 export const ProgressSection = memo(({
@@ -29,6 +30,7 @@ export const ProgressSection = memo(({
   packingDone, packingTotal,
   inProduction,
   items = [],
+  readOnly,
 }: Props) => {
   const [expanded, setExpanded] = useState(false)
   const { mutate: createTasks, isPending } = useCreateProductionTasks()
@@ -59,23 +61,25 @@ export const ProgressSection = memo(({
         </div>
         <div className="flex items-center gap-1">
         <div className="flex items-center gap-1">
-          <Button
-            key={`${isPending}-${inProduction}-${hasNewItems}`}
-            size="sm"
-            onClick={handleCreate}
-            disabled={isPending || !hasNewItems || items.length === 0}
-            className={`h-6 text-[11px] px-2 ${inProduction && !hasNewItems ? 'bg-green-600 hover:bg-green-600 text-white' : ''}`}
-          >
-            {isPending
-              ? <Loader2 size={10} className="mr-1 animate-spin" />
-              : isUpdate
-                ? <RefreshCw size={10} className="mr-1" />
-                : inProduction
-                  ? <CheckCheck size={10} className="mr-1" />
-                  : <PlusIcon size={10} className="mr-1" />
-            }
-            {isUpdate ? 'Оновити' : 'Виробництво'}
-          </Button>
+          {!readOnly && (
+            <Button
+              key={`${isPending}-${inProduction}-${hasNewItems}`}
+              size="sm"
+              onClick={handleCreate}
+              disabled={isPending || !hasNewItems || items.length === 0}
+              className={`h-6 text-[11px] px-2 ${inProduction && !hasNewItems ? 'bg-green-600 hover:bg-green-600 text-white' : ''}`}
+            >
+              {isPending
+                ? <Loader2 size={10} className="mr-1 animate-spin" />
+                : isUpdate
+                  ? <RefreshCw size={10} className="mr-1" />
+                  : inProduction
+                    ? <CheckCheck size={10} className="mr-1" />
+                    : <PlusIcon size={10} className="mr-1" />
+              }
+              {isUpdate ? 'Оновити' : 'Виробництво'}
+            </Button>
+          )}
           {
             inProduction && (
               <Button onClick={() => setExpanded(prev => !prev)} size="sm" variant="outline" className="h-6">

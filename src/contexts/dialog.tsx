@@ -18,7 +18,7 @@ type DialogOptions = {
 type DialogEntry = DialogOptions & { id: string }
 
 type DialogContextValue = {
-  openDialog: (options: DialogOptions) => void
+  openDialog: (options: DialogOptions) => string
   closeDialog: (id?: string) => void
   isLoading: boolean
   setIsLoading: (loading: boolean) => void

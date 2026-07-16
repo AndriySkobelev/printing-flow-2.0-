@@ -90,7 +90,15 @@ export const getSewingTasksWithCuttingProgress = query({
         const userName = user
           ? `${user.name ?? ''} ${user.lastName ?? ''}`.trim() || '—'
           : '—'
-        return { ...st, userName }
+        // Fall back to the linked productionOrderItem's custom flag — older
+        // sub-tasks (and the overrun-cutting insert path) don't copy it themselves.
+        const item = st.productionOrderItemId ? await ctx.db.get(st.productionOrderItemId) : null
+        return {
+          ...st,
+          userName,
+          isCustomSewing:      st.isCustomSewing      ?? item?.isCustomSewing      ?? false,
+          customSewingComment: st.customSewingComment ?? item?.customSewingComment ?? undefined,
+        }
       }))
 
       // Resolve the relevant cutting task(s): prefer the directly linked one
@@ -223,6 +231,10 @@ export const getMySubTasks = query({
         color:         task?.color         ?? null,
         taskEndDate:   task?.endDate       ?? null,
         images:        [...(productionOrder?.attachedFiles ?? []), ...(spec?.attachedFiles ?? [])],
+        // Fall back to the linked productionOrderItem's custom flag — older
+        // sub-tasks don't copy it themselves (see getSewingTasksWithCuttingProgress).
+        isCustomSewing:      st.isCustomSewing      ?? item?.isCustomSewing      ?? false,
+        customSewingComment: st.customSewingComment ?? item?.customSewingComment ?? undefined,
       }
     }))
   },
@@ -270,6 +282,16 @@ export const createSewingTask = mutation({
       endDate:           args.endDate,
       status:            'new',
     })
+  },
+})
+
+export const updateSewingTaskStatus = mutation({
+  args: {
+    sewingTaskId: v.id('sewingTasks'),
+    status: v.union(v.literal('new'), v.literal('distributed')),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.sewingTaskId, { status: args.status })
   },
 })
 

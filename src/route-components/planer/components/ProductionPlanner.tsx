@@ -5,12 +5,15 @@ import { api } from 'convex/_generated/api'
 import { ChevronLeft, ChevronRight, Check } from 'lucide-react'
 import {
   DndContext,
+  DragOverlay,
   useDraggable,
+  useDroppable,
   PointerSensor,
   useSensor,
   useSensors,
   type DragStartEvent,
   type DragMoveEvent,
+  type DragEndEvent,
 } from '@dnd-kit/core'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -30,6 +33,7 @@ const HOURS    = DAY_END - DAY_START
 const TASK_H   = 34
 const ROW_H    = 60
 const HEADER_H = 68
+const LANE_H   = 52
 const LABEL_W  = 148
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -263,51 +267,95 @@ const TaskBar = ({ task, left, onCheck }: {
   )
 }
 
-// ─── UnscheduledPopover ───────────────────────────────────────────────────────
+// ─── UnscheduledCard ─────────────────────────────────────────────────────────
+// A pending (assigned-but-not-timed) sub-task, shown in the Unscheduled lane
+// above the timeline with the same visual weight as a placed TaskBar. Drag it
+// onto its owning sewer's row to schedule it.
 
-const UnscheduledPopover = ({
-  x, tasks, onPlace, onClose,
-}: {
-  x:       number
-  tasks:   PlannedTask[]
-  onPlace: (id: string) => void
-  onClose: () => void
-}) => (
-  <div
-    className="absolute z-20 bg-popover border border-border rounded-lg shadow-lg py-1 min-w-[160px]"
-    style={{ left: x, top: (ROW_H - TASK_H) / 2 - 4 }}
-    onPointerDown={(e) => e.stopPropagation()}
-  >
-    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide px-2.5 pb-0.5 pt-1">
-      Додати задачу
-    </p>
-    {tasks.map((t) => (
-      <Button
-        key={t.sewingSubTaskId}
-        type="button"
-        variant="ghost"
-        size="sm"
-        className="w-full flex items-center gap-2 px-2.5 py-1.5 h-auto justify-start text-[11px] rounded-none"
-        onClick={() => { onPlace(t.sewingSubTaskId); onClose() }}
-      >
-        <span className="size-2 rounded-full shrink-0" style={{ background: t.color }} />
-        <span className="truncate flex-1">#{t.orderNumber} · {t.specName}</span>
-        <span className="text-muted-foreground shrink-0 tabular-nums">{t.quantity} шт</span>
-      </Button>
-    ))}
-    <div className="border-t border-border/40 mt-0.5 pt-0.5">
-      <Button
-        type="button"
-        variant="ghost"
-        size="sm"
-        className="w-full h-7 text-[10px] text-muted-foreground"
-        onClick={onClose}
-      >
-        Скасувати
-      </Button>
+const UnscheduledCardContent = ({ task, sewer }: { task: PlannedTask; sewer: Sewer | undefined }) => {
+  const c = task.color
+  return (
+    <>
+      <div
+        className="absolute inset-0 rounded pointer-events-none"
+        style={{ backgroundColor: c + '18', border: `1.5px solid ${c}40` }}
+      />
+      <div className="absolute inset-y-0 left-0 w-[3px] rounded-l pointer-events-none" style={{ background: c }} />
+      <div className="absolute inset-0 flex items-center gap-1.5 pl-2.5 pr-2 pointer-events-none">
+        {sewer && (
+          <span
+            className="size-4 rounded-full flex items-center justify-center text-white text-[8px] font-bold shrink-0"
+            style={{ background: sewer.color }}
+            title={sewer.name}
+          >
+            {sewer.name[0]}
+          </span>
+        )}
+        <span className="text-[11px] font-semibold truncate leading-none" style={{ color: c }}>
+          #{task.orderNumber}
+        </span>
+        {task.size && (
+          <span className="text-[9px] font-semibold px-1 py-0.5 rounded leading-none shrink-0" style={{ background: c + '25', color: c }}>
+            {task.size}
+          </span>
+        )}
+        <span className="text-[10px] text-muted-foreground shrink-0 tabular-nums ml-auto">
+          {task.quantity} шт · {fmtDur(task.durationMinutes)}
+        </span>
+      </div>
+    </>
+  )
+}
+
+const UnscheduledCard = ({ task, sewer }: { task: PlannedTask; sewer: Sewer | undefined }) => {
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id:   task.sewingSubTaskId,
+    data: { type: 'place', sewingSubTaskId: task.sewingSubTaskId, sewerId: task.sewerId },
+  })
+  const width = Math.max(minuteToPx(task.durationMinutes), 130)
+
+  return (
+    <div
+      ref={setNodeRef}
+      {...listeners}
+      {...attributes}
+      className={cn(
+        'relative shrink-0 rounded select-none cursor-grab active:cursor-grabbing',
+        isDragging && 'opacity-30',
+      )}
+      style={{ width, height: TASK_H }}
+    >
+      <UnscheduledCardContent task={task} sewer={sewer} />
     </div>
-  </div>
-)
+  )
+}
+
+const UnscheduledDragPreview = ({ task, sewer }: { task: PlannedTask; sewer: Sewer | undefined }) => {
+  const width = Math.max(minuteToPx(task.durationMinutes), 130)
+  return (
+    <div className="relative rounded shadow-lg cursor-grabbing" style={{ width, height: TASK_H }}>
+      <UnscheduledCardContent task={task} sewer={sewer} />
+    </div>
+  )
+}
+
+// ─── UnscheduledLane ─────────────────────────────────────────────────────────
+
+const UnscheduledLane = ({ tasks, sewers }: { tasks: PlannedTask[]; sewers: Sewer[] }) => {
+  if (tasks.length === 0) return null
+  return (
+    <div className="flex border-b bg-amber-500/5" style={{ height: LANE_H }}>
+      <div className="flex items-center gap-2 px-2 sticky left-0 z-10 bg-background border-r max-w-[80vw] overflow-x-auto">
+        <span className="shrink-0 text-[11px] font-semibold text-amber-600 uppercase tracking-wide" style={{ width: LABEL_W - 16 }}>
+          Не заплановано
+        </span>
+        {tasks.map((task) => (
+          <UnscheduledCard key={task.sewingSubTaskId} task={task} sewer={sewers.find((s) => s.id === task.sewerId)} />
+        ))}
+      </div>
+    </div>
+  )
+}
 
 // ─── SewerRow ────────────────────────────────────────────────────────────────
 
@@ -322,13 +370,17 @@ const SewerRow = ({ sewer, dayStrs, today }: {
     () => Object.values(storeTasks).filter((t) => t.sewerId === sewer.id),
     [storeTasks, sewer.id],
   )
-  const { schedule, markSaved } = usePlannerStore.getState()
+  const { markSaved } = usePlannerStore.getState()
 
-  const scheduled   = useMemo(() => tasks.filter((t) => t.isScheduled), [tasks])
-  const unscheduled = useMemo(() => tasks.filter((t) => !t.isScheduled), [tasks])
-  const weekTotal   = useMemo(() => tasks.reduce((s, t) => s + t.quantity, 0), [tasks])
+  const scheduled = useMemo(() => tasks.filter((t) => t.isScheduled), [tasks])
+  const weekTotal = useMemo(() => tasks.reduce((s, t) => s + t.quantity, 0), [tasks])
 
-  const [popup, setPopup] = useState<{ x: number; startDate: string; startMinute: number } | null>(null)
+  const { setNodeRef: setDropRef, isOver, active } = useDroppable({
+    id:   `row-${sewer.id}`,
+    data: { type: 'row', sewerId: sewer.id },
+  })
+  // Only the row that actually owns the dragged unscheduled card is a valid drop target.
+  const isValidTarget = active?.data.current?.type === 'place' && active.data.current.sewerId === sewer.id
 
   const handleCheck = useCallback(async (task: PlannedTask) => {
     if (!task.isScheduled) return
@@ -338,22 +390,6 @@ const SewerRow = ({ sewer, dayStrs, today }: {
     await updateDates({ sewingSubTaskId: task.sewingSubTaskId as any, startDate: startMs, endDate: endMs })
     markSaved(task.sewingSubTaskId)
   }, [updateDates, markSaved])
-
-  const handleTimelineClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    if (e.target !== e.currentTarget) return
-    if (popup) { setPopup(null); return }
-    if (unscheduled.length === 0) return
-
-    const rect = e.currentTarget.getBoundingClientRect()
-    const relX = e.clientX - rect.left
-    const { startDate, startMinute } = pxToPosition(relX, dayStrs)
-
-    if (unscheduled.length === 1) {
-      schedule(unscheduled[0].sewingSubTaskId, startDate, startMinute)
-    } else {
-      setPopup({ x: relX, startDate, startMinute })
-    }
-  }, [dayStrs, unscheduled, schedule, popup])
 
   return (
     <div className="flex border-b" style={{ height: ROW_H }}>
@@ -368,22 +404,23 @@ const SewerRow = ({ sewer, dayStrs, today }: {
         >
           {sewer.name[0]}
         </span>
-        <div className="min-w-0 flex flex-col gap-0.5">
-          <p className="text-sm font-medium leading-tight">{sewer.name}</p>
+        <div className="min-w-0 flex flex-col gap-0.5 flex-1">
+          <p className="text-sm font-medium leading-tight truncate">{sewer.name}</p>
           {/* {weekTotal > 0 && (
             <p className="text-[11px] text-muted-foreground">{weekTotal} шт</p>
           )} */}
-          {unscheduled.length > 0 && (
-            <p className="text-[10px] text-amber-500">{unscheduled.length} не розп.</p>
-          )}
         </div>
       </div>
 
       {/* Timeline */}
       <div
-        className="relative flex"
-        style={{ width: 5 * COL_W, height: ROW_H, cursor: unscheduled.length > 0 ? 'cell' : 'default' }}
-        onClick={handleTimelineClick}
+        ref={setDropRef}
+        className={cn(
+          'relative flex transition-colors',
+          isValidTarget && 'ring-1 ring-inset ring-primary/30',
+          isOver && isValidTarget && 'bg-primary/10',
+        )}
+        style={{ width: 5 * COL_W, height: ROW_H }}
       >
         <ColumnBg dayStrs={dayStrs} today={today} />
 
@@ -399,15 +436,6 @@ const SewerRow = ({ sewer, dayStrs, today }: {
             />
           )
         })}
-
-        {popup && (
-          <UnscheduledPopover
-            x={popup.x}
-            tasks={unscheduled}
-            onPlace={(id) => schedule(id, popup.startDate, popup.startMinute)}
-            onClose={() => setPopup(null)}
-          />
-        )}
       </div>
     </div>
   )
@@ -498,6 +526,11 @@ const ProductionPlanner = () => {
     return map
   }, [storeTasks])
 
+  const unscheduledTasks = useMemo(
+    () => Object.values(storeTasks).filter((t) => !t.isScheduled),
+    [storeTasks],
+  )
+
   // Captures drag-start state; sewerPeers is the snapshot used as baseline for swap logic
   const initialDragRef = useRef<{
     taskId:     string
@@ -506,6 +539,9 @@ const ProductionPlanner = () => {
     sewerPeers:  PlannedTask[]
   } | null>(null)
 
+  // The unscheduled card currently being dragged onto the timeline, if any — drives the DragOverlay preview.
+  const [activeChip, setActiveChip] = useState<PlannedTask | null>(null)
+
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
   )
@@ -513,7 +549,13 @@ const ProductionPlanner = () => {
   const handleDragStart = useCallback(({ active }: DragStartEvent) => {
     const taskId = active.id as string
     const task   = usePlannerStore.getState().tasks[taskId]
-    if (!task?.isScheduled) return
+    if (!task) return
+
+    if (active.data.current?.type === 'place') {
+      setActiveChip(task)
+      return
+    }
+    if (!task.isScheduled) return
 
     const sewerPeers = Object.values(usePlannerStore.getState().tasks)
       .filter((t) => t.isScheduled && t.sewerId === task.sewerId && t.sewingSubTaskId !== taskId)
@@ -565,13 +607,35 @@ const ProductionPlanner = () => {
     }
   }, [dayStrs])
 
-  const handleDragEnd = useCallback(() => { initialDragRef.current = null }, [])
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    initialDragRef.current = null
 
-  const totalH = HEADER_H + sewers.length * ROW_H
+    const { active, over } = event
+    if (active.data.current?.type === 'place') {
+      const translated = active.rect.current.translated
+      if (over?.data.current?.type === 'row' && over.data.current.sewerId === activeChip?.sewerId && translated) {
+        const relX = translated.left - over.rect.left
+        const { startDate, startMinute } = pxToPosition(relX, dayStrs)
+        usePlannerStore.getState().schedule(String(active.id), startDate, startMinute)
+      }
+      setActiveChip(null)
+    }
+  }, [dayStrs, activeChip])
+
+  const handleDragCancel = useCallback(() => { setActiveChip(null) }, [])
+
+  const laneH  = unscheduledTasks.length > 0 ? LANE_H : 0
+  const totalH = HEADER_H + laneH + sewers.length * ROW_H
   const nav    = (dir: 1 | -1) => setCurrentDate((d) => addDays(d, dir * 7))
 
   return (
-    <DndContext sensors={sensors} onDragStart={handleDragStart} onDragMove={handleDragMove} onDragEnd={handleDragEnd}>
+    <DndContext
+      sensors={sensors}
+      onDragStart={handleDragStart}
+      onDragMove={handleDragMove}
+      onDragEnd={handleDragEnd}
+      onDragCancel={handleDragCancel}
+    >
       <div className="flex flex-col h-full">
         <div className="flex items-center gap-2 px-3 py-2 border-b shrink-0">
           <Button variant="ghost" size="icon-sm" onClick={() => nav(-1)}><ChevronLeft size={16} /></Button>
@@ -593,6 +657,7 @@ const ProductionPlanner = () => {
           <div className="relative" style={{ width: LABEL_W + 5 * COL_W, height: totalH }}>
             <DayHeaders days={days} dayStrs={dayStrs} today={today} dailyLoad={dailyLoad} />
             <div style={{ marginTop: HEADER_H }}>
+              <UnscheduledLane tasks={unscheduledTasks} sewers={sewers} />
               {sewers.map((sewer) => (
                 <SewerRow
                   key={sewer.id}
@@ -606,6 +671,12 @@ const ProductionPlanner = () => {
           </div>
         </div>
       </div>
+
+      <DragOverlay dropAnimation={null}>
+        {activeChip && (
+          <UnscheduledDragPreview task={activeChip} sewer={sewers.find((s) => s.id === activeChip.sewerId)} />
+        )}
+      </DragOverlay>
     </DndContext>
   )
 }
