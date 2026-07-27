@@ -5,6 +5,7 @@ import { omit } from 'ramda'
 import { getAuthUserId } from '@convex-dev/auth/server'
 import { resolveMaterialParent } from './specifications'
 import { consumeItemReservations } from './movements'
+import { advanceOrderToInProgress } from './orders'
 
 // ─── HELPERS ────────────────────────────────────────────────────────────────
 
@@ -207,6 +208,9 @@ export const addCuttingTaskSizeLog = mutation({
 
     const existing = await ctx.db.get(cuttingTaskSizeId);
     if (!existing) throw new Error('cuttingTaskSize not found');
+
+    const cutItem = await ctx.db.get(existing.productionOrderItemId);
+    if (cutItem) await advanceOrderToInProgress(ctx, cutItem.productionOrderId);
 
     const newLog = { quantity, timestamp: Date.now(), userId, comment };
     const logs = [...(existing.logs ?? []), newLog];

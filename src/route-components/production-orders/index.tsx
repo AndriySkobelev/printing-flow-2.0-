@@ -17,6 +17,7 @@ import { DialogContext } from '@/contexts/dialog'
 import { ActionsMenu, type ActionItem } from '@/components/actions-menu'
 import CreateOrderForm from './forms/create-order'
 import { cn } from '@/lib/utils'
+import { ProgressBar } from '@/components/progress-bar'
 
 // ─── Products cell ────────────────────────────────────────────────────────────
 
@@ -65,14 +66,15 @@ const ProductsCell = ({ row }: { row: Record<string, unknown> }) => {
 
 // ─── Status badge ─────────────────────────────────────────────────────────────
 
-type StatusKey = 'new' | 'in_progress' | 'dispatched' | 'done' | 'cancelled'
+type StatusKey = 'new' | 'on_production' | 'in_progress' | 'dispatched' | 'done' | 'cancelled'
 
 const STATUS_CONFIG: Record<StatusKey, { label: string; className: string }> = {
-  new:         { label: 'Нове',         className: 'bg-blue-100 text-blue-700' },
-  in_progress: { label: 'В роботі',     className: 'bg-amber-100 text-amber-700' },
-  dispatched:  { label: 'Відправлено',  className: 'bg-purple-100 text-purple-700' },
-  done:        { label: 'Виконано',     className: 'bg-green-100 text-green-700' },
-  cancelled:   { label: 'Скасовано',    className: 'bg-gray-100 text-gray-500' },
+  new:           { label: 'Нове',         className: 'bg-blue-100 text-blue-700' },
+  on_production: { label: 'У виробництві', className: 'bg-cyan-100 text-cyan-700' },
+  in_progress:   { label: 'В роботі',     className: 'bg-amber-100 text-amber-700' },
+  dispatched:    { label: 'Відправлено',  className: 'bg-purple-100 text-purple-700' },
+  done:          { label: 'Виконано',     className: 'bg-green-100 text-green-700' },
+  cancelled:     { label: 'Скасовано',    className: 'bg-gray-100 text-gray-500' },
 }
 
 const StatusBadge = ({ status }: { status: string }) => {
@@ -82,6 +84,29 @@ const StatusBadge = ({ status }: { status: string }) => {
     <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${cfg.className}`}>
       {cfg.label}
     </span>
+  )
+}
+
+// ─── Progress cell ────────────────────────────────────────────────────────────
+
+type ProgressRow = {
+  cutDone: number; cutTotal: number
+  sewDone: number; sewTotal: number
+  brandingDone: number; brandingTotal: number
+  packingDone: number; packingTotal: number
+}
+
+const OrderProgressCell = ({ row }: { row: Record<string, unknown> }) => {
+  const r = row as ProgressRow
+  const done  = r.cutDone + r.sewDone + r.brandingDone + r.packingDone
+  const total = r.cutTotal + r.sewTotal + r.brandingTotal + r.packingTotal
+  const pct   = total > 0 ? Math.min(100, Math.round((done / total) * 100)) : 0
+
+  return (
+    <div className="flex items-center gap-2 w-full">
+      <ProgressBar done={done} total={total} className="flex-1" />
+      <span className="text-[11px] text-muted-foreground tabular-nums shrink-0 w-8 text-right">{pct}%</span>
+    </div>
   )
 }
 
@@ -181,6 +206,16 @@ const headers: HeaderObject[] = [
     cellRenderer: ({ row }) => <StatusBadge status={row.status as string} />,
   },
   {
+    accessor:       'progress',
+    label:          'Прогрес',
+    width:          140,
+    minWidth:       100,
+    type:           'string',
+    headerRenderer: renderHeader,
+    showWhen:       'parentCollapsed',
+    cellRenderer:   ({ row }) => <OrderProgressCell row={row} />,
+  },
+  {
     accessor:   'executionTime',
     label:      'Час виконання',
     width:      120,
@@ -215,12 +250,13 @@ const headers: HeaderObject[] = [
 // ─── Status filter pills ───────────────────────────────────────────────────────
 
 const STATUS_FILTERS: Array<{ key: StatusKey | null; label: string }> = [
-  { key: null,          label: 'Усі' },
-  { key: 'new',         label: 'Нові' },
-  { key: 'in_progress', label: 'В роботі' },
-  { key: 'dispatched',  label: 'Відправлено' },
-  { key: 'done',        label: 'Виконано' },
-  { key: 'cancelled',   label: 'Скасовано' },
+  { key: null,            label: 'Усі' },
+  { key: 'new',           label: 'Нові' },
+  { key: 'on_production', label: 'У виробництві' },
+  { key: 'in_progress',   label: 'В роботі' },
+  { key: 'dispatched',    label: 'Відправлено' },
+  { key: 'done',          label: 'Виконано' },
+  { key: 'cancelled',     label: 'Скасовано' },
 ]
 
 // ─── Page ─────────────────────────────────────────────────────────────────────

@@ -2,7 +2,7 @@ import { v } from 'convex/values'
 import { query, mutation } from '../_generated/server'
 import { type Id } from '../_generated/dataModel'
 import { getAuthUserId } from '@convex-dev/auth/server'
-import { itemNeedsBranding } from './orders'
+import { itemNeedsBranding, advanceOrderToInProgress } from './orders'
 
 // ─── QUERIES ────────────────────────────────────────────────────────────────
 
@@ -180,6 +180,9 @@ export const createBrandingLog = mutation({
     if (!userId) throw new Error('Not authenticated');
 
     const { brandingTaskId, productionOrderItemId, type, quantity, comment } = args;
+
+    const brandingTask = await ctx.db.get(brandingTaskId);
+    if (brandingTask) await advanceOrderToInProgress(ctx, brandingTask.productionOrderId);
 
     const logId = await ctx.db.insert('brandingLogs', {
       brandingTaskId,

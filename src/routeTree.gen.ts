@@ -27,6 +27,7 @@ import { Route as AuthenticatedAppProductionOrdersRouteImport } from './routes/_
 import { Route as AuthenticatedAppProductionCutRouteImport } from './routes/_authenticated/app/production-cut'
 import { Route as AuthenticatedAppProductionCalendarRouteImport } from './routes/_authenticated/app/production-calendar'
 import { Route as AuthenticatedAppPlannerRouteImport } from './routes/_authenticated/app/planner'
+import { Route as AuthenticatedAppPackingListRouteImport } from './routes/_authenticated/app/packing-list'
 import { Route as AuthenticatedAppMaterialsRouteImport } from './routes/_authenticated/app/materials'
 import { Route as AuthenticatedAppLoginRouteImport } from './routes/_authenticated/app/login'
 import { Route as AuthenticatedAppInventoryMovementRouteImport } from './routes/_authenticated/app/inventory-movement'
@@ -133,6 +134,12 @@ const AuthenticatedAppPlannerRoute = AuthenticatedAppPlannerRouteImport.update({
   path: '/planner',
   getParentRoute: () => AuthenticatedAppRouteRoute,
 } as any)
+const AuthenticatedAppPackingListRoute =
+  AuthenticatedAppPackingListRouteImport.update({
+    id: '/packing-list',
+    path: '/packing-list',
+    getParentRoute: () => AuthenticatedAppRouteRoute,
+  } as any)
 const AuthenticatedAppMaterialsRoute =
   AuthenticatedAppMaterialsRouteImport.update({
     id: '/materials',
@@ -184,6 +191,7 @@ export interface FileRoutesByFullPath {
   '/app/inventory-movement': typeof AuthenticatedAppInventoryMovementRoute
   '/app/login': typeof AuthenticatedAppLoginRoute
   '/app/materials': typeof AuthenticatedAppMaterialsRoute
+  '/app/packing-list': typeof AuthenticatedAppPackingListRoute
   '/app/planner': typeof AuthenticatedAppPlannerRoute
   '/app/production-calendar': typeof AuthenticatedAppProductionCalendarRoute
   '/app/production-cut': typeof AuthenticatedAppProductionCutRoute
@@ -210,6 +218,7 @@ export interface FileRoutesByTo {
   '/app/inventory-movement': typeof AuthenticatedAppInventoryMovementRoute
   '/app/login': typeof AuthenticatedAppLoginRoute
   '/app/materials': typeof AuthenticatedAppMaterialsRoute
+  '/app/packing-list': typeof AuthenticatedAppPackingListRoute
   '/app/planner': typeof AuthenticatedAppPlannerRoute
   '/app/production-calendar': typeof AuthenticatedAppProductionCalendarRoute
   '/app/production-cut': typeof AuthenticatedAppProductionCutRoute
@@ -238,6 +247,7 @@ export interface FileRoutesById {
   '/_authenticated/app/inventory-movement': typeof AuthenticatedAppInventoryMovementRoute
   '/_authenticated/app/login': typeof AuthenticatedAppLoginRoute
   '/_authenticated/app/materials': typeof AuthenticatedAppMaterialsRoute
+  '/_authenticated/app/packing-list': typeof AuthenticatedAppPackingListRoute
   '/_authenticated/app/planner': typeof AuthenticatedAppPlannerRoute
   '/_authenticated/app/production-calendar': typeof AuthenticatedAppProductionCalendarRoute
   '/_authenticated/app/production-cut': typeof AuthenticatedAppProductionCutRoute
@@ -266,6 +276,7 @@ export interface FileRouteTypes {
     | '/app/inventory-movement'
     | '/app/login'
     | '/app/materials'
+    | '/app/packing-list'
     | '/app/planner'
     | '/app/production-calendar'
     | '/app/production-cut'
@@ -292,6 +303,7 @@ export interface FileRouteTypes {
     | '/app/inventory-movement'
     | '/app/login'
     | '/app/materials'
+    | '/app/packing-list'
     | '/app/planner'
     | '/app/production-calendar'
     | '/app/production-cut'
@@ -319,6 +331,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/inventory-movement'
     | '/_authenticated/app/login'
     | '/_authenticated/app/materials'
+    | '/_authenticated/app/packing-list'
     | '/_authenticated/app/planner'
     | '/_authenticated/app/production-calendar'
     | '/_authenticated/app/production-cut'
@@ -470,6 +483,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppPlannerRouteImport
       parentRoute: typeof AuthenticatedAppRouteRoute
     }
+    '/_authenticated/app/packing-list': {
+      id: '/_authenticated/app/packing-list'
+      path: '/packing-list'
+      fullPath: '/app/packing-list'
+      preLoaderRoute: typeof AuthenticatedAppPackingListRouteImport
+      parentRoute: typeof AuthenticatedAppRouteRoute
+    }
     '/_authenticated/app/materials': {
       id: '/_authenticated/app/materials'
       path: '/materials'
@@ -528,6 +548,7 @@ interface AuthenticatedAppRouteRouteChildren {
   AuthenticatedAppInventoryMovementRoute: typeof AuthenticatedAppInventoryMovementRoute
   AuthenticatedAppLoginRoute: typeof AuthenticatedAppLoginRoute
   AuthenticatedAppMaterialsRoute: typeof AuthenticatedAppMaterialsRoute
+  AuthenticatedAppPackingListRoute: typeof AuthenticatedAppPackingListRoute
   AuthenticatedAppPlannerRoute: typeof AuthenticatedAppPlannerRoute
   AuthenticatedAppProductionCalendarRoute: typeof AuthenticatedAppProductionCalendarRoute
   AuthenticatedAppProductionCutRoute: typeof AuthenticatedAppProductionCutRoute
@@ -552,6 +573,7 @@ const AuthenticatedAppRouteRouteChildren: AuthenticatedAppRouteRouteChildren = {
     AuthenticatedAppInventoryMovementRoute,
   AuthenticatedAppLoginRoute: AuthenticatedAppLoginRoute,
   AuthenticatedAppMaterialsRoute: AuthenticatedAppMaterialsRoute,
+  AuthenticatedAppPackingListRoute: AuthenticatedAppPackingListRoute,
   AuthenticatedAppPlannerRoute: AuthenticatedAppPlannerRoute,
   AuthenticatedAppProductionCalendarRoute:
     AuthenticatedAppProductionCalendarRoute,

@@ -119,7 +119,6 @@ export const ProductGroup = memo(({ items, readOnly }: { items: OrderItem[]; rea
           expandAll={true}
           rows={combineToTable}
           rowGrouping={['data']}
-          enableRowSelection={!readOnly}
           onRowSelectionChange={handleSelectionChange}
           getRowId={({ row }) => (row as OrderItem)._id}
           defaultHeaders={itemHeaders(nestedTableRef, handleNestedSelect, readOnly)}
