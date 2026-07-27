@@ -33,11 +33,12 @@ const formatDate = (ts: number) =>
   new Date(ts).toLocaleDateString('uk-UA', { day: '2-digit', month: '2-digit', year: '2-digit' })
 
 const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
-  new:         { label: 'Нове',        className: 'bg-blue-100 text-blue-700' },
-  in_progress: { label: 'В роботі',    className: 'bg-amber-100 text-amber-700' },
-  dispatched:  { label: 'Відправлено', className: 'bg-purple-100 text-purple-700' },
-  done:        { label: 'Виконано',    className: 'bg-green-100 text-green-700' },
-  cancelled:   { label: 'Скасовано',   className: 'bg-gray-100 text-gray-500' },
+  new:           { label: 'Нове',         className: 'bg-blue-100 text-blue-700' },
+  on_production: { label: 'У виробництві', className: 'bg-cyan-100 text-cyan-700' },
+  in_progress:   { label: 'В роботі',     className: 'bg-amber-100 text-amber-700' },
+  dispatched:    { label: 'Відправлено',  className: 'bg-purple-100 text-purple-700' },
+  done:          { label: 'Виконано',     className: 'bg-green-100 text-green-700' },
+  cancelled:     { label: 'Скасовано',    className: 'bg-gray-100 text-gray-500' },
 }
 
 // ─── ProductsSection ──────────────────────────────────────────────────────────

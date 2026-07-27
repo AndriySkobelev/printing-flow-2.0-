@@ -17,6 +17,17 @@ export const itemNeedsBranding = (item: { brandingType?: string[] | null; cuttin
   return types.some(t => BRANDING_TYPES.has(t))
 }
 
+// Moves an order into 'in_progress' the moment any department (cutting for
+// manufacturing items; branding/packaging for warehouse items, which skip
+// cutting/sewing entirely) logs its first bit of actual work. No-op once the
+// order has already moved past 'on_production' (in_progress/dispatched/done/cancelled).
+export const advanceOrderToInProgress = async (ctx: MutationCtx, productionOrderId: Id<'productionOrders'>) => {
+  const order = await ctx.db.get(productionOrderId)
+  if (order && (order.status === 'new' || order.status === 'on_production')) {
+    await ctx.db.patch(productionOrderId, { status: 'in_progress' })
+  }
+}
+
 type Diff = Record<string, { from: any; to: any }>
 
 const computeDiff = (before: Record<string, any>, after: Record<string, any>): Diff => {
@@ -236,11 +247,26 @@ async function createBrandingTasks(ctx: MutationCtx, { productionOrderId, keycrm
   });
 }
 
+async function createPackagingTasks(ctx: MutationCtx, { productionOrderId, keycrmOrderId, plannedShipDate }: {
+  productionOrderId: any
+  keycrmOrderId: string
+  plannedShipDate: number
+}) {
+  await ctx.db.insert('packagingTasks', {
+    productionOrderId,
+    keycrmOrderId,
+    startDate: Date.now(),
+    endDate: plannedShipDate,
+    status: 'new',
+  });
+}
+
 export const getAllProductionOrdersWithProgress = query({
   args: {
     search: v.optional(v.string()),
     status: v.optional(v.union(
       v.literal('new'),
+      v.literal('on_production'),
       v.literal('in_progress'),
       v.literal('dispatched'),
       v.literal('done'),
@@ -316,7 +342,7 @@ export const getAllProductionOrdersWithProgress = query({
         .query('packagingTasks')
         .withIndex('by_productionOrder', q => q.eq('productionOrderId', order._id))
         .first()
-      const packingTotal = 0
+      const packingTotal = totalQty
       let packingDone = 0
       if (packagingTask) {
         const logs = await ctx.db
@@ -418,7 +444,7 @@ export const getProductionOrderDetails = query({
       .query('packagingTasks')
       .withIndex('by_productionOrder', q => q.eq('productionOrderId', productionOrderId))
       .first()
-    const packingTotal = 0
+    const packingTotal = totalQty
     let packingDone = 0
     if (packagingTask) {
       const logs = await ctx.db
@@ -713,7 +739,7 @@ export const createProductionTasks = mutation({
 
     // Only process items not already sent to production, so re-running this
     // (e.g. after adding more products to an in-progress order) doesn't
-    // duplicate cutting/sewing/branding tasks or material reservations.
+    // duplicate cutting/sewing/branding/packaging tasks or material reservations.
     const dbItems = allDbItems.filter(item => !item.inProduction)
     if (dbItems.length === 0) return
 
@@ -736,6 +762,8 @@ export const createProductionTasks = mutation({
       await createBrandingTasks(ctx, { productionOrderId, keycrmOrderId, plannedShipDate, externalData })
     }
 
+    await createPackagingTasks(ctx, { productionOrderId, keycrmOrderId, plannedShipDate })
+
     await createOrderMaterialReservations(ctx, {
       manager: order.keycrmManager ?? user?.name ?? 'Unknown',
       orderShippingDate: plannedShipDate,
@@ -750,7 +778,7 @@ export const createProductionTasks = mutation({
     })
 
     await Promise.all([
-      ctx.db.patch(productionOrderId, { inProduction: true, status: 'in_progress' }),
+      ctx.db.patch(productionOrderId, { inProduction: true, status: 'on_production' }),
       ...dbItems.map(item => ctx.db.patch(item._id, { inProduction: true })),
     ])
 
