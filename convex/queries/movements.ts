@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { omit } from "ramda";
 import { UTCDate } from "@date-fns/utc";
+import { paginationOptsValidator } from "convex/server";
 import { query, mutation } from "../_generated/server";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
@@ -73,10 +74,9 @@ const applyReservationToStockBalance = async (ctx: MutationCtx, {
 }
 
 export const getMovements = query({
-  args: {},
-  handler: async (ctx) => {
-    const movments = await ctx.db.query('storeMovements').collect();
-    return movments;
+  args: { paginationOpts: paginationOptsValidator },
+  handler: async (ctx, args) => {
+    return ctx.db.query('storeMovements').order('desc').paginate(args.paginationOpts);
   }
 })
 
@@ -100,24 +100,27 @@ const resolveVariantMaterial = async (ctx: QueryCtx, {
 }
 
 export const getMovementsWithMaterials = query({
-  handler: async (ctx) => {
-    const movments = await ctx.db.query('storeMovements').collect();
-    const movmentsWithMaterials = await Promise.all(movments.map(async (movement) => {
+  args: { paginationOpts: paginationOptsValidator },
+  handler: async (ctx, args) => {
+    const result = await ctx.db.query('storeMovements').order('desc').paginate(args.paginationOpts);
+    const page = await Promise.all(result.page.map(async (movement) => {
       if (!movement.materialId) return movement;
       const material = await resolveVariantMaterial(ctx, movement);
       return { ...movement, material };
     }));
-    return movmentsWithMaterials;
+    return { ...result, page };
   }
 })
 
 export const getStockBalancesWithMaterials = query({
-  handler: async (ctx) => {
-    const balances = await ctx.db.query('stockBalances').collect();
-    return Promise.all(balances.map(async (balance) => {
+  args: { paginationOpts: paginationOptsValidator },
+  handler: async (ctx, args) => {
+    const result = await ctx.db.query('stockBalances').paginate(args.paginationOpts);
+    const page = await Promise.all(result.page.map(async (balance) => {
       const material = await resolveVariantMaterial(ctx, balance);
       return { ...balance, material };
     }));
+    return { ...result, page };
   }
 })
 

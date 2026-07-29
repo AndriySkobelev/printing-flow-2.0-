@@ -1,19 +1,20 @@
 const KEY_CRM_API_URL = 'https://openapi.keycrm.app/v1'
-// const apiKey = !process.env.API_KEY;
-const apiKey = 'YTJhMTY2ODI4MGY2MmI2Y2EyNDQwNzVkN2FmYWUzMjdiNGIwYjNlNQ';
+const apiKey = process.env.KEYCRM_API_KEY;
 
 const storageUrl = (
   entityType: 'order'| 'pipelines', entityId: number
 ) => `/storage/attachment/${entityType}/${entityId}`;
 
-export const keyRequest = async (url: string, method: 'get' | 'post' | 'put' | 'delete', params?: any) => {
+export const keyRequest = async (url: string, method: 'get' | 'post' | 'put' | 'delete', params?: any, body?: any) => {
   const newParams = new URLSearchParams({...params})
   const paramsUrl = params ? `${KEY_CRM_API_URL}${url}?${newParams}` : `${KEY_CRM_API_URL}${url}`
   const req = await fetch(paramsUrl, {
     method,
     headers: {
       Authorization: `Bearer ${apiKey}`,
+      ...(body ? { 'Content-Type': 'application/json' } : {}),
     },
+    ...(body ? { body: JSON.stringify(body) } : {}),
   })
   return req;
 };

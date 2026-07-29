@@ -3,12 +3,13 @@ import { convexQuery } from '@convex-dev/react-query'
 import { api } from 'convex/_generated/api'
 import { type Id } from 'convex/_generated/dataModel'
 import { useNavigate } from '@tanstack/react-router'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, UploadCloud } from 'lucide-react'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Button } from '@/components/ui/button'
 import { SpecImages } from './components/spec-images'
 import { SpecInfo } from './components/spec-info'
 import { SpecVariantsTable } from './components/spec-variants-table'
+import { useMigrateSpecificationToKeyCrm } from './actions'
 import { Route as specificationsRoute } from '@/routes/_authenticated/app/specifications'
 
 type Props = {
@@ -22,6 +23,7 @@ const SpecDetailsContent = ({ specificationId }: { specificationId: string }) =>
       id: specificationId as Id<'specifications'>,
     })
   )
+  const { mutate: migrateToKeyCrm, isPending: isMigrating } = useMigrateSpecificationToKeyCrm()
 
   if (!spec) {
     return (
@@ -41,7 +43,17 @@ const SpecDetailsContent = ({ specificationId }: { specificationId: string }) =>
           <Button variant="ghost" size="icon" className="size-7 shrink-0" onClick={() => navigate({ to: specificationsRoute.to })}>
             <ArrowLeft className="size-4" />
           </Button>
-          <p className="text-sm font-semibold truncate">{spec.name}</p>
+          <p className="text-sm font-semibold truncate flex-1">{spec.name}</p>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-6 text-[11px] px-2 shrink-0"
+            disabled={isMigrating}
+            onClick={() => migrateToKeyCrm({ specificationId: specificationId as Id<'specifications'> })}
+          >
+            <UploadCloud size={10} className="mr-1" />
+            Мігрувати все
+          </Button>
         </div>
 
         <SpecImages
