@@ -4,7 +4,7 @@ import { convexQuery } from '@convex-dev/react-query'
 import { api } from 'convex/_generated/api'
 import { type Id } from 'convex/_generated/dataModel'
 import { type HeaderObject, type CellClickProps, type RowSelectionChangeProps } from 'simple-table-core'
-import { Check, Plus, SquarePen } from 'lucide-react'
+import { Check, CheckCheck, Plus, SquarePen } from 'lucide-react'
 import AppTable from '@/components/ui/app-table'
 import { Button } from '@/components/ui/button'
 import { productSizes } from '@/constants'
@@ -18,15 +18,15 @@ type Props = {
   specificationId: string
 }
 
-const CheckCell = ({ onContextMenu }: { onContextMenu?: (e: React.MouseEvent) => void }) => (
-  <span className="flex items-center justify-center w-full h-full" onContextMenu={onContextMenu}>
-    <Check size={14} className="text-green-500" />
+const CheckCell = ({ migrated, onContextMenu }: { migrated?: boolean; onContextMenu?: (e: React.MouseEvent) => void }) => (
+  <span className="flex items-center justify-center w-full h-full" onContextMenu={onContextMenu} title={migrated ? 'Змігровано в KeyCRM' : undefined}>
+    {migrated ? <CheckCheck size={14} className="text-green-500" /> : <Check size={14} className="text-green-500" />}
   </span>
 )
 
-const SelectedCheckCell = ({ onContextMenu }: { onContextMenu?: (e: React.MouseEvent) => void }) => (
-  <span className="flex items-center justify-center bg-blue-50 w-full h-full rounded-sm" onContextMenu={onContextMenu}>
-    <Check size={14} className="text-blue-500" />
+const SelectedCheckCell = ({ migrated, onContextMenu }: { migrated?: boolean; onContextMenu?: (e: React.MouseEvent) => void }) => (
+  <span className="flex items-center justify-center bg-blue-50 w-full h-full rounded-sm" onContextMenu={onContextMenu} title={migrated ? 'Змігровано в KeyCRM' : undefined}>
+    {migrated ? <CheckCheck size={14} className="text-blue-500" /> : <Check size={14} className="text-blue-500" />}
   </span>
 )
 
@@ -55,12 +55,9 @@ export const SpecVariantsTable = ({ specificationId }: Props) => {
   const { mutate: createVariants, isPending } = useCreateSpecVariants()
   const { mutate: bulkUpdateMaterials } = useBulkUpdateProductMaterials()
   const { openDialog, closeDialog } = useContext(DialogContext)
-
   const [pending, setPending] = useState<Set<string>>(new Set())
   const [selectedVariants, setSelectedVariants] = useState<Set<string>>(new Set())
   const [colorFilter, setColorFilter] = useState<string[]>([])
-  // simple-table-core tracks its own row-selection (checkbox) state internally —
-  // bumping this key remounts the table so that state resets along with ours.
   const [tableKey, setTableKey] = useState(0)
 
   const isLoading = loadingProducts || loadingColors
@@ -69,7 +66,12 @@ export const SpecVariantsTable = ({ specificationId }: Props) => {
 
   const { variantSet, rows } = useMemo(() => {
     const variantSet = new Set<string>()
-    for (const p of products) variantSet.add(`${p.color}__${p.size}`)
+    const migratedSet = new Set<string>()
+    for (const p of products) {
+      const key = `${p.color}__${p.size}`
+      variantSet.add(key)
+      if (p.migrated) migratedSet.add(key)
+    }
 
     const rows = fabricColors
       .filter(f => colorFilter.length === 0 || colorFilter.includes(f.color))
@@ -80,6 +82,7 @@ export const SpecVariantsTable = ({ specificationId }: Props) => {
           row[`__status_${size}`] = variantSet.has(key)
             ? selectedVariants.has(key) ? 'selected' : 'exists'
             : pending.has(key) ? 'pending' : 'none'
+          row[`__migrated_${size}`] = migratedSet.has(key)
         }
         return row
       })
@@ -101,13 +104,13 @@ export const SpecVariantsTable = ({ specificationId }: Props) => {
         next.has(key) ? next.delete(key) : next.add(key)
         return next
       })
-    } else {
-      setPending(prev => {
-        const next = new Set(prev)
-        next.has(key) ? next.delete(key) : next.add(key)
-        return next
-      })
+      return
     }
+    setPending(prev => {
+      const next = new Set(prev)
+      next.has(key) ? next.delete(key) : next.add(key)
+      return next
+    })
   }, [variantSet])
 
   const handleCellContextMenu = useCallback((e: React.MouseEvent, color: string, size: string) => {
@@ -168,28 +171,22 @@ export const SpecVariantsTable = ({ specificationId }: Props) => {
       ),
       cellRenderer: ({ row }: { row: Record<string, any> }) => {
         const status = row[`__status_${size}`]
+        const migrated = row[`__migrated_${size}`] as boolean
         const color = row.color
         const onContextMenu = (e: React.MouseEvent) => handleCellContextMenu(e, color, size)
-        if (status === 'selected') return <SelectedCheckCell onContextMenu={onContextMenu} />
-        if (status === 'exists') return <CheckCell onContextMenu={onContextMenu} />
+        if (status === 'selected') return <SelectedCheckCell migrated={migrated} onContextMenu={onContextMenu} />
+        if (status === 'exists') return <CheckCell migrated={migrated} onContextMenu={onContextMenu} />
         if (status === 'pending') return <PlusCell />
         return <EmptyCell />
       },
     })),
   ], [rows, handleCellContextMenu, handleColumnSelect])
 
+  // Row selection (checkbox) is only for picking already-created variants to
+  // bulk-edit materials — it must not also mark this color's missing sizes as
+  // pending creation.
   const handleRowSelection = useCallback(({ row, isSelected }: RowSelectionChangeProps) => {
     const color = (row as any).color
-    setPending(prev => {
-      const next = new Set(prev)
-      for (const size of productSizes) {
-        const key = `${color}__${size}`
-        if (!variantSet.has(key)) {
-          isSelected ? next.add(key) : next.delete(key)
-        }
-      }
-      return next
-    })
     setSelectedVariants(prev => {
       const next = new Set(prev)
       for (const size of productSizes) {

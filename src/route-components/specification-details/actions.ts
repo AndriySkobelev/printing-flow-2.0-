@@ -1,5 +1,6 @@
 import { useMutation } from '@tanstack/react-query'
 import { useConvexMutation } from '@convex-dev/react-query'
+import { useAction } from 'convex/react'
 import { api } from 'convex/_generated/api'
 import { type Id } from 'convex/_generated/dataModel'
 import { toast } from 'sonner'
@@ -18,6 +19,23 @@ export const useBulkUpdateProductMaterials = () =>
     onError: (e: Error) => toast.error(e.message),
     onSuccess: () => toast.success('Матеріали збережено'),
   })
+
+export const useMigrateSpecificationToKeyCrm = () => {
+  const migrate = useAction(api.http_actions.products.migrateSpecificationToKeyCrm)
+  return useMutation({
+    mutationFn: (args: { specificationId: Id<'specifications'>; productIds?: Id<'products'>[] }) => migrate(args),
+    onSuccess: (result: { productCreated: boolean; offersCreated: number; skipped: Array<{ sku: string; reason: string }> }) => {
+      if (result.skipped.length > 0) {
+        toast.error(`Мігровано ${result.offersCreated}, пропущено ${result.skipped.length}: ${result.skipped.map(s => s.sku).join(', ')}`)
+      } else if (result.offersCreated > 0) {
+        toast.success(`Мігровано ${result.offersCreated} варіант(ів) у KeyCRM`)
+      } else {
+        toast.success('Нічого нового для міграції')
+      }
+    },
+    onError: (e: Error) => toast.error(e.message),
+  })
+}
 
 export const useUploadSpecFile = (specificationId: string) => {
   const { mutateAsync: getUploadUrl } = useMutation({

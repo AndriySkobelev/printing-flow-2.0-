@@ -1,6 +1,5 @@
 import type { FunctionComponent } from "react";
-import { useQuery } from '@tanstack/react-query'
-import { convexQuery } from '@convex-dev/react-query'
+import { usePaginatedQuery } from 'convex/react'
 import { api } from "convex/_generated/api";
 import { type HeaderObject } from "simple-table-core";
 import AppTable from '@/components/ui/app-table';
@@ -143,14 +142,28 @@ const headers: Array<HeaderObject> = [
 ];
 
 const StockBalance: FunctionComponent = () => {
-  const { data } = useQuery(convexQuery(api.queries.movements.getStockBalancesWithMaterials));
+  const { results: data, status, loadMore } = usePaginatedQuery(
+    api.queries.movements.getStockBalancesWithMaterials,
+    {},
+    { initialNumItems: 100 },
+  );
+
+  const handlePageChange = (page: number) => {
+    const needed = (page + 1) * 50
+    if (needed > data.length && status === 'CanLoadMore') {
+      loadMore(100)
+    }
+  }
 
   return (
     <div className="flex flex-col gap-4 p-4">
       <AppTable
+        shouldPaginate
+        rowsPerPage={50}
         rows={data || []}
-        isLoading={!data}
+        isLoading={status === 'LoadingFirstPage'}
         defaultHeaders={headers}
+        onPageChange={handlePageChange}
         getRowId={({ row }: any) => row._id as string}
       />
     </div>

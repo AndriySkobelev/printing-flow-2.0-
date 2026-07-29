@@ -24,7 +24,7 @@ export const createMaterial = mutation({
 export const getMaterialsByFilter = query({
   args: { fabricName: v.string() },
   handler: async (ctx, args) => {
-    const materials = await ctx.db.query("fabrics").filter((q) => q.eq(q.field('name'), args.fabricName)).collect();
+    const materials = await ctx.db.query("fabrics").withIndex("by_name", (q) => q.eq("name", args.fabricName)).collect();
     return materials;
   }
 })

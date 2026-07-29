@@ -12,7 +12,6 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AuthenticatedSeamstressRouteImport } from './routes/_authenticated/seamstress'
 import { Route as AuthenticatedAppRouteRouteImport } from './routes/_authenticated/app/route'
 import { Route as AuthenticatedAppWorkloadRouteImport } from './routes/_authenticated/app/workload'
 import { Route as AuthenticatedAppUsersRouteImport } from './routes/_authenticated/app/users'
@@ -49,11 +48,6 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
-} as any)
-const AuthenticatedSeamstressRoute = AuthenticatedSeamstressRouteImport.update({
-  id: '/seamstress',
-  path: '/seamstress',
-  getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedAppRouteRoute = AuthenticatedAppRouteRouteImport.update({
   id: '/app',
@@ -185,7 +179,6 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/app': typeof AuthenticatedAppRouteRouteWithChildren
-  '/seamstress': typeof AuthenticatedSeamstressRoute
   '/app/branding': typeof AuthenticatedAppBrandingRoute
   '/app/fabrics': typeof AuthenticatedAppFabricsRoute
   '/app/inventory-movement': typeof AuthenticatedAppInventoryMovementRoute
@@ -212,7 +205,6 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/app': typeof AuthenticatedAppRouteRouteWithChildren
-  '/seamstress': typeof AuthenticatedSeamstressRoute
   '/app/branding': typeof AuthenticatedAppBrandingRoute
   '/app/fabrics': typeof AuthenticatedAppFabricsRoute
   '/app/inventory-movement': typeof AuthenticatedAppInventoryMovementRoute
@@ -241,7 +233,6 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/login': typeof LoginRoute
   '/_authenticated/app': typeof AuthenticatedAppRouteRouteWithChildren
-  '/_authenticated/seamstress': typeof AuthenticatedSeamstressRoute
   '/_authenticated/app/branding': typeof AuthenticatedAppBrandingRoute
   '/_authenticated/app/fabrics': typeof AuthenticatedAppFabricsRoute
   '/_authenticated/app/inventory-movement': typeof AuthenticatedAppInventoryMovementRoute
@@ -270,7 +261,6 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/app'
-    | '/seamstress'
     | '/app/branding'
     | '/app/fabrics'
     | '/app/inventory-movement'
@@ -297,7 +287,6 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/app'
-    | '/seamstress'
     | '/app/branding'
     | '/app/fabrics'
     | '/app/inventory-movement'
@@ -325,7 +314,6 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/login'
     | '/_authenticated/app'
-    | '/_authenticated/seamstress'
     | '/_authenticated/app/branding'
     | '/_authenticated/app/fabrics'
     | '/_authenticated/app/inventory-movement'
@@ -377,13 +365,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
-    }
-    '/_authenticated/seamstress': {
-      id: '/_authenticated/seamstress'
-      path: '/seamstress'
-      fullPath: '/seamstress'
-      preLoaderRoute: typeof AuthenticatedSeamstressRouteImport
-      parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/app': {
       id: '/_authenticated/app'
@@ -601,12 +582,10 @@ const AuthenticatedAppRouteRouteWithChildren =
 
 interface AuthenticatedRouteChildren {
   AuthenticatedAppRouteRoute: typeof AuthenticatedAppRouteRouteWithChildren
-  AuthenticatedSeamstressRoute: typeof AuthenticatedSeamstressRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAppRouteRoute: AuthenticatedAppRouteRouteWithChildren,
-  AuthenticatedSeamstressRoute: AuthenticatedSeamstressRoute,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(

@@ -95,6 +95,15 @@ export const stockBalances = {
 export const productsSpecification = {
   name: v.string(),
   category: v.string(),
+  // KeyCRM's own category, picked from /products/categories — kept separate
+  // from `category` (our free-text local grouping) so migrateSpecificationToKeyCrm
+  // can send category_id without guessing a mapping between the two.
+  category_name: v.optional(v.string()),
+  category_crm_id: v.optional(v.number()),
+  migrated: v.optional(v.boolean()),
+  // The KeyCRM parent product created for this spec's variants (offers) — once
+  // set, migrating again reuses it instead of creating a duplicate product.
+  keycrm_product_id: v.optional(v.number()),
   skuPrefix: v.string(),
   productionPrice: v.optional(v.union(v.number(), v.string())),
   productionTime:  v.optional(v.union(v.number(), v.string())),
@@ -127,6 +136,7 @@ export const productVariants = {
   parentId: v.id('specifications'),
   searchText: v.optional(v.string()),
   synced_at: v.optional(v.number()), // час коли останній раз синхронізували з keycrm
+  migrated: v.optional(v.boolean()),
   processingType: v.optional(v.union(v.string(), v.null())),
   materials: v.optional(v.array(v.object({
     lineId: v.optional(v.string()),
@@ -135,21 +145,6 @@ export const productVariants = {
     type: v.optional(v.union(v.literal('fabric'), v.literal('material'))),
   }))),
 }
-
-export const shiftReports = {
-  income: v.number(),
-  userId: v.id('users'),
-  timeStamp: v.number(),
-  allProductsQuantity: v.number(),
-  products: v.array(v.object({
-    color: v.optional(v.string()),
-    comment: v.optional(v.string()),
-    isSideWork: v.optional(v.boolean()),
-    price: v.optional(v.union(v.number(), v.string())),
-    specification: v.nullable(v.union(v.id('products'), v.string())),
-    sizes: v.optional(v.array(v.object({ size: v.string(), quantity: v.union(v.number(), v.string()) }))),
-  })),
-};
 
 export const fabricColors = {
   hex: v.string(),
@@ -161,7 +156,6 @@ const fabricsTable = defineTable(fabricsSchema)
 const fabricVariantsTable = defineTable(fabricVariantsSchema)
 const fabricColorsTable = defineTable(fabricColors)
 const proudctsTable = defineTable(productVariants);
-const shiftReportsTabel = defineTable(shiftReports)
 const materialsTable = defineTable(materialsSchema)
 const materialVariantsTable = defineTable(materialVariantsSchema)
 const specifications = defineTable(productsSpecification)
@@ -174,7 +168,6 @@ export {
   fabricVariantsTable,
   fabricColorsTable,
   proudctsTable,
-  shiftReportsTabel,
   materialsTable,
   materialVariantsTable,
   specifications,

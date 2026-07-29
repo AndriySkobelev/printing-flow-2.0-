@@ -215,7 +215,13 @@ const Specifications: FunctionComponent<SpecificationsProps> = () => {
       type: material.type,
       id: material.id?.value as Id<'fabrics'> | Id<'materials'>,
     }));
-    createSpec(omit(['_id', '_creationTime'], {...values, materials: newMaterials} as any) as Specifications);
+    const { category_crm, ...rest } = values;
+    createSpec(omit(['_id', '_creationTime'], {
+      ...rest,
+      materials: newMaterials,
+      category_crm_id: category_crm ? Number(category_crm.value) : undefined,
+      category_name: category_crm?.label,
+    } as any) as Specifications);
     closeDialog();
   }
 
@@ -229,11 +235,14 @@ const Specifications: FunctionComponent<SpecificationsProps> = () => {
         quantity: material.quantity,
       }));
 
+      const { category_crm, ...rest } = values;
       const newData = {
-        ...omit(['_id', '_creationTime', 'materials'], values),
-        materials: newMaterials
+        ...omit(['_id', '_creationTime', 'materials'], rest),
+        materials: newMaterials,
+        category_crm_id: category_crm ? Number(category_crm.value) : undefined,
+        category_name: category_crm?.label,
       };
-      updateSpec({ id: values._id, data: newData });
+      updateSpec({ id: values._id, data: newData as any });
     }
     closeDialog();
   }

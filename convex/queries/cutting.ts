@@ -61,7 +61,7 @@ export const getAllCuttingTasks = query({
         const productionOrder = await ctx.db.get(task.productionOrderId);
         const fabricColor = await ctx.db
           .query('fabricColors')
-          .filter(q => q.eq(q.field('name'), task.color))
+          .withIndex('by_name', q => q.eq('name', task.color))
           .first();
 
         const allLogs = await ctx.db

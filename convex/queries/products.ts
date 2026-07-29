@@ -1,4 +1,4 @@
-import { query, mutation, QueryCtx, internalQuery } from "../_generated/server";
+import { query, mutation, QueryCtx, internalQuery, internalMutation } from "../_generated/server";
 import { paginationOptsValidator } from "convex/server";
 import { groupBy, prop, keys } from 'ramda';
 import { getAll } from 'convex-helpers/server/relationships'
@@ -23,7 +23,7 @@ const addToAll = (value: any, data: Array<any>) => {
 export const getFabricsByNameAndColors = async (ctx: QueryCtx, fabricName: string, colors?: Array<string>) => {
   const parent = await ctx.db
     .query('fabrics')
-    .filter(q => q.eq(q.field('name'), fabricName))
+    .withIndex('by_name', q => q.eq('name', fabricName))
     .first();
   if (!parent) return [];
 
@@ -153,6 +153,59 @@ export const getProductsBySku = internalQuery({
   }
 })
 
+// Fetches everything migrateSpecificationToKeyCrm needs without giving the
+// action direct db access: the spec's own KeyCRM-facing fields (name, price,
+// category, and whichever parent product it's already attached to, if any),
+// plus the specific variants to migrate — either the given `productIds`, or
+// (when omitted, for "migrate all") every not-yet-migrated variant of the spec.
+export const getSpecForKeyCrmMigration = internalQuery({
+  args: {
+    specificationId: v.id('specifications'),
+    productIds: v.optional(v.array(v.id('products'))),
+  },
+  handler: async (ctx, { specificationId, productIds }) => {
+    const spec = await ctx.db.get(specificationId);
+    if (!spec) throw new Error('Специфікацію не знайдено');
+
+    const allVariants = await ctx.db
+      .query('products')
+      .withIndex('by_parentId', q => q.eq('parentId', specificationId))
+      .collect();
+    const variants = productIds
+      ? allVariants.filter(v => productIds.includes(v._id))
+      : allVariants.filter(v => !v.migrated);
+
+    return {
+      spec: {
+        name: spec.name,
+        skuPrefix: spec.skuPrefix,
+        price: spec.productionPrice,
+        categoryCrmId: spec.category_crm_id,
+        keycrmProductId: spec.keycrm_product_id,
+      },
+      variants: variants.map(v => ({ productId: v._id, sku: v.sku, size: v.size, color: v.color })),
+    };
+  },
+})
+
+// Records the KeyCRM parent product created for this spec's variants (offers)
+// so a later migration reuses it instead of creating a duplicate product.
+export const markSpecificationKeyCrmProduct = internalMutation({
+  args: { specificationId: v.id('specifications'), keycrmProductId: v.number() },
+  handler: async (ctx, { specificationId, keycrmProductId }) => {
+    await ctx.db.patch(specificationId, { keycrm_product_id: keycrmProductId, migrated: true });
+  },
+})
+
+// Stamps productVariants with the moment they were last pushed to KeyCRM.
+export const markProductsSyncedToKeyCrm = internalMutation({
+  args: { productIds: v.array(v.id('products')) },
+  handler: async (ctx, { productIds }) => {
+    const synced_at = Date.now();
+    await Promise.all(productIds.map(id => ctx.db.patch(id, { synced_at, migrated: true })));
+  },
+})
+
 export const createProductsBySpecification = mutation({
   args: {
     name: v.string(), // fabricName
@@ -164,7 +217,7 @@ export const createProductsBySpecification = mutation({
   },
   handler: async (ctx, args) => {
     const spec = await getSpecWithMaterials(ctx, args.specification);
-    const checkSpectCreated = await ctx.db.query('products').filter(q => q.eq(q.field('parentId'), args.specification)).first();
+    const checkSpectCreated = await ctx.db.query('products').withIndex('by_parentId', q => q.eq('parentId', args.specification)).first();
     if (checkSpectCreated) throw new Error(`Products for specification with id ${args.specification} already created`);
     const sizes = args.allSizes ? productSizes : args.sizes?.map(size => size.value);
     // Convention: the first material line is always the base fabric.

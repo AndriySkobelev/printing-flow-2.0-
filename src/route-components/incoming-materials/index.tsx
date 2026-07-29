@@ -1,9 +1,8 @@
 import { ArrowDownSquare, ArrowUpSquare, LockKeyhole } from 'lucide-react'
 import { useContext } from "react";
 import type {FunctionComponent} from "react";
-import { useQuery } from '@tanstack/react-query'
+import { usePaginatedQuery } from 'convex/react'
 import { useCreateIncomingMutation } from './queries';
-import { convexQuery } from '@convex-dev/react-query'
 import { api } from "convex/_generated/api";
 import ComingMaterialForm from './forms/coming';
 import type {IncomingFormData} from './forms/coming';
@@ -148,8 +147,19 @@ export type MaterialsOption = ReturnType<typeof generateOptions>;
  
 const InventoryMovement: FunctionComponent = () => {
   const { openDialog, closeDialog, setIsLoading } = useContext(DialogContext);
-  const { data } = useQuery(convexQuery(api.queries.movements.getMovementsWithMaterials));
+  const { results: data, status, loadMore } = usePaginatedQuery(
+    api.queries.movements.getMovementsWithMaterials,
+    {},
+    { initialNumItems: 100 },
+  );
   const { mutate: incomingMutation} = useCreateIncomingMutation();
+
+  const handlePageChange = (page: number) => {
+    const needed = (page + 1) * 50
+    if (needed > data.length && status === 'CanLoadMore') {
+      loadMore(100)
+    }
+  }
 
   const handleSubmit = (data: IncomingFormData | any) => {
     setIsLoading(true)
@@ -198,10 +208,13 @@ const InventoryMovement: FunctionComponent = () => {
         {/* <Button onClick={handleUpdate}>Update Data</Button> */}
       </div>
       <AppTable
+        shouldPaginate
+        rowsPerPage={50}
         rows={data || []}
-        isLoading={!data}
+        isLoading={status === 'LoadingFirstPage'}
         defaultHeaders={headers}
         rowGrouping={['group', 'data']}
+        onPageChange={handlePageChange}
         getRowId={({ row }) => row.id as string}
       />
     </div>

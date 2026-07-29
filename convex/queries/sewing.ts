@@ -117,7 +117,7 @@ export const getSewingTasksWithCuttingProgress = query({
       if (colorName) {
         const fabricColor = await ctx.db
           .query('fabricColors')
-          .filter(q => q.eq(q.field('name'), colorName))
+          .withIndex('by_name', q => q.eq('name', colorName))
           .first()
         fabricColorHex = fabricColor?.hex      ?? null
         labelColorHex  = fabricColor?.labelHex ?? null
@@ -184,7 +184,7 @@ export const getPlannerSubTasks = query({
           if (sewingTask.color) {
             const fc = await ctx.db
               .query('fabricColors')
-              .filter((q) => q.eq(q.field('name'), sewingTask.color!))
+              .withIndex('by_name', (q) => q.eq('name', sewingTask.color!))
               .first()
             colorHex = fc?.hex ?? colorHex
           }
