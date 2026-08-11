@@ -12,7 +12,7 @@ import { DialogContext } from '@/contexts/dialog'
 import { DrawerContext } from '@/contexts/drawer'
 import { type OrderItem } from './types'
 import { ProgressSection } from './components/progress-section'
-import { KeycrmCustomFields } from './components/keycrm-custom-fields'
+import { AdditionalInfoSection } from './components/additional-info-section'
 import { ProductGroup } from './components/product-group'
 import { BulkBrandingForm } from './forms/bulk-branding-form'
 import AddProductForm from './forms/add-product'
@@ -206,11 +206,13 @@ const OrderDetailsContent = ({ productionOrderId, onBack, readOnly }: { producti
           files={(order.attachedFiles ?? []) as any[]}
           readOnly={readOnly}
         />
-        {order.keycrmCustomFields.length > 0 && (
-          <div className="border-t">
-            <KeycrmCustomFields fields={order.keycrmCustomFields} />
-          </div>
-        )}
+        <div className="border-t">
+          <AdditionalInfoSection
+            productionOrderId={productionOrderId}
+            info={order.additionalInfo}
+            readOnly={readOnly}
+          />
+        </div>
         <div className="border-t">
           <ProgressSection
             productionOrderId={productionOrderId}
@@ -225,7 +227,7 @@ const OrderDetailsContent = ({ productionOrderId, onBack, readOnly }: { producti
         </div>
 
         <div className="border-t">
-          <MaterialsSection productionOrderId={productionOrderId} />
+          <MaterialsSection productionOrderId={productionOrderId} materialsReserved={order.materialsReserved} />
         </div>
 
         <div className="border-t">

@@ -8,9 +8,10 @@ import { Button } from '@/components/ui/button'
 
 type Props = {
   productionOrderId: string
+  materialsReserved?: boolean
 }
 
-export const MaterialsSection = ({ productionOrderId }: Props) => {
+export const MaterialsSection = ({ productionOrderId, materialsReserved }: Props) => {
   const [expanded, setExpanded] = useState(false)
   const { data } = useQuery(convexQuery(api.queries.movements.getOrderRequiredMaterials, {
     productionOrderId: productionOrderId as Id<'productionOrders'>,
@@ -29,9 +30,15 @@ export const MaterialsSection = ({ productionOrderId }: Props) => {
           <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
             Матеріали ({data.length})
           </p>
-          <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-medium ${allSufficient ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-            {allSufficient ? 'Достатньо' : 'Недостатньо'}
-          </span>
+          {materialsReserved ? (
+            <span className="px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-blue-100 text-blue-700">
+              Зарезервовано
+            </span>
+          ) : (
+            <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-medium ${allSufficient ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+              {allSufficient ? 'Достатньо' : 'Недостатньо'}
+            </span>
+          )}
         </div>
         <Button onClick={() => setExpanded(prev => !prev)} size="sm" variant="outline" className="h-6">
           {expanded ? <ChevronUp size={10} /> : <ChevronDown size={10} />}

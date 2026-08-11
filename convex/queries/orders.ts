@@ -6,6 +6,7 @@ import { api } from '../_generated/api'
 import { getAuthUserId } from '@convex-dev/auth/server'
 import { omit } from 'ramda'
 import { createOrderMaterialReservations } from './movements'
+import { KEYCRM_CUSTOM_FIELD_UUIDS } from '../schemas/constants'
 
 // Only these branding types are actually done by the branding department —
 // items with no type, or only types handled elsewhere (embroidery,
@@ -454,6 +455,9 @@ export const getProductionOrderDetails = query({
       packingDone = logs.filter(l => l.type === 'completed').reduce((s, l) => s + l.quantity, 0)
     }
 
+    const customFields = (order.keycrmData?.custom_fields ?? []) as Array<{ uuid: string; name: string; value: unknown }>
+    const keycrmField = (uuid: string) => customFields.find(f => f.uuid === uuid)?.value
+
     return {
       _id: order._id,
       keycrmOrderId: order.keycrmOrderId,
@@ -461,13 +465,20 @@ export const getProductionOrderDetails = query({
       plannedShipDate: order.plannedShipDate,
       status: order.status,
       inProduction: order.inProduction ?? false,
+      materialsReserved: order.materialsReserved ?? false,
       totalQty,
       cutDone,      cutTotal,
       sewDone,      sewTotal,
       brandingDone, brandingTotal,
       packingDone,  packingTotal,
       attachedFiles: order.attachedFiles ?? [],
-      keycrmCustomFields: (order.keycrmData?.custom_fields ?? []) as Array<{ name: string; value: unknown }>,
+      additionalInfo: {
+        packaging:            order.packaging            ?? (keycrmField(KEYCRM_CUSTOM_FIELD_UUIDS.packaging)            as string  | undefined) ?? null,
+        printComment:         order.printComment         ?? (keycrmField(KEYCRM_CUSTOM_FIELD_UUIDS.printComment)         as string  | undefined) ?? null,
+        identifier:           order.identifier           ?? (keycrmField(KEYCRM_CUSTOM_FIELD_UUIDS.identifier)           as string  | undefined) ?? null,
+        isCuttingPrint:       order.isCuttingPrint       ?? (keycrmField(KEYCRM_CUSTOM_FIELD_UUIDS.isCuttingPrint)       as boolean | undefined) ?? null,
+        isCuttingEmbroidery:  order.isCuttingEmbroidery  ?? (keycrmField(KEYCRM_CUSTOM_FIELD_UUIDS.isCuttingEmbroidery)  as boolean | undefined) ?? null,
+      },
       items: items.map(i => ({
         _id:                  i._id,
         name:                 i.name,
@@ -490,6 +501,26 @@ export const getProductionOrderDetails = query({
         customSewingComment:  i.customSewingComment ?? null,
       })),
     }
+  },
+})
+
+export const updateProductionOrderAdditionalInfo = mutation({
+  args: {
+    productionOrderId:   v.id('productionOrders'),
+    packaging:           v.optional(v.string()),
+    printComment:        v.optional(v.string()),
+    identifier:          v.optional(v.string()),
+    isCuttingPrint:      v.optional(v.boolean()),
+    isCuttingEmbroidery: v.optional(v.boolean()),
+  },
+  handler: async (ctx, { productionOrderId, packaging, printComment, identifier, isCuttingPrint, isCuttingEmbroidery }) => {
+    await ctx.db.patch(productionOrderId, {
+      ...(packaging            !== undefined ? { packaging }            : {}),
+      ...(printComment         !== undefined ? { printComment }         : {}),
+      ...(identifier           !== undefined ? { identifier }           : {}),
+      ...(isCuttingPrint       !== undefined ? { isCuttingPrint }       : {}),
+      ...(isCuttingEmbroidery  !== undefined ? { isCuttingEmbroidery }  : {}),
+    })
   },
 })
 
@@ -778,7 +809,7 @@ export const createProductionTasks = mutation({
     })
 
     await Promise.all([
-      ctx.db.patch(productionOrderId, { inProduction: true, status: 'on_production' }),
+      ctx.db.patch(productionOrderId, { inProduction: true, status: 'on_production', materialsReserved: true }),
       ...dbItems.map(item => ctx.db.patch(item._id, { inProduction: true })),
     ])
 

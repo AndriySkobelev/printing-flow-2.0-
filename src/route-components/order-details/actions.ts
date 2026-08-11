@@ -4,6 +4,12 @@ import { api } from 'convex/_generated/api'
 import { type Id } from 'convex/_generated/dataModel'
 import { toast } from 'sonner'
 
+export const useUpdateProductionOrderAdditionalInfo = () =>
+  useMutation({
+    mutationFn: useConvexMutation(api.queries.orders.updateProductionOrderAdditionalInfo),
+    onError: (e: Error) => toast.error(e.message),
+  })
+
 export const useUpdateOrderItemBrandingType = () =>
   useMutation({
     mutationFn: useConvexMutation(api.queries.orders.updateOrderItemBrandingType),
