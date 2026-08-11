@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { convexQuery } from '@convex-dev/react-query'
 import { api } from 'convex/_generated/api'
 import { PackageSearch } from 'lucide-react'
+import { ExpandableSection } from '@/components/ui/expandable-section'
 import { PackTaskCard } from './components/pack-task-card'
 import { isPackagingTaskDone } from './helpers'
 import { type PackagingTask } from './types'
@@ -41,12 +42,9 @@ const PackingListPage = () => {
       )}
 
       {done.length > 0 && (
-        <section className="flex flex-col gap-2">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-            Виконані ({done.length})
-          </p>
+        <ExpandableSection title={`Виконані (${done.length})`}>
           {done.map(t => <PackTaskCard key={t._id} task={t as PackagingTask} />)}
-        </section>
+        </ExpandableSection>
       )}
     </div>
   )

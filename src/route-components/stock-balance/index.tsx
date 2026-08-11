@@ -31,6 +31,10 @@ const headers: Array<HeaderObject> = [
     type: "string",
     minWidth: 200,
     headerRenderer: renderHeader,
+    // The real value lives under row.material (see getStockBalancesWithMaterials) —
+    // without this, quick-filter search has nothing to match against, since it
+    // reads off the plain accessor value, not the cellRenderer's JSX.
+    valueFormatter: ({ row }) => (row as any).material?.name ?? '',
     cellRenderer: (props) => {
       const row = props.row as any;
       return <span className='text-sm'>{row.material?.name || '—'}</span>
@@ -55,6 +59,7 @@ const headers: Array<HeaderObject> = [
     isSortable: true,
     type: "string",
     headerRenderer: renderHeader,
+    valueFormatter: ({ row }) => (row as any).material?.color ?? '',
     cellRenderer: (props) => {
       const row = props.row as any;
       return <span className='text-sm'>{row.material?.color || '—'}</span>
@@ -67,6 +72,7 @@ const headers: Array<HeaderObject> = [
     isSortable: true,
     type: "string",
     headerRenderer: renderHeader,
+    valueFormatter: ({ row }) => (row as any).material?.size ?? '',
     cellRenderer: (props) => {
       const row = props.row as any;
       return <span className='text-sm'>{row.material?.size || '—'}</span>
@@ -79,6 +85,7 @@ const headers: Array<HeaderObject> = [
     isSortable: true,
     type: "string",
     headerRenderer: renderHeader,
+    valueFormatter: ({ row }) => (row as any).material?.sku ?? '',
     cellRenderer: (props) => {
       const row = props.row as any;
       return <span className='text-xs text-[#868686]'>{row.material?.sku || '—'}</span>
@@ -158,12 +165,14 @@ const StockBalance: FunctionComponent = () => {
   return (
     <div className="flex flex-col gap-4 p-4">
       <AppTable
+        withSearch
         shouldPaginate
         rowsPerPage={50}
         rows={data || []}
-        isLoading={status === 'LoadingFirstPage'}
         defaultHeaders={headers}
         onPageChange={handlePageChange}
+        columnSearch={['name', 'color', 'size']}
+        isLoading={status === 'LoadingFirstPage'}
         getRowId={({ row }: any) => row._id as string}
       />
     </div>

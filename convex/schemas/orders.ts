@@ -10,6 +10,12 @@ export const productionOrders = {
   keycrmData: v.optional(v.any()),
   attachedFiles: v.optional(v.array(v.any())),
   inProduction: v.optional(v.boolean()),
+  packaging: v.optional(v.string()),
+  printComment: v.optional(v.string()),
+  identifier: v.optional(v.string()),
+  isCuttingPrint: v.optional(v.boolean()),
+  isCuttingEmbroidery: v.optional(v.boolean()),
+  materialsReserved: v.optional(v.boolean()),
   status: v.union(
     v.literal("in_progress"),
     v.literal("on_production"),

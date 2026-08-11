@@ -23,3 +23,13 @@ export const destinationTypeV = asUnion(DESTINATION_TYPES)
 export const BRANDING_TYPES = ['dtf', 'dtg', 'flok', 'embroidery', 'sublimation'] as const
 export type BrandingType = typeof BRANDING_TYPES[number]
 export const brandingTypeV = asUnion(BRANDING_TYPES)
+
+// uuids of KeyCRM custom fields (order.keycrmData.custom_fields) used to default
+// productionOrders' editable "Додаткова інформація" fields. TODO: fill in real uuids.
+export const KEYCRM_CUSTOM_FIELD_UUIDS = {
+  packaging:            'OR_1011',
+  printComment:         'OR_1003',
+  identifier:           'OR_1010',
+  isCuttingPrint:       'OR_1006',
+  isCuttingEmbroidery:  'OR_1007',
+} as const
