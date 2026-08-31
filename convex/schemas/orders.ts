@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { defineTable } from "convex/server";
-import { brandingTypeV, destinationTypeV } from './constants'
+import { brandingTypeV, destinationTypeV, productionOrderStatusV } from './constants'
 
 export const productionOrders = {
   startDate: v.number(),
@@ -16,14 +16,7 @@ export const productionOrders = {
   isCuttingPrint: v.optional(v.boolean()),
   isCuttingEmbroidery: v.optional(v.boolean()),
   materialsReserved: v.optional(v.boolean()),
-  status: v.union(
-    v.literal("in_progress"),
-    v.literal("on_production"),
-    v.literal("new"),
-    v.literal("dispatched"),
-    v.literal("done"),
-    v.literal("cancelled")
-  ),
+  status: productionOrderStatusV,
 };
 
 export const productionOrderLogs = {

@@ -16,6 +16,7 @@ import { UTCDate } from '@date-fns/utc'
 import { SizeInfo } from './components/size-info'
 import { SpecInfo, type SpecData } from './components/spec-info'
 import { OrderInfo } from './components/order-info'
+import { StatusFilter } from './components/status-filter'
 import { OrderLogs } from '@/components/order-logs'
 import { DrawerContext } from '@/contexts/drawer'
 import { AuthContext } from '@/contexts/auth'
@@ -354,6 +355,7 @@ export default function ProductionCut() {
   const { user }    = useContext(AuthContext)
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all')
+  const [statusFilter, setStatusFilter] = useState<Status[]>([])
   const { data: rawTasks = [] } = useQuery(convexQuery(api.queries.cutting.getAllCuttingTasks, {}))
   const { mutate: updateDate }   = useUpdateCuttingTaskPlanedEndDate()
   const { mutate: updateStatus } = useUpdateCuttingTaskStatus()
@@ -422,6 +424,19 @@ export default function ProductionCut() {
 
   const specNames = useMemo(() => [...new Set(orders.map(o => o.specName))], [orders])
 
+  // total quantity (across all sizes) cut for each spec — same "виробів" meaning as the stats bar above
+  const specQtyByName = useMemo(() => {
+    const counts = new Map<string, number>()
+    for (const o of orders) counts.set(o.specName, (counts.get(o.specName) ?? 0) + totalQty(o.sizes))
+    return counts
+  }, [orders])
+
+  const statusOptions = useMemo(
+    () => (Object.entries(STATUSES) as [Status, { label: string; className: string }][])
+      .map(([key, cfg]) => ({ key, label: cfg.label, className: cfg.className })),
+    [],
+  )
+
   const headers = useMemo(
     () => makeHeaders(handleSchedule, handleOpenLogs, handleUpdateDate, handleUpdateStatus),
     [handleSchedule, handleOpenLogs, handleUpdateDate, handleUpdateStatus],
@@ -432,11 +447,12 @@ export default function ProductionCut() {
     return orders
       .filter(o => {
         const matchSearch = !q || o.number.toLowerCase().includes(q) || o.material.toLowerCase().includes(q) || o.color.toLowerCase().includes(q)
-        const matchType = typeFilter === 'all' || o.specName === typeFilter
-        return matchSearch && matchType
+        const matchType   = typeFilter === 'all' || o.specName === typeFilter
+        const matchStatus = statusFilter.length === 0 || statusFilter.includes(o.status)
+        return matchSearch && matchType && matchStatus
       })
       .map(toRow)
-  }, [orders, search, typeFilter])
+  }, [orders, search, typeFilter, statusFilter])
 
   const stats = useMemo(() => ({
     total:       orders.length,
@@ -456,13 +472,12 @@ export default function ProductionCut() {
           { label: 'В роботі',   value: stats.in_progress, bg: 'bg-green-50 text-green-700' },
           { label: 'Термінових', value: stats.urgent, bg: 'bg-red-50 text-red-600' },
         ] as const).map(s => (
-          <div key={s.label} className={clsx('flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium', s.bg)}>
+          <div key={s.label} className={clsx('flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium', s.bg)}>
             <span className="font-bold">{s.value}</span>
             <span className="text-xs opacity-70">{s.label}</span>
           </div>
         ))}
       </div>
-
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-2">
         <Input
@@ -471,13 +486,15 @@ export default function ProductionCut() {
           value={search}
           onChange={e => setSearch(e.target.value)}
         />
+        <StatusFilter selected={statusFilter} onChange={setStatusFilter} options={statusOptions} />
+        <div className="h-5 w-px bg-border" />
         <div className="flex gap-1">
           <Button size="sm" variant={typeFilter === 'all' ? 'default' : 'outline'} onClick={() => setTypeFilter('all')}>
             Всі
           </Button>
           {specNames.map(name => (
             <Button key={name} size="sm" variant={typeFilter === name ? 'default' : 'outline'} onClick={() => setTypeFilter(name)}>
-              {name}
+              {name} ({specQtyByName.get(name) ?? 0})
             </Button>
           ))}
         </div>

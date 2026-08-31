@@ -9,7 +9,7 @@ import AppTable from '@/components/ui/app-table'
 import { MyPopover } from '@/components/my-popover'
 import { useNavigate } from '@tanstack/react-router'
 import { Search, Plus, Trash2, RefreshCw, Loader2, ChevronDown } from 'lucide-react'
-import { useCreateProductionOrder, useDeleteProductionOrder, useDeleteProductionOrders, useSyncKeyCrmOrders } from './actions'
+import { useCreateProductionOrder, useDeleteProductionOrder, useDeleteProductionOrders, useSyncKeyCrmOrders, useUpdateProductionOrderStatus } from './actions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import Divider from '@/components/ui/divider'
@@ -84,6 +84,57 @@ const StatusBadge = ({ status }: { status: string }) => {
     <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${cfg.className}`}>
       {cfg.label}
     </span>
+  )
+}
+
+const StatusCell = ({ row }: { row: Record<string, unknown> }) => {
+  const orderId = row._id as string | undefined
+  const status = row.status as string
+  const [open, setOpen] = useState(false)
+  const { mutate: updateStatus, isPending } = useUpdateProductionOrderStatus()
+
+  if (!orderId) return <StatusBadge status={status} />
+
+  return (
+    <div onClick={e => e.stopPropagation()}>
+      <MyPopover
+        align="start"
+        open={open}
+        onOpenChange={setOpen}
+        trigger={
+          <Button
+            asChild
+            variant="ghost"
+            size="sm"
+            disabled={isPending}
+            className="h-auto p-0 bg-transparent hover:bg-transparent"
+          >
+            <button type="button">
+              {isPending ? <Loader2 size={12} className="animate-spin text-muted-foreground" /> : <StatusBadge status={status} />}
+            </button>
+          </Button>
+        }
+        content={
+          <div className="flex flex-col gap-0.5 min-w-32">
+            {(Object.keys(STATUS_CONFIG) as StatusKey[]).map(key => (
+              <Button
+                key={key}
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="justify-start h-auto py-1 px-2"
+                onClick={() => {
+                  setOpen(false)
+                  if (key !== status) updateStatus({ productionOrderId: orderId as any, status: key })
+                }}
+              >
+                <StatusBadge status={key} />
+              </Button>
+            ))}
+          </div>
+        }
+      />
+    </div>
   )
 }
 
@@ -203,7 +254,7 @@ const headers: HeaderObject[] = [
     isSortable: true,
     headerRenderer: renderHeader,
     showWhen:   'parentCollapsed',
-    cellRenderer: ({ row }) => <StatusBadge status={row.status as string} />,
+    cellRenderer: ({ row }) => <StatusCell row={row} />,
   },
   {
     accessor:       'progress',

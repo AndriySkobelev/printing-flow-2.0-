@@ -24,6 +24,11 @@ export const BRANDING_TYPES = ['dtf', 'dtg', 'flok', 'embroidery', 'sublimation'
 export type BrandingType = typeof BRANDING_TYPES[number]
 export const brandingTypeV = asUnion(BRANDING_TYPES)
 
+// shared by productionOrders.status
+export const PRODUCTION_ORDER_STATUSES = ['new', 'on_production', 'in_progress', 'dispatched', 'done', 'cancelled'] as const
+export type ProductionOrderStatus = typeof PRODUCTION_ORDER_STATUSES[number]
+export const productionOrderStatusV = asUnion(PRODUCTION_ORDER_STATUSES)
+
 // uuids of KeyCRM custom fields (order.keycrmData.custom_fields) used to default
 // productionOrders' editable "Додаткова інформація" fields. TODO: fill in real uuids.
 export const KEYCRM_CUSTOM_FIELD_UUIDS = {

@@ -1,23 +1,32 @@
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { convexQuery } from '@convex-dev/react-query'
 import { api } from 'convex/_generated/api'
 import { PackageSearch } from 'lucide-react'
 import { ExpandableSection } from '@/components/ui/expandable-section'
+import { DaySwitcher, getTodayDayMs, startOfUTCDay } from '@/components/ui/day-switcher'
 import { PackTaskCard } from './components/pack-task-card'
 import { isPackagingTaskDone } from './helpers'
 import { type PackagingTask } from './types'
 
 const PackingListPage = () => {
+  const [selectedDay, setSelectedDay] = useState(getTodayDayMs)
+
   const { data: tasks = [], isLoading } = useQuery(
     convexQuery(api.queries.packaging.getAllPackagingTasks, {})
   )
 
-  const active = tasks.filter(t => !isPackagingTaskDone(t as PackagingTask))
-  const done   = tasks.filter(t => isPackagingTaskDone(t as PackagingTask))
+  const dayTasks = tasks.filter(t => startOfUTCDay(t.startDate) === selectedDay)
+
+  const active = dayTasks.filter(t => !isPackagingTaskDone(t as PackagingTask))
+  const done   = dayTasks.filter(t => isPackagingTaskDone(t as PackagingTask))
 
   return (
     <div className="flex flex-col h-full p-3 gap-4 overflow-y-auto">
-      <h1 className="text-base font-semibold shrink-0">Пакування</h1>
+      <div className="flex items-center justify-between shrink-0">
+        <h1 className="text-base font-semibold">Пакування</h1>
+        <DaySwitcher value={selectedDay} onChange={setSelectedDay} />
+      </div>
 
       {isLoading && (
         <div className="flex items-center justify-center flex-1">
@@ -25,10 +34,10 @@ const PackingListPage = () => {
         </div>
       )}
 
-      {!isLoading && tasks.length === 0 && (
+      {!isLoading && dayTasks.length === 0 && (
         <div className="flex flex-col items-center justify-center flex-1 gap-2 text-muted-foreground">
           <PackageSearch size={32} strokeWidth={1.5} />
-          <p className="text-sm">Немає завдань на пакування</p>
+          <p className="text-sm">Немає завдань на цей день</p>
         </div>
       )}
 

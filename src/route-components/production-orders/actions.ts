@@ -37,6 +37,13 @@ export const useDeleteProductionOrders = (onSuccess?: () => void) =>
     onError: (e: Error) => toast.error(e.message),
   })
 
+export const useUpdateProductionOrderStatus = () =>
+  useMutation({
+    mutationFn: useConvexMutation(api.queries.orders.updateProductionOrderStatus),
+    onSuccess: () => toast.success('Статус оновлено'),
+    onError: (e: Error) => toast.error(e.message),
+  })
+
 export const useSyncKeyCrmOrders = () => {
   const syncKeyCrm = useAction(api.http_actions.orders.getKeyCrmOrders)
   return useMutation({
