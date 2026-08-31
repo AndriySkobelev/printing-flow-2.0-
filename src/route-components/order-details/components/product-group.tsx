@@ -25,9 +25,10 @@ const combineGroupItems = (items: any) => {
   return combine;
 }
 
-export const ProductGroup = memo(({ items }: { items: OrderItem[] }) => {
+export const ProductGroup = memo(({ items, readOnly }: { items: OrderItem[]; readOnly?: boolean }) => {
   const groupedItems = useMemo(() => groupBy(i => i.name, items), [items])
   const combineToTable = useMemo(() => combineGroupItems(groupedItems), [items])
+  console.log("🚀 ~ combineToTable:", combineToTable)
   const tableRef = useRef<TableAPI>(null);
   const [tableKey, setTableKey] = useState(0)
   const nestedTableRef = useRef<TableAPI>(null);
@@ -90,24 +91,26 @@ export const ProductGroup = memo(({ items }: { items: OrderItem[] }) => {
   return (
     <div className="flex flex-col gap-2">
       <div className="pl-0">
-        <div className={
-          clsx("flex items-center gap-2 px-2.5 py-1.5 mb-1.5 rounded-md bg-primary/5 border border-primary/20 opacity-30 transition-opacity",
-            selectedIds.size > 0 && 'opacity-100'
-          )
-        }>
-          <span className="flex-1 text-xs font-medium text-primary">
-            {selectedIds.size} вибрано
-          </span>
-          <Button
-            size="sm"
-            type="button"
-            variant="outline"
-            onClick={handleConfigureSelected}
-            className="h-6 text-[11px] px-2 border-primary/30 text-primary hover:bg-primary/10"
-          >
-            Налаштувати вибрані
-          </Button>
-        </div>
+        {!readOnly && (
+          <div className={
+            clsx("flex items-center gap-2 px-2.5 py-1.5 mb-1.5 rounded-md bg-primary/5 border border-primary/20 opacity-30 transition-opacity",
+              selectedIds.size > 0 && 'opacity-100'
+            )
+          }>
+            <span className="flex-1 text-xs font-medium text-primary">
+              {selectedIds.size} вибрано
+            </span>
+            <Button
+              size="sm"
+              type="button"
+              variant="outline"
+              onClick={handleConfigureSelected}
+              className="h-6 text-[11px] px-2 border-primary/30 text-primary hover:bg-primary/10"
+            >
+              Налаштувати вибрані
+            </Button>
+          </div>
+        )}
         <AppTable
           height={600}
           key={tableKey}
@@ -118,7 +121,7 @@ export const ProductGroup = memo(({ items }: { items: OrderItem[] }) => {
           rowGrouping={['data']}
           onRowSelectionChange={handleSelectionChange}
           getRowId={({ row }) => (row as OrderItem)._id}
-          defaultHeaders={itemHeaders(nestedTableRef, handleNestedSelect)}
+          defaultHeaders={itemHeaders(nestedTableRef, handleNestedSelect, readOnly)}
         />
       </div>
     </div>

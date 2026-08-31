@@ -27,7 +27,6 @@ import {
   materialVariantsTable,
   proudctsTable,
   specifications,
-  shiftReportsTabel,
   icomingMaterialsTable,
   reservationsTable,
   stockBalancesTable,
@@ -109,7 +108,6 @@ const plannerEventsTable = defineTable(plannerEventsSchema)
 export type Materials = Doc<'materials'>;
 export type MaterialVariants = Doc<'materialVariants'>;
 export type Users = Doc<'users'>;
-export type ShiftReportsType = Doc<'shiftReports'>;
 export type Fabrics = Doc<'fabrics'>;
 export type FabricVariants = Doc<'fabricVariants'>;
 export type Orders = Doc<'orders'>;
@@ -128,7 +126,8 @@ export default defineSchema({
   sewingSubTasks: sewingSubTasksTable,
   sewingLogs: sewingLogsTable,
   brandingTasks: brandingTasksTable,
-  fabricColors: fabricColorsTable,
+  fabricColors: fabricColorsTable
+    .index('by_name', ['name']),
   brandingLogs: brandingLogsTable,
   packagingTasks: packagingTasksTable,
   packagingLogs: packagingLogsTable,
@@ -137,6 +136,7 @@ export default defineSchema({
   users: usersTable.index("email", ["email"]),
   orders: ordersTable.index("orderId", ["orderId"]),
   fabrics: fabricsTable
+    .index('by_name', ['name'])
     .searchIndex('search_name', {
       searchField: 'name',
     })
@@ -163,8 +163,6 @@ export default defineSchema({
     }),
   specifications: specifications
     .index('search_skuPrefix', ['skuPrefix']),
-  shiftReports: shiftReportsTabel
-    .index('by_timeStamp', ['timeStamp']),
   storeMovements: icomingMaterialsTable
     .index('by_materialId', ['materialId']),
   plannerEvents: plannerEventsTable,

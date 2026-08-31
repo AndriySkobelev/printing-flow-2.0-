@@ -29,3 +29,11 @@ export type OrderItem = {
   cuttingBrandingType?: BrandingTypeValue[] | null
   inProduction?: boolean | null
 }
+
+export type AdditionalInfo = {
+  packaging: string | null
+  printComment: string | null
+  identifier: string | null
+  isCuttingPrint: boolean | null
+  isCuttingEmbroidery: boolean | null
+}

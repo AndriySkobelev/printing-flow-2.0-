@@ -8,9 +8,10 @@ type Props = {
   productionOrderId: string
   keycrmOrderId: string
   files: any[]
+  readOnly?: boolean
 }
 
-export const OrderImages = ({ productionOrderId, keycrmOrderId, files }: Props) => {
+export const OrderImages = ({ productionOrderId, keycrmOrderId, files, readOnly }: Props) => {
   const uploadFile = useUploadOrderFile(productionOrderId)
 
   const handleUpload = async (file: File) => {
@@ -20,21 +21,23 @@ export const OrderImages = ({ productionOrderId, keycrmOrderId, files }: Props) 
 
   return (
     <div className="flex gap-2 items-center w-full px-3 py-3">
-      <FileInput onUpload={handleUpload} multiple>
-        {({ isUploading, open }) => (
-          <button
-            type="button"
-            onClick={open}
-            disabled={isUploading}
-            className="flex-none size-20 rounded-lg border bg-muted flex items-center justify-center text-muted-foreground hover:bg-muted/70 transition-colors disabled:opacity-50"
-          >
-            {isUploading
-              ? <Loader2 size={20} className="animate-spin" />
-              : <Plus size={20} />
-            }
-          </button>
-        )}
-      </FileInput>
+      {!readOnly && (
+        <FileInput onUpload={handleUpload} multiple>
+          {({ isUploading, open }) => (
+            <button
+              type="button"
+              onClick={open}
+              disabled={isUploading}
+              className="flex-none size-20 rounded-lg border bg-muted flex items-center justify-center text-muted-foreground hover:bg-muted/70 transition-colors disabled:opacity-50"
+            >
+              {isUploading
+                ? <Loader2 size={20} className="animate-spin" />
+                : <Plus size={20} />
+              }
+            </button>
+          )}
+        </FileInput>
+      )}
       <ScrollArea className="flex-1" aria-orientation="horizontal">
         <ImagesSection files={files} />
       </ScrollArea>

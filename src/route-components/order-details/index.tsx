@@ -12,7 +12,7 @@ import { DialogContext } from '@/contexts/dialog'
 import { DrawerContext } from '@/contexts/drawer'
 import { type OrderItem } from './types'
 import { ProgressSection } from './components/progress-section'
-import { KeycrmCustomFields } from './components/keycrm-custom-fields'
+import { AdditionalInfoSection } from './components/additional-info-section'
 import { ProductGroup } from './components/product-group'
 import { BulkBrandingForm } from './forms/bulk-branding-form'
 import AddProductForm from './forms/add-product'
@@ -24,6 +24,7 @@ import { OrderLogs } from '@/components/order-logs'
 export type Props = {
   productionOrderId: string | null
   onBack?: () => void
+  readOnly?: boolean
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -32,16 +33,17 @@ const formatDate = (ts: number) =>
   new Date(ts).toLocaleDateString('uk-UA', { day: '2-digit', month: '2-digit', year: '2-digit' })
 
 const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
-  new:         { label: 'Нове',        className: 'bg-blue-100 text-blue-700' },
-  in_progress: { label: 'В роботі',    className: 'bg-amber-100 text-amber-700' },
-  dispatched:  { label: 'Відправлено', className: 'bg-purple-100 text-purple-700' },
-  done:        { label: 'Виконано',    className: 'bg-green-100 text-green-700' },
-  cancelled:   { label: 'Скасовано',   className: 'bg-gray-100 text-gray-500' },
+  new:           { label: 'Нове',         className: 'bg-blue-100 text-blue-700' },
+  on_production: { label: 'У виробництві', className: 'bg-cyan-100 text-cyan-700' },
+  in_progress:   { label: 'В роботі',     className: 'bg-amber-100 text-amber-700' },
+  dispatched:    { label: 'Відправлено',  className: 'bg-purple-100 text-purple-700' },
+  done:          { label: 'Виконано',     className: 'bg-green-100 text-green-700' },
+  cancelled:     { label: 'Скасовано',    className: 'bg-gray-100 text-gray-500' },
 }
 
 // ─── ProductsSection ──────────────────────────────────────────────────────────
 
-const ProductsSection = ({ items, productionOrderId }: { items: OrderItem[]; productionOrderId: string }) => {
+const ProductsSection = ({ items, productionOrderId, readOnly }: { items: OrderItem[]; productionOrderId: string; readOnly?: boolean }) => {
   const { mutate: updateAll } = useUpdateAllOrderItemsBrandingType()
   const { mutate: addItems }  = useAddProductionOrderItems()
   const { openDialog, closeDialog } = useContext(DialogContext)
@@ -106,21 +108,25 @@ const ProductsSection = ({ items, productionOrderId }: { items: OrderItem[]; pro
           <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
             Товари ({items.length})
           </p>
-          <Button size="sm" variant="secondary" className="h-6 text-[11px] px-2" onClick={handleAddProduct}>
-            <Plus size={10} className="mr-1" /> Додати товари
-          </Button>
+          {!readOnly && (
+            <Button size="sm" variant="secondary" className="h-6 text-[11px] px-2" onClick={handleAddProduct}>
+              <Plus size={10} className="mr-1" /> Додати товари
+            </Button>
+          )}
         </div>
-        <div className='flex items-center gap-2'>
-          <Button size="sm" variant="outline" className="h-6 text-[11px] px-2" onClick={handleConfigureAll}>
-            Налаштувати всі
-          </Button>
-        </div>
+        {!readOnly && (
+          <div className='flex items-center gap-2'>
+            <Button size="sm" variant="outline" className="h-6 text-[11px] px-2" onClick={handleConfigureAll}>
+              Налаштувати всі
+            </Button>
+          </div>
+        )}
       </div>
 
       {items.length === 0 ? (
         <p className="text-sm text-muted-foreground">Немає товарів</p>
       ) : (
-        <ProductGroup items={items} />
+        <ProductGroup items={items} readOnly={readOnly} />
       )}
     </section>
   )
@@ -128,7 +134,7 @@ const ProductsSection = ({ items, productionOrderId }: { items: OrderItem[]; pro
 
 // ─── OrderDetailsContent ──────────────────────────────────────────────────────
 
-const OrderDetailsContent = ({ productionOrderId, onBack }: { productionOrderId: string; onBack?: () => void }) => {
+const OrderDetailsContent = ({ productionOrderId, onBack, readOnly }: { productionOrderId: string; onBack?: () => void; readOnly?: boolean }) => {
   const { openDrawer } = useContext(DrawerContext)
   const { data: order } = useQuery(
     convexQuery(api.queries.orders.getProductionOrderDetails, {
@@ -198,12 +204,15 @@ const OrderDetailsContent = ({ productionOrderId, onBack }: { productionOrderId:
           productionOrderId={productionOrderId}
           keycrmOrderId={order.keycrmOrderId}
           files={(order.attachedFiles ?? []) as any[]}
+          readOnly={readOnly}
         />
-        {order.keycrmCustomFields.length > 0 && (
-          <div className="border-t">
-            <KeycrmCustomFields fields={order.keycrmCustomFields} />
-          </div>
-        )}
+        <div className="border-t">
+          <AdditionalInfoSection
+            productionOrderId={productionOrderId}
+            info={order.additionalInfo}
+            readOnly={readOnly}
+          />
+        </div>
         <div className="border-t">
           <ProgressSection
             productionOrderId={productionOrderId}
@@ -213,23 +222,24 @@ const OrderDetailsContent = ({ productionOrderId, onBack }: { productionOrderId:
             packingDone={order.packingDone}   packingTotal={order.packingTotal}
             inProduction={order?.inProduction}
             items={items}
+            readOnly={readOnly}
           />
         </div>
 
         <div className="border-t">
-          <MaterialsSection productionOrderId={productionOrderId} />
+          <MaterialsSection productionOrderId={productionOrderId} materialsReserved={order.materialsReserved} />
         </div>
 
         <div className="border-t">
-          <SubcontractorSection productionOrderId={productionOrderId} />
+          <SubcontractorSection productionOrderId={productionOrderId} readOnly={readOnly} />
         </div>
 
-        
+
       </div>
 
       {/* ── Right: products ───────────────────────────────────────────── */}
       <ScrollArea className="flex-1">
-        <ProductsSection items={items} productionOrderId={productionOrderId} />
+        <ProductsSection items={items} productionOrderId={productionOrderId} readOnly={readOnly} />
       </ScrollArea>
     </div>
   )
@@ -237,7 +247,7 @@ const OrderDetailsContent = ({ productionOrderId, onBack }: { productionOrderId:
 
 // ─── OrderDetails ─────────────────────────────────────────────────────────────
 
-export const OrderDetails = ({ productionOrderId, onBack }: Props) => {
+export const OrderDetails = ({ productionOrderId, onBack, readOnly }: Props) => {
   if (!productionOrderId) {
     return (
       <div className="flex h-full shadow-[0px_0px_3px_#021b333d] rounded-lg bg-background items-center justify-center">
@@ -248,7 +258,7 @@ export const OrderDetails = ({ productionOrderId, onBack }: Props) => {
 
   return (
     <div className="flex flex-col h-full shadow-[0px_0px_3px_#021b333d] rounded-lg bg-background overflow-hidden">
-      <OrderDetailsContent productionOrderId={productionOrderId} onBack={onBack} />
+      <OrderDetailsContent productionOrderId={productionOrderId} onBack={onBack} readOnly={readOnly} />
     </div>
   )
 }

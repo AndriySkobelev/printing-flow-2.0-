@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { defineTable } from "convex/server";
-import { brandingTypeV, destinationTypeV } from './constants'
+import { brandingTypeV, destinationTypeV, productionOrderStatusV } from './constants'
 
 export const productionOrders = {
   startDate: v.number(),
@@ -10,13 +10,13 @@ export const productionOrders = {
   keycrmData: v.optional(v.any()),
   attachedFiles: v.optional(v.array(v.any())),
   inProduction: v.optional(v.boolean()),
-  status: v.union(
-    v.literal("in_progress"),
-    v.literal("new"),
-    v.literal("dispatched"),
-    v.literal("done"),
-    v.literal("cancelled")
-  ),
+  packaging: v.optional(v.string()),
+  printComment: v.optional(v.string()),
+  identifier: v.optional(v.string()),
+  isCuttingPrint: v.optional(v.boolean()),
+  isCuttingEmbroidery: v.optional(v.boolean()),
+  materialsReserved: v.optional(v.boolean()),
+  status: productionOrderStatusV,
 };
 
 export const productionOrderLogs = {

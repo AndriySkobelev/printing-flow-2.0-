@@ -16,6 +16,7 @@ import { UTCDate } from '@date-fns/utc'
 import { SizeInfo } from './components/size-info'
 import { SpecInfo, type SpecData } from './components/spec-info'
 import { OrderInfo } from './components/order-info'
+import { StatusFilter } from './components/status-filter'
 import { OrderLogs } from '@/components/order-logs'
 import { DrawerContext } from '@/contexts/drawer'
 import { AuthContext } from '@/contexts/auth'
@@ -24,7 +25,7 @@ import { useUpdateCuttingTaskPlanedEndDate, useUpdateCuttingTaskStatus } from '.
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 // const SIZES = ['4XS', '3XS', 'XXS', 'XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', '4XL'] as const
-const SIZES = ['6XS', '5XS', '4XS', '3XS', 'XXS', 'XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', '4XL', '5XL', '6XL'] as const
+const SIZES = ['4XS', '3XS', 'XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL', '4XL', '5XL', '6XL'] as const
 type Size = typeof SIZES[number]
 
 const ORDER_TYPES = {
@@ -59,6 +60,8 @@ export type SizeDetail = {
   comment?: string
   logs?: SizeLog[]
   quantityChange?: { logId: string; oldQty: number } | null
+  isCustomCut?: boolean
+  customCutComment?: string | null
 }
 
 interface Order {
@@ -76,6 +79,7 @@ interface Order {
   planedEndDate?: number
   status: Status
   note: string
+  isCustomCut: boolean
   customCutComment: string | null
   relevantLogsCount: number
   unseenLogsCount: number
@@ -208,7 +212,13 @@ const makeHeaders = (
                                     : 'text-gray-300 hover:text-gray-600'
 
       return (
-        <div className="flex items-center gap-1.5">
+        <div
+          className={clsx(
+            'flex items-center gap-1.5 h-full',
+            o.isCustomCut && 'border-l-2 border-violet-400 pl-1.5 -ml-1.5',
+          )}
+          title={o.isCustomCut ? (o.customCutComment || 'Індивідуальний крій') : undefined}
+        >
           {numberEl}
           {hasLogs && (
             <button
@@ -270,7 +280,12 @@ const makeHeaders = (
           align="center"
           withArrow
           trigger={
-            <Button variant="ghost" size="icon-sm" className={clsx('relative w-9 h-9 text-sm font-normal', bgClass)}>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className={clsx('relative w-9 h-9 text-sm font-normal', bgClass, detail?.isCustomCut && 'ring-2 ring-inset ring-violet-400')}
+              title={detail?.isCustomCut ? (detail.customCutComment || 'Індивідуальний крій') : undefined}
+            >
               {n}
               {quantityChange && (
                 <span className="absolute top-0 -right-1.5 min-w-4 h-4 px-0.5 rounded bg-red-500 text-white text-[9px] line-through font-semibold flex items-center justify-center leading-none">
@@ -340,6 +355,7 @@ export default function ProductionCut() {
   const { user }    = useContext(AuthContext)
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all')
+  const [statusFilter, setStatusFilter] = useState<Status[]>([])
   const { data: rawTasks = [] } = useQuery(convexQuery(api.queries.cutting.getAllCuttingTasks, {}))
   const { mutate: updateDate }   = useUpdateCuttingTaskPlanedEndDate()
   const { mutate: updateStatus } = useUpdateCuttingTaskStatus()
@@ -357,18 +373,21 @@ export default function ProductionCut() {
       spec:              (task.spec as SpecData | null) ?? null,
       sizes:             task.sizesMap as Partial<Record<Size, number>>,
       sizeDetails:       task.sizes.map(s => ({
-        _id:            s._id,
-        size:           s.size,
-        quantity:       s.quantity,
-        completedQty:   s.completedQty,
-        comment:        s.comment,
-        logs:           s.logs ?? [],
-        quantityChange: (s as any).quantityChange ?? null,
+        _id:              s._id,
+        size:             s.size,
+        quantity:         s.quantity,
+        completedQty:     s.completedQty,
+        comment:          s.comment,
+        logs:             s.logs ?? [],
+        quantityChange:   (s as any).quantityChange ?? null,
+        isCustomCut:      (s as any).isCustomCut ?? false,
+        customCutComment: (s as any).customCutComment ?? null,
       })),
       deadline:          formatDate(task.endDate),
       planedEndDate:     task.planedEndDate,
       status:            task.status as Status,
       note:              task.note ?? '',
+      isCustomCut:       (task as any).isCustomCut ?? false,
       customCutComment:  (task as any).customCutComment ?? null,
       relevantLogsCount: task.relevantLogsCount ?? 0,
       unseenLogsCount:   task.unseenLogsCount   ?? 0,
@@ -405,6 +424,19 @@ export default function ProductionCut() {
 
   const specNames = useMemo(() => [...new Set(orders.map(o => o.specName))], [orders])
 
+  // total quantity (across all sizes) cut for each spec — same "виробів" meaning as the stats bar above
+  const specQtyByName = useMemo(() => {
+    const counts = new Map<string, number>()
+    for (const o of orders) counts.set(o.specName, (counts.get(o.specName) ?? 0) + totalQty(o.sizes))
+    return counts
+  }, [orders])
+
+  const statusOptions = useMemo(
+    () => (Object.entries(STATUSES) as [Status, { label: string; className: string }][])
+      .map(([key, cfg]) => ({ key, label: cfg.label, className: cfg.className })),
+    [],
+  )
+
   const headers = useMemo(
     () => makeHeaders(handleSchedule, handleOpenLogs, handleUpdateDate, handleUpdateStatus),
     [handleSchedule, handleOpenLogs, handleUpdateDate, handleUpdateStatus],
@@ -415,11 +447,12 @@ export default function ProductionCut() {
     return orders
       .filter(o => {
         const matchSearch = !q || o.number.toLowerCase().includes(q) || o.material.toLowerCase().includes(q) || o.color.toLowerCase().includes(q)
-        const matchType = typeFilter === 'all' || o.specName === typeFilter
-        return matchSearch && matchType
+        const matchType   = typeFilter === 'all' || o.specName === typeFilter
+        const matchStatus = statusFilter.length === 0 || statusFilter.includes(o.status)
+        return matchSearch && matchType && matchStatus
       })
       .map(toRow)
-  }, [orders, search, typeFilter])
+  }, [orders, search, typeFilter, statusFilter])
 
   const stats = useMemo(() => ({
     total:       orders.length,
@@ -439,13 +472,12 @@ export default function ProductionCut() {
           { label: 'В роботі',   value: stats.in_progress, bg: 'bg-green-50 text-green-700' },
           { label: 'Термінових', value: stats.urgent, bg: 'bg-red-50 text-red-600' },
         ] as const).map(s => (
-          <div key={s.label} className={clsx('flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium', s.bg)}>
+          <div key={s.label} className={clsx('flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium', s.bg)}>
             <span className="font-bold">{s.value}</span>
             <span className="text-xs opacity-70">{s.label}</span>
           </div>
         ))}
       </div>
-
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-2">
         <Input
@@ -454,13 +486,15 @@ export default function ProductionCut() {
           value={search}
           onChange={e => setSearch(e.target.value)}
         />
+        <StatusFilter selected={statusFilter} onChange={setStatusFilter} options={statusOptions} />
+        <div className="h-5 w-px bg-border" />
         <div className="flex gap-1">
           <Button size="sm" variant={typeFilter === 'all' ? 'default' : 'outline'} onClick={() => setTypeFilter('all')}>
             Всі
           </Button>
           {specNames.map(name => (
             <Button key={name} size="sm" variant={typeFilter === name ? 'default' : 'outline'} onClick={() => setTypeFilter(name)}>
-              {name}
+              {name} ({specQtyByName.get(name) ?? 0})
             </Button>
           ))}
         </div>

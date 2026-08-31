@@ -5,6 +5,7 @@ import { omit } from 'ramda'
 import { getAuthUserId } from '@convex-dev/auth/server'
 import { resolveMaterialParent } from './specifications'
 import { consumeItemReservations } from './movements'
+import { advanceOrderToInProgress } from './orders'
 
 // ─── HELPERS ────────────────────────────────────────────────────────────────
 
@@ -60,7 +61,7 @@ export const getAllCuttingTasks = query({
         const productionOrder = await ctx.db.get(task.productionOrderId);
         const fabricColor = await ctx.db
           .query('fabricColors')
-          .filter(q => q.eq(q.field('name'), task.color))
+          .withIndex('by_name', q => q.eq('name', task.color))
           .first();
 
         const allLogs = await ctx.db
@@ -98,9 +99,16 @@ export const getAllCuttingTasks = query({
           }
         }
 
-        const sizesWithChanges = sizes.map(s => ({
-          ...s,
-          quantityChange: unseenQtyChanges.get(String(s.productionOrderItemId)) ?? null,
+        // Per-size custom-cut flag comes from the linked productionOrderItem —
+        // no separate field needed on cuttingTaskSizes itself.
+        const sizesWithChanges = await Promise.all(sizes.map(async s => {
+          const item = await ctx.db.get(s.productionOrderItemId)
+          return {
+            ...s,
+            quantityChange:   unseenQtyChanges.get(String(s.productionOrderItemId)) ?? null,
+            isCustomCut:      item?.isCustomCut ?? false,
+            customCutComment: item?.customCutComment ?? null,
+          }
         }))
 
         return {
@@ -200,6 +208,9 @@ export const addCuttingTaskSizeLog = mutation({
 
     const existing = await ctx.db.get(cuttingTaskSizeId);
     if (!existing) throw new Error('cuttingTaskSize not found');
+
+    const cutItem = await ctx.db.get(existing.productionOrderItemId);
+    if (cutItem) await advanceOrderToInProgress(ctx, cutItem.productionOrderId);
 
     const newLog = { quantity, timestamp: Date.now(), userId, comment };
     const logs = [...(existing.logs ?? []), newLog];

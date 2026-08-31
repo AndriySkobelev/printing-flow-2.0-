@@ -1,6 +1,6 @@
 export const productSizes = [
-  '6XS',
-  '5XS',
+  // '6XS',
+  // '5XS',
   '4XS',
   '3XS',
   'XXS',

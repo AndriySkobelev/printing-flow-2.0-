@@ -5,6 +5,7 @@ import clsx from "clsx";
 import { revalidateLogic } from '@tanstack/react-form';
 import { useQuery } from '@tanstack/react-query';
 import { convexQuery } from '@convex-dev/react-query';
+import { useAction } from 'convex/react';
 import { useAppForm } from "@/components/main-form";
 import { Button } from "@/components/ui/button";
 import { useAsyncOptions } from '../utils/hooks'
@@ -25,6 +26,7 @@ const selectFieldSchema = z.object({ value: z.union([z.string(), z.number()]), l
 const specificationSchema = z.object({
   name: z.string().min(3, 'Must be an 3 min charts'),
   category: z.string().min(3, 'Must be an 3 min charts'),
+  category_crm: selectFieldSchema,
   skuPrefix: z.string().min(1, 'Must be an 1 min charts'),
   productionTime: z.string().min(1, 'Must be an 1 min charts'),
   cutTime:        z.string().min(1, 'Must be an 1 min charts'),
@@ -82,24 +84,53 @@ const SpecificationForm: FunctionComponent<SpecificationFormProps> = ({
   const { data: categories = [] } = useQuery(convexQuery(api.queries.specifications.getSpecificationCategories, {}));
   const categoryOptions = useMemo(() => categories.map(c => ({ value: c, label: c })), [categories]);
 
+  // KeyCRM's own category list, fetched live from /products/categories —
+  // rarely changes, so cache it across form opens instead of refetching.
+  const getKeyCrmCategories = useAction(api.http_actions.products.getKeyCrmProductCategories);
+  const { data: keyCrmCategories = [] } = useQuery({
+    queryKey: ['keycrm-product-categories'],
+    queryFn: () => getKeyCrmCategories({}),
+    staleTime: 5 * 60 * 1000,
+  });
+  const keyCrmCategoryOptions = useMemo(
+    () => keyCrmCategories.map(c => ({ value: c.id, label: c.name })),
+    [keyCrmCategories]
+  );
+
+  // defaultValues (edit/duplicate) carries the stored category_crm_id/category_name
+  // pair, not the {value,label} shape the select field needs — rehydrate it here.
+  const resolvedDefaultValues = useMemo((): SpecificationFormType => {
+    if (!defaultValues) {
+      return {
+        name: '',
+        category: '',
+        category_crm: undefined,
+        skuPrefix: '',
+        productionPrice: '1',
+        productionTime: '0',
+        cutTime:        '0',
+        packingTime:    '0',
+        brandingTime:   '0',
+        materials: [
+          { type: 'fabric' as const, id: undefined, quantity: '1', units: '' }
+        ]
+      }
+    }
+    const raw = defaultValues as unknown as { category_crm_id?: number; category_name?: string; category_crm?: { value: string | number; label: string } }
+    return {
+      ...defaultValues,
+      category_crm: raw.category_crm ?? (raw.category_crm_id != null && raw.category_name
+        ? { value: raw.category_crm_id, label: raw.category_name }
+        : undefined),
+    }
+  }, [defaultValues]);
+
   const form = useAppForm({
     validationLogic: revalidateLogic(),
     validators: {
       onDynamic: specificationSchema,
     },
-    defaultValues: defaultValues || {
-      name: '',
-      category: '',
-      skuPrefix: '',
-      productionPrice: '1',
-      productionTime: '0',
-      cutTime:        '0',
-      packingTime:    '0',
-      brandingTime:   '0',
-      materials: [
-        { type: 'fabric' as const, id: undefined, quantity: '1', units: '' }
-      ]
-    },
+    defaultValues: resolvedDefaultValues,
     onSubmit: (value) => {
       actionSubmit(value.value);
     },
@@ -124,13 +155,12 @@ const SpecificationForm: FunctionComponent<SpecificationFormProps> = ({
               name='name'
               children={(field) => <field.FormTextField type="text" label='Назва'/>} />
             <form.AppField
-              name='category'
+              name='category_crm'
               children={(field) => (
-                <field.FormCreatableSelect
-                  isMulti={false}
-                  label='Категорія'
-                  options={categoryOptions}
-                  defaultOptions={categoryOptions}
+                <field.FormSelect
+                  valueMode='object'
+                  label='Категорія KeyCRM'
+                  options={keyCrmCategoryOptions}
                 />
               )} />
           </div>

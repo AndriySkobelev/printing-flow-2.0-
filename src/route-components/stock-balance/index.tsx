@@ -1,6 +1,5 @@
 import type { FunctionComponent } from "react";
-import { useQuery } from '@tanstack/react-query'
-import { convexQuery } from '@convex-dev/react-query'
+import { usePaginatedQuery } from 'convex/react'
 import { api } from "convex/_generated/api";
 import { type HeaderObject } from "simple-table-core";
 import AppTable from '@/components/ui/app-table';
@@ -32,6 +31,10 @@ const headers: Array<HeaderObject> = [
     type: "string",
     minWidth: 200,
     headerRenderer: renderHeader,
+    // The real value lives under row.material (see getStockBalancesWithMaterials) —
+    // without this, quick-filter search has nothing to match against, since it
+    // reads off the plain accessor value, not the cellRenderer's JSX.
+    valueFormatter: ({ row }) => (row as any).material?.name ?? '',
     cellRenderer: (props) => {
       const row = props.row as any;
       return <span className='text-sm'>{row.material?.name || '—'}</span>
@@ -56,6 +59,7 @@ const headers: Array<HeaderObject> = [
     isSortable: true,
     type: "string",
     headerRenderer: renderHeader,
+    valueFormatter: ({ row }) => (row as any).material?.color ?? '',
     cellRenderer: (props) => {
       const row = props.row as any;
       return <span className='text-sm'>{row.material?.color || '—'}</span>
@@ -68,6 +72,7 @@ const headers: Array<HeaderObject> = [
     isSortable: true,
     type: "string",
     headerRenderer: renderHeader,
+    valueFormatter: ({ row }) => (row as any).material?.size ?? '',
     cellRenderer: (props) => {
       const row = props.row as any;
       return <span className='text-sm'>{row.material?.size || '—'}</span>
@@ -80,6 +85,7 @@ const headers: Array<HeaderObject> = [
     isSortable: true,
     type: "string",
     headerRenderer: renderHeader,
+    valueFormatter: ({ row }) => (row as any).material?.sku ?? '',
     cellRenderer: (props) => {
       const row = props.row as any;
       return <span className='text-xs text-[#868686]'>{row.material?.sku || '—'}</span>
@@ -143,14 +149,30 @@ const headers: Array<HeaderObject> = [
 ];
 
 const StockBalance: FunctionComponent = () => {
-  const { data } = useQuery(convexQuery(api.queries.movements.getStockBalancesWithMaterials));
+  const { results: data, status, loadMore } = usePaginatedQuery(
+    api.queries.movements.getStockBalancesWithMaterials,
+    {},
+    { initialNumItems: 100 },
+  );
+
+  const handlePageChange = (page: number) => {
+    const needed = (page + 1) * 50
+    if (needed > data.length && status === 'CanLoadMore') {
+      loadMore(100)
+    }
+  }
 
   return (
     <div className="flex flex-col gap-4 p-4">
       <AppTable
+        withSearch
+        shouldPaginate
+        rowsPerPage={50}
         rows={data || []}
-        isLoading={!data}
         defaultHeaders={headers}
+        onPageChange={handlePageChange}
+        columnSearch={['name', 'color', 'size']}
+        isLoading={status === 'LoadingFirstPage'}
         getRowId={({ row }: any) => row._id as string}
       />
     </div>

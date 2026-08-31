@@ -54,7 +54,7 @@ export const getFabricsByName = query({
   handler: async (ctx, { fabricName }) => {
     const fabric = await ctx.db
       .query("fabrics")
-      .filter(q => q.eq(q.field("name"), fabricName))
+      .withIndex("by_name", q => q.eq("name", fabricName))
       .first();
     if (!fabric) return null;
     const variants = await ctx.db

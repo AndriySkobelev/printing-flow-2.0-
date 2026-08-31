@@ -10,6 +10,7 @@ import {
   Layers,
   Menu,
   FileCog2,
+  PackageCheck,
   PackageSearch,
   Scissors,
   PaintRoller,
@@ -24,7 +25,8 @@ import {
   X,
 } from 'lucide-react'
 import { useAuth } from '@/hooks/auth-hooks'
-import { SUPER_ADMIN, type UserRole } from '@/constants/roles'
+import { canAccessPage } from '@/constants/page-roles'
+import type { UserRole } from '@/constants/roles'
 import UserAvatar from '@/components/UserAvatar'
 import {
   DropdownMenu,
@@ -40,13 +42,11 @@ type NavChildLink = {
   label: string
   to: string
   icon?: LucideIcon
-  roles?: UserRole[]
 }
 
 type NavSubGroup = {
   type: 'subgroup'
   label: string
-  roles?: UserRole[]
   children: NavChildLink[]
 }
 
@@ -57,14 +57,12 @@ type NavLink = {
   label: string
   to: string
   icon?: LucideIcon
-  roles?: UserRole[]
 }
 
 type NavGroup = {
   type: 'group'
   label: string
   icon?: LucideIcon
-  roles?: UserRole[]
   children: NavGroupEntry[]
 }
 
@@ -95,7 +93,8 @@ const navConfig: NavItem[] = [
       { to: '/app/planner',         label: 'Планер пошиву',          icon: Waypoints               },
       { to: '/app/production-cut',  label: 'Виробництво крою',       icon: ScissorsLineDashedIcon  },
       { to: '/app/branding',        label: 'Брендування',            icon: PaintRoller             },
-      { to: '/app/sewing-tasks',    label: 'Мої завдання',           icon: Wand2, roles: ['seamstress', 'tailor'] },
+      { to: '/app/packing-list',    label: 'Пакування',              icon: PackageCheck            },
+      { to: '/app/sewing-tasks',    label: 'Мої завдання',           icon: Wand2 },
     ],
   },
   {
@@ -113,7 +112,6 @@ const navConfig: NavItem[] = [
         ],
       },
     ],
-    roles: ['admin', 'super_admin'],
   },
   {
     type: 'group',
@@ -124,10 +122,8 @@ const navConfig: NavItem[] = [
         label: 'Користувачі',
         to: '/app/users',
         icon: Users,
-        roles: ['admin', 'super_admin'],
       },
     ],
-    roles: ['admin', 'super_admin'],
   },
 ]
 
@@ -158,6 +154,13 @@ const isGroupActive = (children: NavGroupEntry[], pathname: string): boolean =>
       ? entry.children.some(c => pathname === c.to)
       : pathname === entry.to
   )
+
+// keeps only the entries (and, for subgroups, grandchildren) the current
+// user's role is allowed to see; drops subgroups left with no children
+const filterGroupChildren = (children: NavGroupEntry[], canSee: (to: string) => boolean): NavGroupEntry[] =>
+  children
+    .map(entry => isSubGroup(entry) ? { ...entry, children: entry.children.filter(c => canSee(c.to)) } : entry)
+    .filter(entry => isSubGroup(entry) ? entry.children.length > 0 : canSee(entry.to))
 
 // --- desktop sub-components -----------------------------------------------
 
@@ -297,7 +300,7 @@ const MobileNavGroup = ({ item, onNavigate }: { item: NavGroup; onNavigate: () =
 const MobileMenu = ({ open, onClose, canSee, user }: {
   open: boolean
   onClose: () => void
-  canSee: (roles?: UserRole[]) => boolean
+  canSee: (to?: string) => boolean
   user: ReturnType<typeof useAuth>['user']
 }) => {
   const location = useLocation()
@@ -331,9 +334,8 @@ const MobileMenu = ({ open, onClose, canSee, user }: {
         {/* Nav items */}
         <nav className="flex-1 overflow-y-auto p-3 flex flex-col gap-1">
           {navConfig.map(item => {
-            if (!canSee(item.roles)) return null
-
             if (item.type === 'link') {
+              if (!canSee(item.to)) return null
               const Icon = item.icon
               const isActive = location.pathname === item.to
               return (
@@ -351,7 +353,7 @@ const MobileMenu = ({ open, onClose, canSee, user }: {
               )
             }
 
-            const visibleChildren = item.children.filter(c => canSee(c.roles))
+            const visibleChildren = filterGroupChildren(item.children, canSee)
             if (!visibleChildren.length) return null
 
             return (
@@ -397,8 +399,7 @@ const Header = () => {
   const userRole: UserRole | undefined = user?.role
   const [mobileOpen, setMobileOpen] = useState(false)
 
-  const canSee = (roles?: UserRole[]) =>
-    !roles || userRole === SUPER_ADMIN || roles.includes(userRole!)
+  const canSee = (to?: string) => !to || canAccessPage(userRole, to)
 
   return (
     <>
@@ -411,11 +412,12 @@ const Header = () => {
         {/* Desktop nav */}
         <div className="hidden md:flex items-center gap-1 bg-primary px-4 py-2 rounded-xl">
           {navConfig.map(item => {
-            if (!canSee(item.roles)) return null
+            if (item.type === 'link') {
+              if (!canSee(item.to)) return null
+              return <NavLinkItem key={item.to} item={item} />
+            }
 
-            if (item.type === 'link') return <NavLinkItem key={item.to} item={item} />
-
-            const visibleChildren = item.children.filter(c => canSee(c.roles))
+            const visibleChildren = filterGroupChildren(item.children, canSee)
             if (!visibleChildren.length) return null
 
             return <NavGroupItem key={item.label} item={{ ...item, children: visibleChildren }} />

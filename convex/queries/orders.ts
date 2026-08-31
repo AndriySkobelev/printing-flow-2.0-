@@ -6,6 +6,7 @@ import { api } from '../_generated/api'
 import { getAuthUserId } from '@convex-dev/auth/server'
 import { omit } from 'ramda'
 import { createOrderMaterialReservations } from './movements'
+import { KEYCRM_CUSTOM_FIELD_UUIDS, productionOrderStatusV } from '../schemas/constants'
 
 // Only these branding types are actually done by the branding department —
 // items with no type, or only types handled elsewhere (embroidery,
@@ -15,6 +16,17 @@ const BRANDING_TYPES = new Set(['dtf', 'flok'])
 export const itemNeedsBranding = (item: { brandingType?: string[] | null; cuttingBrandingType?: string[] | null }): boolean => {
   const types = [...(item.brandingType ?? []), ...(item.cuttingBrandingType ?? [])]
   return types.some(t => BRANDING_TYPES.has(t))
+}
+
+// Moves an order into 'in_progress' the moment any department (cutting for
+// manufacturing items; branding/packaging for warehouse items, which skip
+// cutting/sewing entirely) logs its first bit of actual work. No-op once the
+// order has already moved past 'on_production' (in_progress/dispatched/done/cancelled).
+export const advanceOrderToInProgress = async (ctx: MutationCtx, productionOrderId: Id<'productionOrders'>) => {
+  const order = await ctx.db.get(productionOrderId)
+  if (order && (order.status === 'new' || order.status === 'on_production')) {
+    await ctx.db.patch(productionOrderId, { status: 'in_progress' })
+  }
 }
 
 type Diff = Record<string, { from: any; to: any }>
@@ -76,6 +88,8 @@ type OrderItemEntry = {
   size: string;
   shipmentType: 'manufacturing' | 'warehouse' | null;
   isCustomCut?: boolean | null;
+  isCustomSewing?: boolean | null;
+  customSewingComment?: string | null;
 };
 
 async function createCuttingTasks(ctx: MutationCtx, { productionOrderId, plannedShipDate, keycrmOrderId, orderItems }: {
@@ -205,6 +219,8 @@ async function createSewingTasks(ctx: MutationCtx, { productionOrderId, plannedS
         quantity:     item.product.quantity as number,
         completedQty: 0,
         status:       'new',
+        isCustomSewing:      item.isCustomSewing ?? undefined,
+        customSewingComment: item.customSewingComment ?? undefined,
       })
     }
   }
@@ -232,16 +248,24 @@ async function createBrandingTasks(ctx: MutationCtx, { productionOrderId, keycrm
   });
 }
 
+async function createPackagingTasks(ctx: MutationCtx, { productionOrderId, keycrmOrderId, plannedShipDate }: {
+  productionOrderId: any
+  keycrmOrderId: string
+  plannedShipDate: number
+}) {
+  await ctx.db.insert('packagingTasks', {
+    productionOrderId,
+    keycrmOrderId,
+    startDate: Date.now(),
+    endDate: plannedShipDate,
+    status: 'new',
+  });
+}
+
 export const getAllProductionOrdersWithProgress = query({
   args: {
     search: v.optional(v.string()),
-    status: v.optional(v.union(
-      v.literal('new'),
-      v.literal('in_progress'),
-      v.literal('dispatched'),
-      v.literal('done'),
-      v.literal('cancelled'),
-    )),
+    status: v.optional(productionOrderStatusV),
   },
   handler: async (ctx, { search, status }) => {
     let orders = status
@@ -312,7 +336,7 @@ export const getAllProductionOrdersWithProgress = query({
         .query('packagingTasks')
         .withIndex('by_productionOrder', q => q.eq('productionOrderId', order._id))
         .first()
-      const packingTotal = 0
+      const packingTotal = totalQty
       let packingDone = 0
       if (packagingTask) {
         const logs = await ctx.db
@@ -414,7 +438,7 @@ export const getProductionOrderDetails = query({
       .query('packagingTasks')
       .withIndex('by_productionOrder', q => q.eq('productionOrderId', productionOrderId))
       .first()
-    const packingTotal = 0
+    const packingTotal = totalQty
     let packingDone = 0
     if (packagingTask) {
       const logs = await ctx.db
@@ -424,6 +448,9 @@ export const getProductionOrderDetails = query({
       packingDone = logs.filter(l => l.type === 'completed').reduce((s, l) => s + l.quantity, 0)
     }
 
+    const customFields = (order.keycrmData?.custom_fields ?? []) as Array<{ uuid: string; name: string; value: unknown }>
+    const keycrmField = (uuid: string) => customFields.find(f => f.uuid === uuid)?.value
+
     return {
       _id: order._id,
       keycrmOrderId: order.keycrmOrderId,
@@ -431,13 +458,20 @@ export const getProductionOrderDetails = query({
       plannedShipDate: order.plannedShipDate,
       status: order.status,
       inProduction: order.inProduction ?? false,
+      materialsReserved: order.materialsReserved ?? false,
       totalQty,
       cutDone,      cutTotal,
       sewDone,      sewTotal,
       brandingDone, brandingTotal,
       packingDone,  packingTotal,
       attachedFiles: order.attachedFiles ?? [],
-      keycrmCustomFields: (order.keycrmData?.custom_fields ?? []) as Array<{ name: string; value: unknown }>,
+      additionalInfo: {
+        packaging:            order.packaging            ?? (keycrmField(KEYCRM_CUSTOM_FIELD_UUIDS.packaging)            as string  | undefined) ?? null,
+        printComment:         order.printComment         ?? (keycrmField(KEYCRM_CUSTOM_FIELD_UUIDS.printComment)         as string  | undefined) ?? null,
+        identifier:           order.identifier           ?? (keycrmField(KEYCRM_CUSTOM_FIELD_UUIDS.identifier)           as string  | undefined) ?? null,
+        isCuttingPrint:       order.isCuttingPrint       ?? (keycrmField(KEYCRM_CUSTOM_FIELD_UUIDS.isCuttingPrint)       as boolean | undefined) ?? null,
+        isCuttingEmbroidery:  order.isCuttingEmbroidery  ?? (keycrmField(KEYCRM_CUSTOM_FIELD_UUIDS.isCuttingEmbroidery)  as boolean | undefined) ?? null,
+      },
       items: items.map(i => ({
         _id:                  i._id,
         name:                 i.name,
@@ -460,6 +494,46 @@ export const getProductionOrderDetails = query({
         customSewingComment:  i.customSewingComment ?? null,
       })),
     }
+  },
+})
+
+export const updateProductionOrderAdditionalInfo = mutation({
+  args: {
+    productionOrderId:   v.id('productionOrders'),
+    packaging:           v.optional(v.string()),
+    printComment:        v.optional(v.string()),
+    identifier:          v.optional(v.string()),
+    isCuttingPrint:      v.optional(v.boolean()),
+    isCuttingEmbroidery: v.optional(v.boolean()),
+  },
+  handler: async (ctx, { productionOrderId, packaging, printComment, identifier, isCuttingPrint, isCuttingEmbroidery }) => {
+    await ctx.db.patch(productionOrderId, {
+      ...(packaging            !== undefined ? { packaging }            : {}),
+      ...(printComment         !== undefined ? { printComment }         : {}),
+      ...(identifier           !== undefined ? { identifier }           : {}),
+      ...(isCuttingPrint       !== undefined ? { isCuttingPrint }       : {}),
+      ...(isCuttingEmbroidery  !== undefined ? { isCuttingEmbroidery }  : {}),
+    })
+  },
+})
+
+export const updateProductionOrderStatus = mutation({
+  args: {
+    productionOrderId: v.id('productionOrders'),
+    status:             productionOrderStatusV,
+  },
+  handler: async (ctx, { productionOrderId, status }) => {
+    const order = await ctx.db.get(productionOrderId)
+    if (!order) throw new Error('Order not found')
+    if (order.status === status) return
+
+    await ctx.db.patch(productionOrderId, { status })
+    await insertLog(ctx, {
+      productionOrderId,
+      keyCrmOrderId: order.keycrmOrderId,
+      type:    'updated',
+      changes: computeDiff({ status: order.status }, { status }),
+    })
   },
 })
 
@@ -709,7 +783,7 @@ export const createProductionTasks = mutation({
 
     // Only process items not already sent to production, so re-running this
     // (e.g. after adding more products to an in-progress order) doesn't
-    // duplicate cutting/sewing/branding tasks or material reservations.
+    // duplicate cutting/sewing/branding/packaging tasks or material reservations.
     const dbItems = allDbItems.filter(item => !item.inProduction)
     if (dbItems.length === 0) return
 
@@ -719,8 +793,10 @@ export const createProductionTasks = mutation({
       color:        item.color,
       size:         item.size,
       shipmentType: item.shipmentType,
-      isCustomCut:      item.isCustomCut ?? false,
-      customCutComment: item.customCutComment ?? undefined,
+      isCustomCut:         item.isCustomCut ?? false,
+      customCutComment:    item.customCutComment ?? undefined,
+      isCustomSewing:      item.isCustomSewing ?? false,
+      customSewingComment: item.customSewingComment ?? undefined,
     }))
 
     const cuttingTaskIds = await createCuttingTasks(ctx, { productionOrderId, plannedShipDate, keycrmOrderId, orderItems })
@@ -729,6 +805,8 @@ export const createProductionTasks = mutation({
     if (dbItems.some(itemNeedsBranding)) {
       await createBrandingTasks(ctx, { productionOrderId, keycrmOrderId, plannedShipDate, externalData })
     }
+
+    await createPackagingTasks(ctx, { productionOrderId, keycrmOrderId, plannedShipDate })
 
     await createOrderMaterialReservations(ctx, {
       manager: order.keycrmManager ?? user?.name ?? 'Unknown',
@@ -744,7 +822,7 @@ export const createProductionTasks = mutation({
     })
 
     await Promise.all([
-      ctx.db.patch(productionOrderId, { inProduction: true, status: 'in_progress' }),
+      ctx.db.patch(productionOrderId, { inProduction: true, status: 'on_production', materialsReserved: true }),
       ...dbItems.map(item => ctx.db.patch(item._id, { inProduction: true })),
     ])
 

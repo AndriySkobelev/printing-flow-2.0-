@@ -3,8 +3,8 @@ import { v } from 'convex/values'
 const asUnion = <T extends string>(values: readonly [T, T, ...T[]]) =>
   v.union(...values.map(t => v.literal(t)) as [any, any, ...any[]])
 
-// shared by cuttingTasks.status and sewingTasks.status
-export const TASK_STATUSES = ['new', 'in_progress', 'done', 'delayed'] as const
+// base statuses for sewingTasks.status (via taskSewingStatus below)
+export const TASK_STATUSES = ['new', 'in_progress', 'done', 'paused'] as const
 export type TaskStatus = typeof TASK_STATUSES[number]
 export const taskStatusV = asUnion(TASK_STATUSES)
 export const taskSewingStatus = asUnion([...TASK_STATUSES, 'distributed'])
@@ -23,3 +23,18 @@ export const destinationTypeV = asUnion(DESTINATION_TYPES)
 export const BRANDING_TYPES = ['dtf', 'dtg', 'flok', 'embroidery', 'sublimation'] as const
 export type BrandingType = typeof BRANDING_TYPES[number]
 export const brandingTypeV = asUnion(BRANDING_TYPES)
+
+// shared by productionOrders.status
+export const PRODUCTION_ORDER_STATUSES = ['new', 'on_production', 'in_progress', 'dispatched', 'done', 'cancelled'] as const
+export type ProductionOrderStatus = typeof PRODUCTION_ORDER_STATUSES[number]
+export const productionOrderStatusV = asUnion(PRODUCTION_ORDER_STATUSES)
+
+// uuids of KeyCRM custom fields (order.keycrmData.custom_fields) used to default
+// productionOrders' editable "Додаткова інформація" fields. TODO: fill in real uuids.
+export const KEYCRM_CUSTOM_FIELD_UUIDS = {
+  packaging:            'OR_1011',
+  printComment:         'OR_1003',
+  identifier:           'OR_1010',
+  isCuttingPrint:       'OR_1006',
+  isCuttingEmbroidery:  'OR_1007',
+} as const
