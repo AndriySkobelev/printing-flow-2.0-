@@ -23,7 +23,8 @@ export const getKeyCrmOrders = action(async (ctx) => {
     sort: 'id',
     "filter[status_id]": 5,
     })
-  const orders = await res.json();
+    const orders = await res.json();
+    console.log('orders', orders)
   for (const order of orders?.data || []) {
     const attachedFiles = await getAttaches(order.id)
     await ctx.runMutation(api.queries.orders.creatreProductionOrder, {
