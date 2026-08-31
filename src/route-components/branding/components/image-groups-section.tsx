@@ -1,11 +1,10 @@
-import { useContext, useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Plus, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { MyPopover } from '@/components/my-popover'
 import { InputNumber } from '@/components/main-form/input-number'
-import { DialogContext } from '@/contexts/dialog'
 import { ProductItemCard } from './product-item-card'
-import { type AttachedFile, isImage, getUrl, LightboxContent } from './images-section'
+import { type AttachedFile, isImage, getUrl, useLightbox, LightboxGroup } from './images-section'
 import { useBrandingGroupsStore, type ImageGroupAssignment, type AssignmentsByImage } from '../store'
 
 type OrderItem = {
@@ -106,7 +105,7 @@ type ImageGroupCardProps = {
 }
 
 const ImageGroupCard = ({ orderId, imageUrl, imageIndex, images, orderItems }: ImageGroupCardProps) => {
-  const { openDialog } = useContext(DialogContext)
+  const lightbox = useLightbox()
   const assignments = useBrandingGroupsStore(s => s.assignmentsByOrder[orderId]?.[imageUrl] ?? EMPTY_ASSIGNMENTS)
   const allAssignments = useBrandingGroupsStore(s => s.assignmentsByOrder[orderId] ?? EMPTY_ORDER_ASSIGNMENTS)
   const addAssignment = useBrandingGroupsStore(s => s.addAssignment)
@@ -129,17 +128,12 @@ const ImageGroupCard = ({ orderId, imageUrl, imageIndex, images, orderItems }: I
 
   const allocations = useMemo(() => allocateByAssignment(allAssignments, orderItems), [allAssignments, orderItems])
 
-  const handleZoom = () => openDialog({
-    outerClose: true,
-    className:  'max-w-none w-fit bg-transparent border-none shadow-none p-4 flex flex-col items-center gap-4',
-    content:    <LightboxContent images={images} startIndex={imageIndex} />,
-  })
-
   return (
     <div className="flex gap-3 p-2 rounded-lg border bg-card">
-      <button onClick={handleZoom} className="relative shrink-0 size-24 overflow-hidden rounded-md border bg-muted">
+      <button onClick={() => lightbox.open(imageIndex)} className="relative shrink-0 size-24 overflow-hidden rounded-md border bg-muted">
         <img src={imageUrl} alt="" decoding="async" className="w-full h-full object-cover" />
       </button>
+      <LightboxGroup images={images} lightbox={lightbox} />
 
       <div className="flex-1 flex flex-col gap-1.5 min-w-0">
         <div className="flex items-center justify-between gap-2">

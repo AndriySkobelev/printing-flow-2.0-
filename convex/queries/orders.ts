@@ -6,7 +6,7 @@ import { api } from '../_generated/api'
 import { getAuthUserId } from '@convex-dev/auth/server'
 import { omit } from 'ramda'
 import { createOrderMaterialReservations } from './movements'
-import { KEYCRM_CUSTOM_FIELD_UUIDS } from '../schemas/constants'
+import { KEYCRM_CUSTOM_FIELD_UUIDS, productionOrderStatusV } from '../schemas/constants'
 
 // Only these branding types are actually done by the branding department —
 // items with no type, or only types handled elsewhere (embroidery,
@@ -265,14 +265,7 @@ async function createPackagingTasks(ctx: MutationCtx, { productionOrderId, keycr
 export const getAllProductionOrdersWithProgress = query({
   args: {
     search: v.optional(v.string()),
-    status: v.optional(v.union(
-      v.literal('new'),
-      v.literal('on_production'),
-      v.literal('in_progress'),
-      v.literal('dispatched'),
-      v.literal('done'),
-      v.literal('cancelled'),
-    )),
+    status: v.optional(productionOrderStatusV),
   },
   handler: async (ctx, { search, status }) => {
     let orders = status
@@ -520,6 +513,26 @@ export const updateProductionOrderAdditionalInfo = mutation({
       ...(identifier           !== undefined ? { identifier }           : {}),
       ...(isCuttingPrint       !== undefined ? { isCuttingPrint }       : {}),
       ...(isCuttingEmbroidery  !== undefined ? { isCuttingEmbroidery }  : {}),
+    })
+  },
+})
+
+export const updateProductionOrderStatus = mutation({
+  args: {
+    productionOrderId: v.id('productionOrders'),
+    status:             productionOrderStatusV,
+  },
+  handler: async (ctx, { productionOrderId, status }) => {
+    const order = await ctx.db.get(productionOrderId)
+    if (!order) throw new Error('Order not found')
+    if (order.status === status) return
+
+    await ctx.db.patch(productionOrderId, { status })
+    await insertLog(ctx, {
+      productionOrderId,
+      keyCrmOrderId: order.keycrmOrderId,
+      type:    'updated',
+      changes: computeDiff({ status: order.status }, { status }),
     })
   },
 })
