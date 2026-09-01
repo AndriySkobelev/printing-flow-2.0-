@@ -182,9 +182,9 @@ export const SpecVariantsTable = ({ specificationId }: Props) => {
     })),
   ], [rows, handleCellContextMenu, handleColumnSelect])
 
-  // Row selection (checkbox) is only for picking already-created variants to
-  // bulk-edit materials — it must not also mark this color's missing sizes as
-  // pending creation.
+  // Row selection (checkbox) does double duty: already-created sizes in this
+  // color get marked "selected" (for bulk-editing materials), and missing
+  // sizes get marked "pending" (to be created via the "Створити" button).
   const handleRowSelection = useCallback(({ row, isSelected }: RowSelectionChangeProps) => {
     const color = (row as any).color
     setSelectedVariants(prev => {
@@ -192,6 +192,16 @@ export const SpecVariantsTable = ({ specificationId }: Props) => {
       for (const size of productSizes) {
         const key = `${color}__${size}`
         if (variantSet.has(key)) {
+          isSelected ? next.add(key) : next.delete(key)
+        }
+      }
+      return next
+    })
+    setPending(prev => {
+      const next = new Set(prev)
+      for (const size of productSizes) {
+        const key = `${color}__${size}`
+        if (!variantSet.has(key)) {
           isSelected ? next.add(key) : next.delete(key)
         }
       }
