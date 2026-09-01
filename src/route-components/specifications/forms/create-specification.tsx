@@ -25,7 +25,6 @@ const selectFieldSchema = z.object({ value: z.union([z.string(), z.number()]), l
 
 const specificationSchema = z.object({
   name: z.string().min(3, 'Must be an 3 min charts'),
-  category: z.string().min(3, 'Must be an 3 min charts'),
   category_crm: selectFieldSchema,
   skuPrefix: z.string().min(1, 'Must be an 1 min charts'),
   productionTime: z.string().min(1, 'Must be an 1 min charts'),
@@ -103,7 +102,6 @@ const SpecificationForm: FunctionComponent<SpecificationFormProps> = ({
     if (!defaultValues) {
       return {
         name: '',
-        category: '',
         category_crm: undefined,
         skuPrefix: '',
         productionPrice: '1',
