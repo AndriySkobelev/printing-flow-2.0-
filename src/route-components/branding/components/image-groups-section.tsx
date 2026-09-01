@@ -152,7 +152,7 @@ const ImageGroupCard = ({ orderId, imageUrl, imageIndex, images, orderItems }: I
         {assignments.length === 0 ? (
           <p className="text-xs text-muted-foreground">Немає доданих товарів</p>
         ) : (
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             {assignments.map(a => {
               const item = orderItems.find(i => i._id === a.productItemId)
               if (!item) return null
