@@ -94,7 +94,7 @@ export const stockBalances = {
 
 export const productsSpecification = {
   name: v.string(),
-  category: v.string(),
+  category: v.optional(v.string()),
   // KeyCRM's own category, picked from /products/categories — kept separate
   // from `category` (our free-text local grouping) so migrateSpecificationToKeyCrm
   // can send category_id without guessing a mapping between the two.

@@ -136,7 +136,7 @@ const headers: (props: HeaderProps) => Array<HeaderObject> = ({ handleEditSpec, 
     ),
     minWidth: 250
   },
-  { accessor: "category", label: "Категорія", width: 200, isSortable: true, type: "string" },
+  { accessor: "category_name", label: "Категорія", width: 200, isSortable: true, type: "string" },
   { accessor: "skuPrefix", label: "SKU префікс", width: 150, isSortable: true, type: "string" },
   {
     width: 150,
@@ -188,7 +188,6 @@ const Specifications: FunctionComponent<SpecificationsProps> = () => {
     _id: draft.id,
     _isDraft: true,
     name: draft.values.name || 'Без назви',
-    category: draft.values.category || '',
     skuPrefix: draft.values.skuPrefix || '',
     materials: [],
   })), [drafts]);
