@@ -1,9 +1,10 @@
 import { useContext } from 'react'
 import { Separator } from 'radix-ui'
 import { ProgressBar } from '@/components/progress-bar'
-import { Plus, Scissors, Boxes, CircleQuestionMarkIcon } from 'lucide-react'
+import { Plus, Scissors, Boxes, CircleQuestionMarkIcon, MessageSquareText } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { DialogContext } from '@/contexts/dialog'
+import { MyPopover } from '@/components/my-popover'
 import { CustomBadge } from './custom-badge'
 import { type Id } from 'convex/_generated/dataModel'
 import { BrandingLogForm, type BrandingLogFormValues } from '@/route-components/branding/forms/branding-log-form'
@@ -31,6 +32,7 @@ type ProductItem = {
   isCustomSewing?: boolean
   customCutComment?: string
   customSewingComment?: string
+  brandingComment?: string | null
 }
 
 type Props = {
@@ -145,6 +147,22 @@ export const ProductItemCard = ({ item, completedQty, defectQty, brandingTaskId,
             customCutComment={item.customCutComment}
             customSewingComment={item.customSewingComment}
           />
+          {item.brandingComment && (
+            <MyPopover
+              align="start"
+              trigger={
+                <button type="button" className="shrink-0 text-amber-500 hover:opacity-70 transition-opacity">
+                  <MessageSquareText size={16} />
+                </button>
+              }
+              content={
+                <div className="flex flex-col gap-0.5 p-3 w-56">
+                  <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Брендування</span>
+                  <p className="text-xs text-primary">{item.brandingComment}</p>
+                </div>
+              }
+            />
+          )}
           <div className="flex bg-muted rounded-md p-1 items-center justify-center shrink-0">
             {ICON_BY_TYPE[item.shipmentType as keyof typeof ICON_BY_TYPE] ?? <CircleQuestionMarkIcon className="size-4" />}
           </div>

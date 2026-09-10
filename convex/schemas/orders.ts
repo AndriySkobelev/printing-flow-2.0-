@@ -44,8 +44,11 @@ export const productionOrderItems = {
   productionOrderId: v.id("productionOrders"),
   keycrmOrderId: v.optional(v.string()),
   keycrmProductId: v.optional(v.number()),
+  // Set when this item was synced from KeyCRM without a matching `products`
+  // row (SKU not set up yet) while "дозволити неналаштовані товари" was on —
+  // productId is left unset until someone finishes configuring the product.
   isNew: v.optional(v.boolean()),
-  productId: v.id("products"),
+  productId: v.optional(v.id("products")),
   inProduction: v.optional(v.boolean()),
   name: v.string(),
   sku: v.string(),
