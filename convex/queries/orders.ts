@@ -693,6 +693,9 @@ export const creatreProductionOrder = mutation({
       return null;
     }
 
+    const settings = await ctx.db.query('systemSettings').first();
+    const allowUnconfiguredProducts = settings?.allowUnconfiguredProducts ?? false;
+
     // 1. Create productionOrder
     const plannedShipDate = externalData.shipping?.shipping_date_actual
       ? new Date(externalData.shipping.shipping_date_actual).getTime()
@@ -721,7 +724,11 @@ export const creatreProductionOrder = mutation({
       const size  = product.properties.find((p: any) => p.name === 'розмір')?.value ?? '';
       const productSkuPrefix = product.sku ? String(product.sku).split('-')[0] : '';
       const productDoc = await ctx.db.query('products').withIndex('search_sku', q => q.eq('sku', product.sku)).first();
-      if (!productDoc) continue;
+      // Unconfigured SKU (no matching `products` row) — skip it entirely
+      // unless the "allow unconfigured products" system setting is on, in
+      // which case the item is still created (no productId, isNew: true) so
+      // production isn't blocked on someone finishing its setup.
+      if (!productDoc && !allowUnconfiguredProducts) continue;
 
       const spec = await ctx.db.query('specifications').withIndex('search_skuPrefix', q => q.eq('skuPrefix', productSkuPrefix)).first();
       let processingType: 'branding' | 'embroidery' | 'silkscreen' | 'none' = 'none';
@@ -736,7 +743,8 @@ export const creatreProductionOrder = mutation({
 
       const itemId = await ctx.db.insert('productionOrderItems', {
         productionOrderId,
-        productId: productDoc._id,
+        productId: productDoc?._id,
+        isNew: !productDoc,
         keycrmOrderId,
         keycrmProductId: product.offer.product_id,
         name: spec?.name ?? product?.name,
