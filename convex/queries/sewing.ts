@@ -220,7 +220,7 @@ export const getMySubTasks = query({
       const productionOrder = task ? await ctx.db.get(task.productionOrderId) : null
 
       const item    = st.productionOrderItemId ? await ctx.db.get(st.productionOrderItemId) : null
-      const product = item ? await ctx.db.get(item.productId) : null
+      const product = item?.productId ? await ctx.db.get(item.productId) : null
       const spec    = product ? await ctx.db.get(product.parentId) : null
 
       return {

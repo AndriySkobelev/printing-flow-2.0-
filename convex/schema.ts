@@ -105,6 +105,18 @@ const plannerEventsTable = defineTable(plannerEventsSchema)
   .index('by_date', ['date'])
   .index('by_sewer_date', ['sewerId', 'date'])
 
+// Singleton row (there should only ever be one document in this table) holding
+// system-wide toggles — see convex/queries/settings.ts.
+export const systemSettingsSchema = {
+  // When true, syncing an order from KeyCRM creates its production items even
+  // for products whose SKU isn't set up yet in `products` (no productId/spec
+  // to build cutting/sewing/branding tasks or reserve materials from — the
+  // item is inserted with `isNew: true` and no productId).
+  allowUnconfiguredProducts: v.boolean(),
+}
+
+const systemSettingsTable = defineTable(systemSettingsSchema)
+
 export type Materials = Doc<'materials'>;
 export type MaterialVariants = Doc<'materialVariants'>;
 export type Users = Doc<'users'>;
@@ -172,4 +184,5 @@ export default defineSchema({
     .index('by_status', ['status']),
   stockBalances: stockBalancesTable
     .index('by_materialId', ['materialId']),
+  systemSettings: systemSettingsTable,
 });

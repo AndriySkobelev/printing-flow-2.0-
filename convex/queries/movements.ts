@@ -147,8 +147,10 @@ export const getOrderRequiredMaterials = query({
       .collect();
     const items = allItems.filter(item => item.shipmentType === 'manufacturing');
 
-    // Phase 1: batch-fetch deduplicated products, then their specs.
-    const productIds = [...new Set(items.map(item => item.productId))];
+    // Phase 1: batch-fetch deduplicated products, then their specs. Items
+    // without a productId yet (unconfigured products, see systemSettings)
+    // simply contribute nothing here — filtered out before ctx.db.get.
+    const productIds = [...new Set(items.map(item => item.productId).filter((id): id is NonNullable<typeof id> => !!id))];
     const products = await Promise.all(productIds.map(id => ctx.db.get(id)));
     const productById = new Map(products.filter((p): p is NonNullable<typeof p> => !!p).map(p => [p._id, p]));
 
@@ -159,6 +161,7 @@ export const getOrderRequiredMaterials = query({
     // Phase 2: sync aggregation across items using the prefetched maps.
     const requiredByMaterial = new Map<string, RequiredMaterial>();
     for (const item of items) {
+      if (!item.productId) continue;
       const product = productById.get(item.productId);
       if (!product) continue;
       const spec = specById.get(product.parentId);
@@ -232,7 +235,10 @@ export const createIncoming = mutation({
 // manufacturing line MUST have a product-level material assignment (matched by
 // lineId, a specific fabricVariant/materialVariant) — there is no generic
 // parent-level fallback, so a missing assignment blocks the whole order from
-// going to production (fail fast, before any reservation is written).
+// going to production (fail fast, before any reservation is written) — unless
+// systemSettings.allowUnconfiguredProducts is on, in which case an item/line
+// with nothing to go on is just skipped (no reservation for it) instead of
+// blocking the rest of the order.
 export const createOrderMaterialReservations = async (ctx: MutationCtx, {
   manager,
   orderShippingDate,
@@ -241,10 +247,12 @@ export const createOrderMaterialReservations = async (ctx: MutationCtx, {
 }: {
   manager: string,
   orderShippingDate?: number,
-  items: Array<{ productionOrderItemId: Id<'productionOrderItems'>, productId: Id<'products'>, sku: string, quantity: number, shipmentType: 'manufacturing' | 'warehouse' | null }>,
+  items: Array<{ productionOrderItemId: Id<'productionOrderItems'>, productId?: Id<'products'>, sku: string, quantity: number, shipmentType: 'manufacturing' | 'warehouse' | null }>,
   userId: Id<'users'>,
 }) => {
   const shippingDate = orderShippingDate ? new UTCDate(orderShippingDate).toISOString() : undefined;
+  const settings = await ctx.db.query('systemSettings').first();
+  const allowUnconfiguredProducts = settings?.allowUnconfiguredProducts ?? false;
 
   const pendingReservations: Array<{
     productionOrderItemId: Id<'productionOrderItems'>,
@@ -257,18 +265,21 @@ export const createOrderMaterialReservations = async (ctx: MutationCtx, {
 
   for (const item of items) {
     if (item.shipmentType !== 'manufacturing') continue;
+    // Unconfigured product (allowed through by systemSettings) — nothing to
+    // reserve, and not an error: it just has no material data to go on yet.
+    if (!item.productId) continue;
 
     const product = await ctx.db.get(item.productId);
-    if (!product) { missingAssignments.push(`${item.sku}: товар не знайдено`); continue; }
+    if (!product) { if (!allowUnconfiguredProducts) missingAssignments.push(`${item.sku}: товар не знайдено`); continue; }
     const spec = await ctx.db.get(product.parentId);
-    if (!spec) { missingAssignments.push(`${item.sku}: специфікацію не знайдено`); continue; }
+    if (!spec) { if (!allowUnconfiguredProducts) missingAssignments.push(`${item.sku}: специфікацію не знайдено`); continue; }
 
     const productOverrides = product.materials ?? [];
 
     for (const specMaterial of spec.materials) {
       const override = productOverrides.find((m) => m.lineId && m.lineId === specMaterial.lineId);
       if (!override) {
-        missingAssignments.push(`${item.sku}: не призначено матеріал для "${specMaterial.name ?? specMaterial.lineId ?? '—'}"`);
+        if (!allowUnconfiguredProducts) missingAssignments.push(`${item.sku}: не призначено матеріал для "${specMaterial.name ?? specMaterial.lineId ?? '—'}"`);
         continue;
       }
 
