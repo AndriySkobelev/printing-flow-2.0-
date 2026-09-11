@@ -17,7 +17,9 @@ export const getKeyCrmProductCategories = action({
     const data = await res.json();
     // KeyCRM wraps list responses as { data: [...] } — extract the array.
     const categories = (Array.isArray(data) ? data : (data?.data ?? [])) as Array<{ id: number; name: string; parent_id?: number | null }>;
-    return categories.filter(c => c.parent_id === CATEGORY_PARENT_ID);
+    console.log('categories', categories)
+    // return categories.filter(c => c.parent_id === CATEGORY_PARENT_ID);
+    return categories;
   },
 });
 
