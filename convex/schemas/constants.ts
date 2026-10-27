@@ -38,3 +38,45 @@ export const KEYCRM_CUSTOM_FIELD_UUIDS = {
   isCuttingPrint:       'OR_1006',
   isCuttingEmbroidery:  'OR_1007',
 } as const
+
+// KeyCRM select custom fields whose selected option encodes a productionOrderItem
+// SKU prefix in brackets, e.g. "Свідшот (без начосу) [ВСПБ]" -> skuPrefix "ВСПБ".
+// A productionOrderItem whose own SKU prefix appears there gets the matching
+// brandingType (or cuttingBrandingType, for the "на кроях" fields) set.
+export const BRANDING_TYPE_FIELD_MAPPINGS = [
+  { uuid: 'OR_1014', brandingType: 'dtf',        isCutting: false },
+  { uuid: 'OR_1016', brandingType: 'dtf',        isCutting: true  },
+  { uuid: 'OR_1017', brandingType: 'embroidery', isCutting: false },
+  { uuid: 'OR_1018', brandingType: 'embroidery', isCutting: true  },
+] as const satisfies ReadonlyArray<{ uuid: string; brandingType: BrandingType; isCutting: boolean }>
+
+// Extracts the last bracketed value from a KeyCRM select option, e.g.
+// "Свідшот (без начосу) [ВСПБ]" -> "ВСПБ".
+export function extractSkuPrefixFromCustomFieldValue(value: string): string | null {
+  const matches = [...value.matchAll(/\[([^[\]]+)\]/g)]
+  return matches.length ? matches[matches.length - 1][1].trim() : null
+}
+
+// Resolves brandingType/cuttingBrandingType for a productionOrderItem from the
+// order's KeyCRM custom_fields, by matching its own SKU prefix against the
+// bracketed values selected in BRANDING_TYPE_FIELD_MAPPINGS fields.
+export function resolveBrandingTypesFromCustomFields(
+  customFields: ReadonlyArray<{ uuid: string; value: unknown }>,
+  skuPrefix: string,
+): { brandingType?: BrandingType[]; cuttingBrandingType?: BrandingType[] } {
+  if (!skuPrefix) return {}
+  const brandingType = new Set<BrandingType>()
+  const cuttingBrandingType = new Set<BrandingType>()
+
+  for (const mapping of BRANDING_TYPE_FIELD_MAPPINGS) {
+    const field = customFields.find(f => f.uuid === mapping.uuid)
+    const values = Array.isArray(field?.value) ? field.value : []
+    const matched = values.some(v => typeof v === 'string' && extractSkuPrefixFromCustomFieldValue(v) === skuPrefix)
+    if (matched) (mapping.isCutting ? cuttingBrandingType : brandingType).add(mapping.brandingType)
+  }
+
+  return {
+    brandingType: brandingType.size ? [...brandingType] : undefined,
+    cuttingBrandingType: cuttingBrandingType.size ? [...cuttingBrandingType] : undefined,
+  }
+}
