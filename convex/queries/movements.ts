@@ -160,8 +160,33 @@ export const getOrderRequiredMaterials = query({
 
     // Phase 2: sync aggregation across items using the prefetched maps.
     const requiredByMaterial = new Map<string, RequiredMaterial>();
+    const addRequired = (required: RequiredMaterial) => {
+      const key = `${required.materialType}:${required.materialId}`;
+      const existing = requiredByMaterial.get(key);
+      if (existing) {
+        existing.quantity += required.quantity;
+      } else {
+        requiredByMaterial.set(key, required);
+      }
+    };
+
     for (const item of items) {
       if (!item.productId) continue;
+
+      // The item's own edited copy of its spec (see orderItemSpec.ts) — same
+      // resolution as createOrderMaterialReservations.
+      if (item.specMaterials) {
+        for (const line of item.specMaterials) {
+          addRequired({
+            unassigned: false,
+            materialType: line.type === 'material' ? 'materialVariants' : 'fabricVariants',
+            materialId: line.id,
+            quantity: line.quantity * item.quantity,
+          });
+        }
+        continue;
+      }
+
       const product = productById.get(item.productId);
       if (!product) continue;
       const spec = specById.get(product.parentId);
@@ -179,19 +204,13 @@ export const getOrderRequiredMaterials = query({
         const multiplier = override?.multiplier ?? 1;
         const quantity = Number(specMaterial.quantity) * multiplier * item.quantity;
 
-        const key = `${materialType}:${materialId}`;
-        const existing = requiredByMaterial.get(key);
-        if (existing) {
-          existing.quantity += quantity;
-        } else {
-          requiredByMaterial.set(key, {
-            unassigned: !override,
-            materialType,
-            materialId,
-            units: specMaterial.units,
-            quantity,
-          });
-        }
+        addRequired({
+          unassigned: !override,
+          materialType,
+          materialId,
+          units: specMaterial.units,
+          quantity,
+        });
       }
     }
 
@@ -268,6 +287,23 @@ export const createOrderMaterialReservations = async (ctx: MutationCtx, {
     // Unconfigured product (allowed through by systemSettings) — nothing to
     // reserve, and not an error: it just has no material data to go on yet.
     if (!item.productId) continue;
+
+    // The item's own edited copy of its spec (see orderItemSpec.ts) already
+    // points straight at variants — it replaces spec + product assignments.
+    const orderItem = await ctx.db.get(item.productionOrderItemId);
+    if (orderItem?.specMaterials) {
+      for (const line of orderItem.specMaterials) {
+        const quantity = line.quantity * item.quantity;
+        pendingReservations.push({
+          productionOrderItemId: item.productionOrderItemId,
+          materialType: line.type === 'material' ? 'materialVariants' : 'fabricVariants',
+          materialId: line.id,
+          quantity,
+          productInfo: [`${item.sku}|${item.quantity}|${quantity}`],
+        });
+      }
+      continue;
+    }
 
     const product = await ctx.db.get(item.productId);
     if (!product) { if (!allowUnconfiguredProducts) missingAssignments.push(`${item.sku}: товар не знайдено`); continue; }

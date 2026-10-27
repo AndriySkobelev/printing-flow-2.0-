@@ -19,6 +19,7 @@ import type * as queries_fabrics from "../queries/fabrics.js";
 import type * as queries_manipulations from "../queries/manipulations.js";
 import type * as queries_materials from "../queries/materials.js";
 import type * as queries_movements from "../queries/movements.js";
+import type * as queries_orderItemSpec from "../queries/orderItemSpec.js";
 import type * as queries_orders from "../queries/orders.js";
 import type * as queries_packaging from "../queries/packaging.js";
 import type * as queries_planner from "../queries/planner.js";
@@ -50,6 +51,7 @@ declare const fullApi: ApiFromModules<{
   "queries/manipulations": typeof queries_manipulations;
   "queries/materials": typeof queries_materials;
   "queries/movements": typeof queries_movements;
+  "queries/orderItemSpec": typeof queries_orderItemSpec;
   "queries/orders": typeof queries_orders;
   "queries/packaging": typeof queries_packaging;
   "queries/planner": typeof queries_planner;

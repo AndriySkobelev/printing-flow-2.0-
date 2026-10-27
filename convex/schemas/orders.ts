@@ -81,6 +81,21 @@ export const productionOrderItems = {
   destination: v.optional(v.nullable(destinationTypeV)),
   brandingType: v.optional(v.nullable(v.array(brandingTypeV))),
   cuttingBrandingType: v.optional(v.nullable(v.array(brandingTypeV))),
+  // This item's own copy of its spec's material lines, edited before it goes
+  // to production — each line points straight at a variant (one item = one
+  // color), and `quantity` is per one unit of product. When set, reservations
+  // use it instead of spec.materials + product.materials (see orderItemSpec.ts).
+  specMaterials: v.optional(v.array(v.object({
+    lineId: v.string(),
+    name: v.optional(v.string()),
+    type: v.union(v.literal('fabric'), v.literal('material')),
+    id: v.union(v.id('fabricVariants'), v.id('materialVariants')),
+    quantity: v.number(),
+  }))),
+  // Whether isCustomCut/isCustomSewing were set by a specMaterials edit (and
+  // so may be cleared by it again) rather than by hand.
+  autoCustomCut: v.optional(v.boolean()),
+  autoCustomSewing: v.optional(v.boolean()),
 };
 
 export const subcontractorTasks = {

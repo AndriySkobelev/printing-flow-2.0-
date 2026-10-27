@@ -28,6 +28,8 @@ export type OrderItem = {
   brandingType?: BrandingTypeValue[] | null
   cuttingBrandingType?: BrandingTypeValue[] | null
   inProduction?: boolean | null
+  productId?: string | null
+  hasCustomSpec?: boolean
 }
 
 export type AdditionalInfo = {

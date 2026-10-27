@@ -492,6 +492,8 @@ export const getProductionOrderDetails = query({
         isCustomSewing:       i.isCustomSewing ?? null,
         customCutComment:     i.customCutComment ?? null,
         customSewingComment:  i.customSewingComment ?? null,
+        productId:            i.productId ?? null,
+        hasCustomSpec:        !!i.specMaterials,
       })),
     }
   },
@@ -1088,6 +1090,9 @@ export const updateOrderItem = mutation({
       ...fields,
       ...(isCustomCut   != null ? { isCustomCut }   : {}),
       ...(isCustomSewing != null ? { isCustomSewing } : {}),
+      // Toggled by hand — no longer owned by the spec-copy auto flags (orderItemSpec.ts).
+      ...(isCustomCut    != null && isCustomCut    !== !!item.isCustomCut    ? { autoCustomCut: false }    : {}),
+      ...(isCustomSewing != null && isCustomSewing !== !!item.isCustomSewing ? { autoCustomSewing: false } : {}),
       ...(customCutComment    != null ? { customCutComment }    : {}),
       ...(customSewingComment != null ? { customSewingComment } : {}),
     })
