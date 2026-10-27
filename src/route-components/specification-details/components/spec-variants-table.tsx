@@ -4,7 +4,7 @@ import { convexQuery } from '@convex-dev/react-query'
 import { api } from 'convex/_generated/api'
 import { type Id } from 'convex/_generated/dataModel'
 import { type HeaderObject, type CellClickProps, type RowSelectionChangeProps } from 'simple-table-core'
-import { Check, CheckCheck, Plus, SquarePen } from 'lucide-react'
+import { Check, CheckCheck, Info, Plus, SquarePen } from 'lucide-react'
 import AppTable from '@/components/ui/app-table'
 import { Button } from '@/components/ui/button'
 import { productSizes } from '@/constants'
@@ -113,15 +113,19 @@ export const SpecVariantsTable = ({ specificationId }: Props) => {
     })
   }, [variantSet])
 
+  const openVariantDetails = useCallback((product: { _id: Id<'products'>, color: string, size: string }) => {
+    openDialog({
+      title: `${product.color} · ${product.size}`,
+      className: 'sm:w-200 sm:max-w-200',
+      content: <VariantDetailContent productId={product._id} />,
+    })
+  }, [openDialog])
+
   const handleCellContextMenu = useCallback((e: React.MouseEvent, color: string, size: string) => {
     e.preventDefault()
     const product = products.find(p => p.color === color && p.size === size)
-    if (!product) return
-    openDialog({
-      title: `${color} · ${size}`,
-      content: <VariantDetailContent productId={product._id} />,
-    })
-  }, [products, openDialog])
+    if (product) openVariantDetails(product)
+  }, [products, openVariantDetails])
 
   // Toggle every row's cell in this size column at once. If every cell in the
   // column is already active (selected/pending), the click clears them all —
@@ -257,6 +261,20 @@ export const SpecVariantsTable = ({ specificationId }: Props) => {
           <ColorFilterMenu colors={colorNames} selected={colorFilter} onChange={setColorFilter} />
         </div>
         <div className="flex items-center gap-2 shrink-0">
+          {selectedProductIds.length === 1 && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-6 text-[11px] px-2"
+              onClick={() => {
+                const product = products.find(p => p._id === selectedProductIds[0])
+                if (product) openVariantDetails(product)
+              }}
+            >
+              <Info size={10} className="mr-1" />
+              Деталі варіанта
+            </Button>
+          )}
           {selectedProductIds.length > 0 && (
             <Button size="sm" variant="outline" className="h-6 text-[11px] px-2" onClick={handleEditMaterials}>
               <SquarePen size={10} className="mr-1" />

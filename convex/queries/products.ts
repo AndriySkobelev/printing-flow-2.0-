@@ -43,6 +43,32 @@ export const getFabricsByNameAndColors = async (ctx: QueryCtx, fabricName: strin
   return colors ? result.filter(v => colors.includes(v.color)) : result;
 }
 
+// Builds a picker that, for a new product's color/size, assigns each given
+// spec line the matching variant of its parent fabric/material: same color,
+// and for materials with several sizes in that color, the product's size.
+// No match -> the line is left unassigned. Variants are read once per line,
+// not once per product (keeps bulk creation under Convex's read limit).
+const buildLineVariantPicker = async (
+  ctx: QueryCtx,
+  lines: Array<{ id: Id<'fabrics'> | Id<'materials'>, type?: 'fabric' | 'material', lineId?: string }>,
+) => {
+  const withVariants = await Promise.all(lines.map(async (line) => {
+    const type = line.type ?? 'fabric';
+    const variants: Array<{ _id: Id<'fabricVariants'> | Id<'materialVariants'>, color: string, size?: string, skuNumber: number }> = type === 'material'
+      ? await ctx.db.query('materialVariants').withIndex('by_parentId', q => q.eq('parentId', line.id as Id<'materials'>)).collect()
+      : await ctx.db.query('fabricVariants').withIndex('by_parentId', q => q.eq('parentId', line.id as Id<'fabrics'>)).collect();
+    return { lineId: line.lineId, type, variants: variants.sort((a, b) => a.skuNumber - b.skuNumber) };
+  }));
+
+  return (color: string, size: string) => withVariants.flatMap(({ lineId, type, variants }) => {
+    const sameColor = variants.filter(v => v.color === color);
+    const picked = type === 'fabric' || sameColor.length === 1
+      ? sameColor[0]
+      : sameColor.find(v => v.size === size);
+    return picked ? [{ id: picked._id, type, multiplier: 1, lineId }] : [];
+  });
+}
+
 export const getSpecWithMaterials = async (ctx: QueryCtx, specId: Id<'specifications'>) => {
   const spec = await ctx.db.get('specifications', specId);
   if (!spec) return null;
@@ -229,6 +255,9 @@ export const createProductsBySpecification = mutation({
       throw new Error(`Specification with id ${args.specification} not found`);
     }
 
+    // Base fabric is matched above by name/color; the rest of the lines by color here.
+    const pickLineVariants = await buildLineVariantPicker(ctx, spec.materials.slice(1));
+
     let skuNumber = spec?.lastVariantIndex ?? 0;
     const combineProducts = fabricsByColors?.flatMap((fabric, colIndex) => sizes?.map((size, sIndex) => {
       const numberSku = ++skuNumber
@@ -241,6 +270,7 @@ export const createProductsBySpecification = mutation({
         searchText: `${spec?.name}.${size}.${fabric?.color}`,
         materials: [
           { id: fabric._id as any, type: 'fabric' as const, multiplier: 1, lineId: specFabric?.lineId },
+          ...pickLineVariants(fabric.color, size),
         ],
         sku: `${spec?.skuPrefix}-${String(numberSku).padStart(5, '0')}`,
       }
@@ -275,6 +305,7 @@ export const createSpecVariants = mutation({
     // variants requested at once that blew past Convex's per-mutation read limit.
     const fabricVariants = await getFabricsByNameAndColors(ctx, baseFabric.name);
     const fabricVariantByColor = new Map(fabricVariants.map(v => [v.color, v]));
+    const pickLineVariants = await buildLineVariantPicker(ctx, spec.materials.slice(1));
 
     let skuNumber = spec.lastVariantIndex ?? 0;
 
@@ -288,9 +319,12 @@ export const createSpecVariants = mutation({
         skuNumber: numberSku,
         processingType: colorFabricVariant?.processingType ?? null,
         searchText: `${spec.name}.${size}.${color}`,
-        materials: colorFabricVariant
-          ? [{ id: colorFabricVariant._id as any, type: 'fabric' as const, multiplier: 1, lineId: baseMaterial.lineId }]
-          : [],
+        materials: [
+          ...(colorFabricVariant
+            ? [{ id: colorFabricVariant._id as any, type: 'fabric' as const, multiplier: 1, lineId: baseMaterial.lineId }]
+            : []),
+          ...pickLineVariants(color, size ?? ''),
+        ],
         sku: `${spec.skuPrefix}-${String(numberSku).padStart(5, '0')}`,
       });
     }
@@ -404,11 +438,15 @@ export const getProductVariantDetails = query({
         };
       }
 
+      const multiplier = assignment?.multiplier ?? 1;
       return {
         lineId: specMat.lineId,
+        lineName: specResolved.lineName ?? null,
         name: specResolved.name ?? '—',
         quantity: specMat.quantity,
-        units: specMat.units,
+        multiplier,
+        totalQuantity: Number(specMat.quantity) * multiplier,
+        units: specResolved.units,
         type: specMat.type,
         assignedVariant,
       };
@@ -418,6 +456,10 @@ export const getProductVariantDetails = query({
       sku: product.sku,
       size: product.size,
       color: product.color,
+      specName: spec.name,
+      processingType: product.processingType ?? null,
+      migrated: product.migrated ?? false,
+      syncedAt: product.synced_at ?? null,
       lines,
     };
   },
