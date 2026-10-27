@@ -6,7 +6,7 @@ import { api } from '../_generated/api'
 import { getAuthUserId } from '@convex-dev/auth/server'
 import { omit } from 'ramda'
 import { createOrderMaterialReservations } from './movements'
-import { KEYCRM_CUSTOM_FIELD_UUIDS, productionOrderStatusV } from '../schemas/constants'
+import { KEYCRM_CUSTOM_FIELD_UUIDS, productionOrderStatusV, resolveBrandingTypesFromCustomFields } from '../schemas/constants'
 
 // Only these branding types are actually done by the branding department —
 // items with no type, or only types handled elsewhere (embroidery,
@@ -718,6 +718,7 @@ export const creatreProductionOrder = mutation({
 
     // 3. Create productionOrderItems
     const orderItems: OrderItemEntry[] = [];
+    const customFields = (externalData.custom_fields ?? []) as Array<{ uuid: string; value: unknown }>;
 
     for (const product of physicalProducts) {
       const color = product.properties.find((p: any) => p.name === 'колір')?.value ?? '';
@@ -740,6 +741,7 @@ export const creatreProductionOrder = mutation({
         if (mapping) processingType = mapping.processingType;
       }
       const shipmentType = product.shipment_type as 'manufacturing' | 'warehouse';
+      const { brandingType, cuttingBrandingType } = resolveBrandingTypesFromCustomFields(customFields, productSkuPrefix);
 
       const itemId = await ctx.db.insert('productionOrderItems', {
         productionOrderId,
@@ -756,6 +758,8 @@ export const creatreProductionOrder = mutation({
         shipmentType,
         keycrmProductStatusId: product.product_status_id ?? null,
         processingType,
+        brandingType,
+        cuttingBrandingType,
       });
 
       orderItems.push({
