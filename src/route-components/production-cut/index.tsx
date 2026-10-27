@@ -14,7 +14,8 @@ import { MyPopover } from '@/components/my-popover'
 import { Calendar } from '@/components/ui/calendar'
 import { UTCDate } from '@date-fns/utc'
 import { SizeInfo } from './components/size-info'
-import { SpecInfo, type SpecData } from './components/spec-info'
+import { type SpecData } from './components/spec-info'
+import { CuttingSpecDetails } from './components/cutting-spec-details'
 import { OrderInfo } from './components/order-info'
 import { StatusFilter } from './components/status-filter'
 import { OrderLogs } from '@/components/order-logs'
@@ -81,6 +82,7 @@ interface Order {
   note: string
   isCustomCut: boolean
   customCutComment: string | null
+  hasCustomSpec: boolean
   relevantLogsCount: number
   unseenLogsCount: number
 }
@@ -174,6 +176,24 @@ const StatusCell = ({ row, onUpdate }: { row: OrderRow; onUpdate: (id: string, s
   )
 }
 
+// Spec elements this cutting task actually uses — the items' edited copies
+// where they exist (see getCuttingTaskSpecDetails), with changes vs the base marked.
+const SpecCell = ({ row }: { row: OrderRow }) => (
+  <MyPopover
+    align="start"
+    withArrow
+    trigger={
+      <button className="flex items-center gap-1 text-sm text-left decoration-dotted underline-offset-2 cursor-pointer capitalize hover:text-primary transition-colors">
+        {row.specName}
+        {row.hasCustomSpec && (
+          <span className="px-1 py-0.5 rounded bg-violet-100 text-violet-700 text-[9px] font-medium normal-case" title="Змінена специфікація">змін.</span>
+        )}
+      </button>
+    }
+    content={<CuttingSpecDetails cuttingTaskId={row.id as Id<'cuttingTasks'>} />}
+  />
+)
+
 // ─── Table headers ────────────────────────────────────────────────────────────
 
 const relevantLogFilter = (log: { type: string; changes?: Record<string, unknown> | null }) =>
@@ -234,22 +254,7 @@ const makeHeaders = (
   },
   {
     accessor: 'specName', label: 'Виріб', width: 140, isSortable: true, type: 'string',
-    cellRenderer: ({ row }) => {
-      const o = row as OrderRow
-      if (!o.spec) return <span className="text-sm">{o.specName}</span>
-      return (
-        <MyPopover
-          align="start"
-          withArrow
-          trigger={
-            <button className="text-sm text-left decoration-dotted underline-offset-2 cursor-pointer capitalize hover:text-primary transition-colors">
-              {o.specName}
-            </button>
-          }
-          content={<SpecInfo spec={o.spec} />}
-        />
-      )
-    },
+    cellRenderer: ({ row }) => <SpecCell row={row as OrderRow} />,
   },
   { accessor: 'material', label: 'Матеріал', width: 160, isSortable: true, type: 'string' },
   { accessor: 'color',    label: 'Колір',    width: 120, isSortable: true, type: 'string' },
@@ -389,6 +394,7 @@ export default function ProductionCut() {
       note:              task.note ?? '',
       isCustomCut:       (task as any).isCustomCut ?? false,
       customCutComment:  (task as any).customCutComment ?? null,
+      hasCustomSpec:     task.sizes.some(s => (s as any).hasCustomSpec),
       relevantLogsCount: task.relevantLogsCount ?? 0,
       unseenLogsCount:   task.unseenLogsCount   ?? 0,
     })),

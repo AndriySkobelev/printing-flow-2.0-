@@ -2,9 +2,8 @@ import { v } from 'convex/values'
 import { query, mutation } from '../_generated/server'
 import type { QueryCtx } from '../_generated/server'
 import type { Doc, Id } from '../_generated/dataModel'
-import { resolveMaterialVariant } from './specifications'
 
-type SpecLine = {
+export type SpecLine = {
   lineId: string,
   name?: string,
   type: 'fabric' | 'material',
@@ -23,7 +22,7 @@ const specLineV = v.object({
 // The lines an item would use without its own copy: the spec's material lines,
 // each with the variant (and multiplier) assigned to it on the product by
 // lineId. `id` is null for a line the product has no assignment for yet.
-const getBaseSpecLines = async (ctx: QueryCtx, item: Doc<'productionOrderItems'>): Promise<Array<SpecLine> | null> => {
+export const getBaseSpecLines = async (ctx: QueryCtx, item: Doc<'productionOrderItems'>): Promise<Array<SpecLine> | null> => {
   if (!item.productId) return null
   const product = await ctx.db.get(item.productId)
   if (!product) return null
@@ -40,6 +39,33 @@ const getBaseSpecLines = async (ctx: QueryCtx, item: Doc<'productionOrderItems'>
       quantity: Number(m.quantity) * (override?.multiplier ?? 1),
     }
   })
+}
+
+// The lines an item actually uses: its own edited copy, else the base lines.
+export const getEffectiveSpecLines = async (ctx: QueryCtx, item: Doc<'productionOrderItems'>) => {
+  if (item.specMaterials) return { isCustom: true, lines: item.specMaterials as Array<SpecLine> }
+  const lines = await getBaseSpecLines(ctx, item)
+  return lines ? { isCustom: false, lines } : null
+}
+
+// Display info for a line's variant: "name · size · color · sku" plus the
+// parent's units.
+export const resolveSpecLineVariant = async (ctx: QueryCtx, line: SpecLine) => {
+  const empty = { label: null, sku: null, materialName: null, color: null, units: null }
+  if (!line.id) return empty
+  const variant: Doc<'materialVariants'> | Doc<'fabricVariants'> | null = line.type === 'material'
+    ? await ctx.db.get(line.id as Id<'materialVariants'>)
+    : await ctx.db.get(line.id as Id<'fabricVariants'>)
+  if (!variant) return empty
+  const parent = await ctx.db.get(variant.parentId)
+  const size = 'size' in variant ? variant.size : undefined
+  return {
+    label: [parent?.name, size, variant.color, variant.sku].filter(Boolean).join(' · '),
+    sku: variant.sku ?? null,
+    materialName: parent?.name ?? null,
+    color: variant.color ?? null,
+    units: parent?.units ?? null,
+  }
 }
 
 // Compares an edited copy against the base lines:
@@ -91,18 +117,16 @@ export const getOrderItemSpecMaterials = query({
     const item = await ctx.db.get(itemId)
     if (!item) return null
 
-    const lines = item.specMaterials ?? await getBaseSpecLines(ctx, item)
-    if (!lines) return null
+    const effective = await getEffectiveSpecLines(ctx, item)
+    if (!effective) return null
 
-    const withLabels = await Promise.all(lines.map(async (line) => {
-      if (!line.id) return { ...line, label: null }
-      const resolved = await resolveMaterialVariant(ctx, { id: line.id, type: line.type })
-      const label = [resolved.name, resolved.size, resolved.color, resolved.sku].filter(Boolean).join(' · ')
+    const withLabels = await Promise.all(effective.lines.map(async (line) => {
+      const { label } = await resolveSpecLineVariant(ctx, line)
       return { ...line, label }
     }))
 
     return {
-      isCustom: !!item.specMaterials,
+      isCustom: effective.isCustom,
       inProduction: item.inProduction ?? false,
       lines: withLabels,
     }
