@@ -6,15 +6,16 @@ import { omit } from "ramda";
 import { v } from "convex/values";
 
 // Spec material lines reference the generic parent fabric/material (no color)
-// via { id, type }. This resolves that parent doc for display (name).
-export const resolveMaterialParent = async <T extends { id: any, type?: 'fabric' | 'material', name?: string }>(
+// via { id, type }. This resolves that parent doc for display (name, units).
+// The line's own `name` is kept as `lineName`, since `name` is the parent's.
+export const resolveMaterialParent = async <T extends { id: any, type?: 'fabric' | 'material', name?: string, units?: string }>(
   ctx: QueryCtx,
   material: T
-): Promise<T & { name?: string }> => {
+): Promise<T & { name?: string, lineName?: string, units?: string }> => {
   const parent = material.type === 'material'
     ? await ctx.db.get('materials', material.id)
     : await ctx.db.get('fabrics', material.id);
-  return { ...material, name: parent?.name ?? material.name };
+  return { ...material, name: parent?.name ?? material.name, lineName: material.name, units: parent?.units ?? material.units };
 }
 
 // Product-level material overrides reference a specific fabricVariant/materialVariant

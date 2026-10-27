@@ -36,7 +36,7 @@ const specificationSchema = z.object({
   // first line is always the base fabric by convention (see products.ts).
   materials: z.array(z.object({
     type: z.union([z.literal('material'), z.literal('fabric')]),
-    units: z.string(),
+    name: z.string().min(1, 'Must be an 1 min charts'),
     quantity: z.string(),
     id: selectFieldSchema,
   }))
@@ -45,15 +45,15 @@ const specificationSchema = z.object({
 const defaultMaterialValues = {
   type: 'material' as const,
   id: undefined,
+  name: '',
   quantity: '',
-  units: ''
 }
 
 const defaultFabricsValues = {
   type: 'fabric' as const,
   id: undefined,
+  name: '',
   quantity: '',
-  units: ''
 }
 
 export type SpecificationFormType = z.infer<typeof specificationSchema>
@@ -110,7 +110,7 @@ const SpecificationForm: FunctionComponent<SpecificationFormProps> = ({
         packingTime:    '0',
         brandingTime:   '0',
         materials: [
-          { type: 'fabric' as const, id: undefined, quantity: '1', units: '' }
+          { type: 'fabric' as const, id: undefined, name: '', quantity: '1' }
         ]
       }
     }
@@ -206,9 +206,12 @@ const SpecificationForm: FunctionComponent<SpecificationFormProps> = ({
             {(field) => (
               <div className='flex flex-col gap-2 w-full'>
                   <div className="flex flex-col items-center gap-2 w-full">
-                    <span className="text-primary/40">Матеріали</span>
+                    <span className="text-primary/40">Елементи</span>
                     {field.state.value.map((value, i) => (
                       <div key={i} className={clsx('flex gap-2 w-full items-end')}>
+                        <form.AppField key={`name-${i}`} name={`materials[${i}].name`}
+                          children={(subField) => (<subField.FormTextField className="flex-4" type='text' label="Назва"/>)}
+                        />
                         <form.AppField key={`id-${i}`} name={`materials[${i}].id`}
                           children={(subField) => (
                             <subField.FormAsyncSelect
@@ -223,15 +226,7 @@ const SpecificationForm: FunctionComponent<SpecificationFormProps> = ({
                         <form.AppField key={`quantity-${i}`} name={`materials[${i}].quantity`}
                           children={(subField) => (<subField.FormTextNumberField className="flex-3" type='number' label="Кількість"/>)}
                         />
-                        <form.AppField key={`units-${i}`} name={`materials[${i}].units`}
-                            children={(subField) => (<subField.FormSelect className="flex-3" options={unitsOptions} placeholder='...' label="Од. виміру"/>)}
-                        />
-                        {
-                          i != 0
-                          ? <Button type='button' disabled={i === 0} className="self-end" onClick={() => field.removeValue(i)}><Trash2Icon size={17}/></Button>
-                          : null
-                        }
-                        
+                        <Button type='button' disabled={i === 0} className="self-end" onClick={() => field.removeValue(i)}><Trash2Icon size={17}/></Button>
                       </div>
                     ))}
                   </div>

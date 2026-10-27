@@ -128,7 +128,7 @@ type RequiredMaterial = {
   unassigned: boolean,
   materialType: 'fabricVariants' | 'materialVariants' | 'fabrics' | 'materials',
   materialId: Id<'fabricVariants'> | Id<'materialVariants'> | Id<'fabrics'> | Id<'materials'>,
-  units: string,
+  units?: string,
   quantity: number,
 }
 
@@ -202,7 +202,7 @@ export const getOrderRequiredMaterials = query({
           id: required.materialId,
           type: required.materialType === 'materials' ? 'material' : 'fabric',
         });
-        return { ...required, material, inStock: null, reserved: null, available: null };
+        return { ...required, units: material.units ?? required.units, material, inStock: null, reserved: null, available: null };
       }
 
       const variantKey = required as { materialType: 'fabricVariants' | 'materialVariants', materialId: Id<'fabricVariants'> | Id<'materialVariants'> };
@@ -212,7 +212,7 @@ export const getOrderRequiredMaterials = query({
       ]);
       const inStock = balance?.inStock ?? 0;
       const reserved = balance?.reserved ?? 0;
-      return { ...required, material, inStock, reserved, available: inStock - reserved };
+      return { ...required, units: material?.units ?? required.units, material, inStock, reserved, available: inStock - reserved };
     }));
   }
 })

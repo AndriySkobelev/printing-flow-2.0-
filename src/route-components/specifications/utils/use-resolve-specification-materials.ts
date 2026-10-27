@@ -6,7 +6,7 @@ import { Id } from "convex/_generated/dataModel";
 import { makeOptions } from "@/components/main-form/select/options";
 import { type SpecificationMaterials } from "../forms/edit-specifications";
 
-type ResolvableMaterial = { lineId?: string, quantity: string | number, units: string, id: string, type?: 'fabric' | 'material' }
+export type ResolvableMaterial = { lineId?: string, lineName?: string, quantity: string | number, units?: string, id: string, type?: 'fabric' | 'material' }
 
 export const useResolveSpecificationMaterials = (materials: Array<ResolvableMaterial>) => {
   const fabricIds = useMemo(() => materials.filter((el) => el.type === 'fabric').map((el) => el.id), [materials]);
@@ -31,6 +31,8 @@ export const useResolveSpecificationMaterials = (materials: Array<ResolvableMate
       const found = options.find((option) => option.value === el.id);
       return {
         ...el,
+        // Resolved rows carry the parent's name in `name`; the line's own label is `lineName`.
+        name: el.lineName ?? '',
         type: el.type === 'material' ? 'material' as const : 'fabric' as const,
         id: found,
       }

@@ -1,12 +1,12 @@
 import { memo } from "react";
 import SpecificationForm, { SpecificationFormType } from "./create-specification"
 import { Id } from "convex/_generated/dataModel";
-import { useResolveSpecificationMaterials } from "../utils/use-resolve-specification-materials";
+import { type ResolvableMaterial, useResolveSpecificationMaterials } from "../utils/use-resolve-specification-materials";
 
 export type SpecificationMaterials = SpecificationFormType['materials'][number]
 interface EditSpecificationsProps {
   formId: string,
-  specification: Omit<SpecificationFormType, 'materials'> & { materials: Array<{ lineId?: string, quantity: string | number, units: string, id: string, type?: 'fabric' | 'material' }> },
+  specification: Omit<SpecificationFormType, 'materials'> & { materials: Array<ResolvableMaterial> },
   actionSubmit: (values: SpecificationFormType | SpecificationFormType & { _id: Id<'specifications'>, _creationTime: string}) => void,
 }
 

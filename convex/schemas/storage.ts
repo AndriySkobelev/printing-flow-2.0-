@@ -112,7 +112,9 @@ export const productsSpecification = {
   brandingTime:    v.optional(v.union(v.number(), v.string())),
   customSizes: v.optional(v.array(v.string())),
   materials: v.array(v.object({
-    units: v.string(),
+    // Legacy — units now come from the parent fabric/material (see resolveMaterialParent).
+    units: v.optional(v.string()),
+    // The line's own label (e.g. "Основна тканина"), not the parent material's name.
     name: v.optional(v.string()),
     lineId: v.optional(v.string()),
     quantity: v.union(v.number(), v.string()),

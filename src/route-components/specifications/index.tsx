@@ -98,6 +98,7 @@ export const MaterialsCellComponent = memo(({ materials }: { materials: any }) =
       {materials?.map((material: any, i: number) => (
         <div key={material.id} className="flex flex-col gap-1">
           {i != 0 && <Separator.Separator className="w-full h-px bg-primary/10" />}
+          {material.lineName && <div className="text-xs font-medium">{material.lineName}</div>}
           <div className="flex flex-row items-center gap-1">
             <div>{material.name ?? material.fabricName}</div>
             {material.size && <div className="text-xs text-primary/60">{material.size}</div>}
@@ -209,7 +210,7 @@ const Specifications: FunctionComponent<SpecificationsProps> = () => {
   const handleSubmitAdd = (values: SpecificationFormType) => {
     const newMaterials = values.materials.map((material) => ({
       lineId: (material as any).lineId,
-      units: material.units,
+      name: material.name,
       quantity: material.quantity,
       type: material.type,
       id: material.id?.value as Id<'fabrics'> | Id<'materials'>,
@@ -230,7 +231,7 @@ const Specifications: FunctionComponent<SpecificationsProps> = () => {
         lineId: (material as any).lineId,
         id: material.id?.value as Id<'fabrics'> | Id<'materials'>,
         type: material.type,
-        units: material.units,
+        name: material.name,
         quantity: material.quantity,
       }));
 
@@ -252,7 +253,7 @@ const Specifications: FunctionComponent<SpecificationsProps> = () => {
 
     openDialog({
       title: draft ? 'Редагування чернетки' : 'Створення специфікації',
-      className: 'sm:w-250 sm:max-w-250',
+      className: 'sm:w-300 sm:max-w-300',
       content: <SpecificationForm
         formId="create-specification-form"
         formApiRef={formApiRef}
@@ -282,7 +283,7 @@ const Specifications: FunctionComponent<SpecificationsProps> = () => {
   const handleEditSpec = (data: Omit<Specifications, 'productionPrice'> & { productionPrice: number }) => {
     openDialog({
       title: 'Редагування специфікації',
-      className: 'sm:w-250 sm:max-w-250',
+      className: 'sm:w-300 sm:max-w-300',
       content: <EditSpecifications
         formId="edit-specification-form"
         actionSubmit={handleSubmitEdit}
@@ -298,7 +299,7 @@ const Specifications: FunctionComponent<SpecificationsProps> = () => {
 
     openDialog({
       title: 'Дублювання специфікації',
-      className: 'sm:w-250 sm:max-w-250',
+      className: 'sm:w-300 sm:max-w-300',
       content: <DuplicateSpecification
         formId="duplicate-specification-form"
         formApiRef={formApiRef}
