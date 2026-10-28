@@ -93,7 +93,7 @@ type OrderItemEntry = {
 };
 
 async function createCuttingTasks(ctx: MutationCtx, { productionOrderId, plannedShipDate, keycrmOrderId, orderItems }: {
-  productionOrderId: any
+  productionOrderId: Id<'productionOrders'>
   keycrmOrderId: string
   plannedShipDate: number,
   orderItems: OrderItemEntry[]
@@ -109,8 +109,10 @@ async function createCuttingTasks(ctx: MutationCtx, { productionOrderId, planned
     cuttingGroups.get(key)!.push(item)
   }
 
-  const totalTasks = cuttingGroups.size + customItems.length
-  let taskIndex = 1
+  // Continue numbering after tasks from earlier (partial) sends of this order.
+  const existingCount = (await ctx.db.query('cuttingTasks').withIndex('by_productionOrder', q => q.eq('productionOrderId', productionOrderId)).collect()).length
+  const totalTasks = existingCount + cuttingGroups.size + customItems.length
+  let taskIndex = existingCount + 1
   const groupToCuttingTaskId = new Map<string, string>()
 
   for (const [key, items] of cuttingGroups.entries()) {
@@ -174,7 +176,7 @@ async function createCuttingTasks(ctx: MutationCtx, { productionOrderId, planned
 }
 
 async function createSewingTasks(ctx: MutationCtx, { productionOrderId, plannedShipDate, keycrmOrderId, orderItems, cuttingTaskIds }: {
-  productionOrderId: any
+  productionOrderId: Id<'productionOrders'>
   keycrmOrderId: string
   plannedShipDate: number
   orderItems: OrderItemEntry[]
@@ -187,8 +189,9 @@ async function createSewingTasks(ctx: MutationCtx, { productionOrderId, plannedS
     sewingGroups.get(key)!.push(item)
   }
 
-  const totalTasks = sewingGroups.size
-  let taskIndex = 1
+  const existingCount = (await ctx.db.query('sewingTasks').withIndex('by_productionOrder', q => q.eq('productionOrderId', productionOrderId)).collect()).length
+  const totalTasks = existingCount + sewingGroups.size
+  let taskIndex = existingCount + 1
 
   for (const [key, items] of sewingGroups.entries()) {
     const { product, color } = items[0]
@@ -778,8 +781,12 @@ export const creatreProductionOrder = mutation({
 })
 
 export const createProductionTasks = mutation({
-  args: { productionOrderId: v.id('productionOrders') },
-  handler: async (ctx, { productionOrderId }) => {
+  args: {
+    productionOrderId: v.id('productionOrders'),
+    // Partial send: only these items. Omitted — every item not yet in production.
+    itemIds: v.optional(v.array(v.id('productionOrderItems'))),
+  },
+  handler: async (ctx, { productionOrderId, itemIds }) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error('Not authenticated');
     const user = await ctx.db.get(userId);
@@ -798,7 +805,7 @@ export const createProductionTasks = mutation({
     // Only process items not already sent to production, so re-running this
     // (e.g. after adding more products to an in-progress order) doesn't
     // duplicate cutting/sewing/branding/packaging tasks or material reservations.
-    const dbItems = allDbItems.filter(item => !item.inProduction)
+    const dbItems = allDbItems.filter(item => !item.inProduction && (!itemIds || itemIds.includes(item._id)))
     if (dbItems.length === 0) return
 
     const orderItems: OrderItemEntry[] = dbItems.map(item => ({
@@ -816,11 +823,20 @@ export const createProductionTasks = mutation({
     const cuttingTaskIds = await createCuttingTasks(ctx, { productionOrderId, plannedShipDate, keycrmOrderId, orderItems })
     await createSewingTasks(ctx, { productionOrderId, plannedShipDate, keycrmOrderId, orderItems, cuttingTaskIds })
 
-    if (dbItems.some(itemNeedsBranding)) {
+    // Branding and packaging are one task per order — only create them on the
+    // first send that needs them, not again on every partial send.
+    const [existingBranding, existingPackaging] = await Promise.all([
+      ctx.db.query('brandingTasks').withIndex('by_productionOrder', q => q.eq('productionOrderId', productionOrderId)).first(),
+      ctx.db.query('packagingTasks').withIndex('by_productionOrder', q => q.eq('productionOrderId', productionOrderId)).first(),
+    ])
+
+    if (!existingBranding && dbItems.some(itemNeedsBranding)) {
       await createBrandingTasks(ctx, { productionOrderId, keycrmOrderId, plannedShipDate, externalData })
     }
 
-    await createPackagingTasks(ctx, { productionOrderId, keycrmOrderId, plannedShipDate })
+    if (!existingPackaging) {
+      await createPackagingTasks(ctx, { productionOrderId, keycrmOrderId, plannedShipDate })
+    }
 
     await createOrderMaterialReservations(ctx, {
       manager: order.keycrmManager ?? user?.name ?? 'Unknown',

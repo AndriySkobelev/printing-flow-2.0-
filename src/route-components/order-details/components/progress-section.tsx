@@ -1,14 +1,10 @@
-import { memo, useState, useMemo } from 'react'
-import { type Id } from 'convex/_generated/dataModel'
-import { Scissors, Wand2, Palette, Package, PlusIcon, ChevronDown, ChevronUp, CheckCheck, RefreshCw, Loader2 } from 'lucide-react'
+import { memo, useState } from 'react'
+import { Scissors, Wand2, Palette, Package, ChevronDown, ChevronUp } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ProgressBar } from '@/components/progress-bar'
 import { ProgressStat } from './progress-stat'
-import { useCreateProductionTasks } from '../actions'
-import { type OrderItem } from '../types'
 
 type Props = {
-  productionOrderId: string
   cutDone: number
   cutTotal: number
   sewDone: number
@@ -18,37 +14,20 @@ type Props = {
   packingDone: number
   packingTotal: number
   inProduction?: boolean
-  items?: OrderItem[]
-  readOnly?: boolean
 }
 
 export const ProgressSection = memo(({
-  productionOrderId,
   cutDone, cutTotal,
   sewDone, sewTotal,
   brandingDone, brandingTotal,
   packingDone, packingTotal,
   inProduction,
-  items = [],
-  readOnly,
 }: Props) => {
   const [expanded, setExpanded] = useState(false)
-  const { mutate: createTasks, isPending } = useCreateProductionTasks()
 
   const totalDone = cutDone + sewDone + brandingDone + packingDone
   const totalItems = cutTotal + sewTotal + brandingTotal + packingTotal
   const overallPct = totalItems > 0 ? Math.min(100, Math.round((totalDone / totalItems) * 100)) : 0
-
-  // hasNewItems: there's something not yet sent to production (either the
-  // whole order is new, or products were added after the initial send).
-  const hasNewItems = useMemo(() => items.some(i => !i.inProduction), [items])
-  const isUpdate = inProduction && hasNewItems
-
-  const handleCreate = () => {
-    createTasks(
-      { productionOrderId: productionOrderId as Id<'productionOrders'> },
-    )
-  }
 
   return (
     <div className="flex flex-col gap-2 px-3 py-3">
@@ -59,36 +38,11 @@ export const ProgressSection = memo(({
           </p>
           <span className="text-[11px] font-semibold tabular-nums text-primary">{overallPct}%</span>
         </div>
-        <div className="flex items-center gap-1">
-        <div className="flex items-center gap-1">
-          {!readOnly && (
-            <Button
-              key={`${isPending}-${inProduction}-${hasNewItems}`}
-              size="sm"
-              onClick={handleCreate}
-              disabled={isPending || !hasNewItems || items.length === 0}
-              className={`h-6 text-[11px] px-2 ${inProduction && !hasNewItems ? 'bg-green-600 hover:bg-green-600 text-white' : ''}`}
-            >
-              {isPending
-                ? <Loader2 size={10} className="mr-1 animate-spin" />
-                : isUpdate
-                  ? <RefreshCw size={10} className="mr-1" />
-                  : inProduction
-                    ? <CheckCheck size={10} className="mr-1" />
-                    : <PlusIcon size={10} className="mr-1" />
-              }
-              {isUpdate ? 'Оновити' : 'Виробництво'}
-            </Button>
-          )}
-          {
-            inProduction && (
-              <Button onClick={() => setExpanded(prev => !prev)} size="sm" variant="outline" className="h-6">
-                {expanded ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
-              </Button>
-            )
-          }
-        </div>
-        </div>
+        {inProduction && (
+          <Button onClick={() => setExpanded(prev => !prev)} size="sm" variant="outline" className="h-6">
+            {expanded ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
+          </Button>
+        )}
       </div>
 
       <ProgressBar done={totalDone} total={totalItems} size="md" />

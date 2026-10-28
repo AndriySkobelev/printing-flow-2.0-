@@ -126,7 +126,7 @@ const ProductsSection = ({ items, productionOrderId, readOnly }: { items: OrderI
       {items.length === 0 ? (
         <p className="text-sm text-muted-foreground">Немає товарів</p>
       ) : (
-        <ProductGroup items={items} readOnly={readOnly} />
+        <ProductGroup items={items} productionOrderId={productionOrderId} readOnly={readOnly} />
       )}
     </section>
   )
@@ -215,14 +215,11 @@ const OrderDetailsContent = ({ productionOrderId, onBack, readOnly }: { producti
         </div>
         <div className="border-t">
           <ProgressSection
-            productionOrderId={productionOrderId}
             cutDone={order.cutDone}           cutTotal={order.cutTotal}
             sewDone={order.sewDone}           sewTotal={order.sewTotal}
             brandingDone={order.brandingDone} brandingTotal={order.brandingTotal}
             packingDone={order.packingDone}   packingTotal={order.packingTotal}
             inProduction={order?.inProduction}
-            items={items}
-            readOnly={readOnly}
           />
         </div>
 
