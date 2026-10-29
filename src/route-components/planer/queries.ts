@@ -67,3 +67,26 @@ export function useDeleteEvent() {
     onError: (e: Error) => toast.error(e.message),
   })
 }
+export const useSetSewingSubTaskDay = () =>
+  useMutation({
+    mutationFn: useConvexMutation(api.queries.sewing.setSewingSubTaskDay),
+    onError: (e: Error) => toast.error(e.message),
+  })
+
+export const useBulkAssignSewingSubTasks = () =>
+  useMutation({
+    mutationFn: useConvexMutation(api.queries.sewing.bulkAssignSewingSubTasks),
+    onError: (e: Error) => toast.error(e.message),
+  })
+
+export const useBulkSetSewingSubTaskDay = () =>
+  useMutation({
+    mutationFn: useConvexMutation(api.queries.sewing.bulkSetSewingSubTaskDay),
+    onError: (e: Error) => toast.error(e.message),
+  })
+
+export const useBulkSetSewingSubTaskExtraWork = () =>
+  useMutation({
+    mutationFn: useConvexMutation(api.queries.sewing.bulkSetSewingSubTaskExtraWork),
+    onError: (e: Error) => toast.error(e.message),
+  })

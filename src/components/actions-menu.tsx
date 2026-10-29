@@ -74,7 +74,13 @@ const renderItem = (item: ActionItem, i: number) => {
   }
 
   return (
-    <DropdownMenuItem key={i} disabled={item.disabled} onClick={item.onClick} className="gap-2 text-xs">
+    <DropdownMenuItem
+      key={i}
+      disabled={item.disabled}
+      onClick={item.onClick}
+      onSelect={item.keepOpen ? (e) => e.preventDefault() : undefined}
+      className={cn('gap-2 text-xs', item.className)}
+    >
       {item.icon}
       {item.label}
     </DropdownMenuItem>

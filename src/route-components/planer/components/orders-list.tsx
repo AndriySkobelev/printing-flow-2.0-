@@ -1,20 +1,25 @@
 import { useState, useContext, useEffect } from 'react'
 import { UTCDate } from '@date-fns/utc'
 import { ProgressBar } from '@/components/progress-bar'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, keepPreviousData } from '@tanstack/react-query'
 import { convexQuery } from '@convex-dev/react-query'
 import { api } from 'convex/_generated/api'
 import { type FunctionReturnType } from 'convex/server'
-import { Search, ChevronRight, Plus, Minus, Undo2, SplitSquareHorizontal, UserPlus, Sparkles } from 'lucide-react'
+import { Search, ChevronRight, Plus, Minus, Undo2, SplitSquareHorizontal, UserPlus, Sparkles, CalendarDays } from 'lucide-react'
+import { format } from 'date-fns'
+import { uk } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { ActionsMenu } from '@/components/actions-menu'
+import { MyPopover } from '@/components/my-popover'
+import { Calendar } from '@/components/ui/calendar'
+import { Checkbox } from '@/components/ui/check-box'
 import { DialogContext } from '@/contexts/dialog'
 import { BRANDING_TYPES, BRANDING_LABELS } from '@/route-components/order-details/types'
 import { usePlannerStore } from '../store'
 import { taskDurationMinutes, fmtDur } from '../helpers'
-import { useUpdateSewingSubTaskAssignee, useSplitSewingSubTask, useUpdateSewingTaskStatus, useToggleSewingSubTaskExtraWork, useMergeSewingSubTaskIntoParent } from '../queries'
+import { useUpdateSewingSubTaskAssignee, useSplitSewingSubTask, useUpdateSewingTaskStatus, useToggleSewingSubTaskExtraWork, useMergeSewingSubTaskIntoParent, useSetSewingSubTaskDay, useBulkAssignSewingSubTasks, useBulkSetSewingSubTaskDay, useBulkSetSewingSubTaskExtraWork } from '../queries'
 import { OrderInfoPanel } from './order-info-panel'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -94,6 +99,67 @@ const CuttingLogsPanel = ({ logs }: { logs: CuttingLog[] }) => {
   )
 }
 
+// ─── SubTaskDayPicker ─────────────────────────────────────────────────────────
+
+// The day a sub-task is sewn on — its startDate, stored as UTC midnight (the
+// calendar works in local dates, so the y/m/d are carried over as-is).
+const SubTaskDayPicker = ({ value, onChange, trigger }: {
+  value:    number | null | undefined
+  onChange: (ms: number | null) => void
+  trigger?: React.ReactNode
+}) => {
+  const [open, setOpen] = useState(false)
+  const utc      = value != null ? new UTCDate(value) : null
+  const selected = utc ? new Date(utc.getFullYear(), utc.getMonth(), utc.getDate()) : undefined
+
+  return (
+    <MyPopover
+      align="end"
+      open={open}
+      onOpenChange={setOpen}
+      trigger={trigger ?? (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className={cn(
+            'h-6 shrink-0 gap-1 px-1.5 text-[12px] tabular-nums',
+            utc ? 'border-primary/40 bg-primary/5 text-primary font-medium hover:bg-primary/10 hover:text-primary' : 'font-normal text-muted-foreground',
+          )}
+        >
+          <CalendarDays className="size-3" />
+          {utc ? format(utc, 'EEEEEE, dd.MM.yyyy', { locale: uk }) : 'Дата'}
+        </Button>
+      )}
+      content={
+        <div className="flex flex-col gap-1">
+          <Calendar
+            mode="single"
+            selected={selected}
+            defaultMonth={selected}
+            weekStartsOn={1}
+            onSelect={(d) => {
+              onChange(d ? Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) : null)
+              setOpen(false)
+            }}
+          />
+          {(utc || trigger) && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-7 text-xs text-destructive hover:text-destructive"
+              onClick={() => { onChange(null); setOpen(false) }}
+            >
+              Прибрати дату
+            </Button>
+          )}
+        </div>
+      }
+    />
+  )
+}
+
 // ─── SubTaskItem ─────────────────────────────────────────────────────────────
 
 // Look of an on/off item in a sub-menu: "+" to add, highlighted with "−" once on.
@@ -121,6 +187,8 @@ type SubTaskProps = {
   sewerUsers:       SewerUser[]
   extraWorks:       ExtraWork[]
   canMerge:         boolean
+  isSelected:       boolean
+  onToggleSelect:   () => void
   splitId:          string | null
   splitQty:         string
   onSplit:          (id: string) => void
@@ -130,12 +198,13 @@ type SubTaskProps = {
 }
 
 const SubTaskItem = ({
-  sub, taskMeta, sewerUsers, extraWorks, canMerge, splitId, splitQty,
+  sub, taskMeta, sewerUsers, extraWorks, canMerge, isSelected, onToggleSelect, splitId, splitQty,
   onSplit, onSplitQtyChange, onSplitConfirm, onSplitCancel,
 }: SubTaskProps) => {
   const { mutate: updateAssignee }  = useUpdateSewingSubTaskAssignee()
   const { mutate: toggleExtraWork } = useToggleSewingSubTaskExtraWork()
   const { mutate: mergeIntoParent } = useMergeSewingSubTaskIntoParent()
+  const { mutate: setDay }          = useSetSewingSubTaskDay()
   const { assign, unassign, setDuration } = usePlannerStore.getState()
 
   const subExtraWorks = sub.extraWorks ?? []
@@ -176,17 +245,27 @@ const SubTaskItem = ({
   }
 
   const isAssigned = sub.userName && sub.userName !== '—'
+  const hasDay     = sub.startDate != null
+  const splitQtyNum = parseInt(splitQty, 10)
 
   return (
     <div
       className={cn(
         'flex flex-col gap-1 border rounded-md px-2 py-1.5',
-        sub.isCustomSewing
-          ? 'border-violet-300 dark:border-violet-800 bg-violet-50/50 dark:bg-violet-950/20'
-          : 'border-border bg-muted/30',
+        // Planning state: fully planned (sewer + day) green, half-planned amber.
+        isAssigned && hasDay
+          ? 'border-emerald-300 bg-emerald-50/60 dark:border-emerald-800 dark:bg-emerald-950/20'
+          : isAssigned || hasDay
+            ? 'border-amber-300 bg-amber-50/60 dark:border-amber-800 dark:bg-amber-950/20'
+            : sub.isCustomSewing
+              ? 'border-violet-300 dark:border-violet-800 bg-violet-50/50 dark:bg-violet-950/20'
+              : 'border-border bg-muted/30',
+        // Custom keeps a violet edge whatever the planning state.
+        sub.isCustomSewing && 'border-l-4 border-l-violet-400',
       )}
     >
       <div className="flex items-center gap-2 text-[13px]">
+        <Checkbox checked={isSelected} onCheckedChange={onToggleSelect} className="bg-background" />
         {sub.isCustomSewing && (
           <span className="shrink-0 text-violet-500" title={sub.customSewingComment || 'Індивідуальний пошив'}>
             <Sparkles size={13} />
@@ -202,6 +281,10 @@ const SubTaskItem = ({
         </span>
         <span className="text-muted-foreground tabular-nums shrink-0">[{sub.quantity} шт]</span>
         <span className="text-muted-foreground tabular-nums shrink-0">{fmtDur(durationMins)}</span>
+        <SubTaskDayPicker
+          value={sub.startDate}
+          onChange={(day) => setDay({ sewingSubTaskId: sub._id as any, day })}
+        />
         <span className="flex items-center gap-1 shrink-0 text-[12px] text-muted-foreground">
           <span className={cn('size-2 rounded-full shrink-0', STATUS_DOT[sub.status])} />
           {STATUS_LABEL[sub.status] ?? sub.status}
@@ -287,6 +370,11 @@ const SubTaskItem = ({
           <Button type="button" variant="outline" size="sm" className="h-6 px-2 text-[11px]" onClick={onSplitCancel}>
             ✕
           </Button>
+          {splitQtyNum > 0 && splitQtyNum < sub.quantity && (
+            <span className="ml-1 text-[11px] text-muted-foreground tabular-nums">
+              {`відділяємо ${splitQtyNum} шт · ${fmtDur(taskDurationMinutes(splitQtyNum, subExtraWorks))}, залишиться ${sub.quantity - splitQtyNum} шт · ${fmtDur(taskDurationMinutes(sub.quantity - splitQtyNum, subExtraWorks))}`}
+            </span>
+          )}
         </div>
       )}
     </div>
@@ -302,8 +390,12 @@ const SewingTaskSubTasks = ({ taskId }: { taskId: string }) => {
   const { data: sewerUsers = [] } = useQuery(convexQuery(api.queries.sewing.getSewerUsers, {}))
   const { data: extraWorks = [] } = useQuery(convexQuery(api.queries.extraWorks.getExtraWorks, {}))
   const [splitState, setSplitState] = useState<{ id: string | null; qty: string }>({ id: null, qty: '' })
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
 
   const { mutate: splitMutation } = useSplitSewingSubTask()
+  const { mutate: bulkAssign }    = useBulkAssignSewingSubTasks()
+  const { mutate: bulkSetDay }    = useBulkSetSewingSubTaskDay()
+  const { mutate: bulkExtraWork } = useBulkSetSewingSubTaskExtraWork()
   const { unassign }              = usePlannerStore.getState()
 
   const task = tasks.find((t) => t._id === taskId)
@@ -332,9 +424,130 @@ const SewingTaskSubTasks = ({ taskId }: { taskId: string }) => {
     setSplitState({ id: null, qty: '' })
   }
 
+  // Ids that still exist — split/merge can remove a selected sub-task.
+  const selected      = task.subTasks.filter((s) => selectedIds.has(s._id)).map((s) => s._id as any)
+  const allSelected   = task.subTasks.length > 0 && selected.length === task.subTasks.length
+  const clearSelected = () => setSelectedIds(new Set())
+
+  const toggleSelect = (id: string) =>
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+
+  const handleBulkAssign = (userId: string | undefined) =>
+    bulkAssign({ sewingSubTaskIds: selected, assignedTo: userId as any }, { onSuccess: clearSelected })
+
+  // A work counts as "on" when every selected sub-task has it — then it's removed from all.
+  const selectedSubs  = task.subTasks.filter((s) => selectedIds.has(s._id))
+  const hasWorkOnAll  = (workId: string) =>
+    selectedSubs.length > 0 && selectedSubs.every((s) => (s.extraWorks ?? []).some((w) => w.workId === workId))
+
+  const handleBulkExtraWork = (work: ExtraWork) =>
+    bulkExtraWork({ sewingSubTaskIds: selected, extraWorkId: work._id, add: !hasWorkOnAll(work._id) })
+
+  const handleBulkDay = (day: number | null) =>
+    bulkSetDay({ sewingSubTaskIds: selected, day }, { onSuccess: clearSelected })
+
   return (
     <div className="flex flex-col gap-2">
       <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Вироби</p>
+
+      {task.subTasks.length > 0 && (
+        <div
+          className={cn(
+            'flex items-center gap-2 px-2 py-1.5 rounded-md bg-primary/5 border border-primary/20 transition-opacity',
+            selected.length === 0 && 'opacity-60',
+          )}
+        >
+          <label className="flex items-center gap-2 text-[12px] cursor-pointer select-none">
+            <Checkbox
+              checked={allSelected ? true : selected.length > 0 ? 'indeterminate' : false}
+              onCheckedChange={() => setSelectedIds(allSelected ? new Set() : new Set(task.subTasks.map((s) => s._id)))}
+              className="bg-background"
+            />
+            Вибрати все
+          </label>
+          <div className="ml-auto flex items-center gap-1.5">
+            <ActionsMenu
+              align="end"
+              trigger={
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={selected.length === 0}
+                  className="h-6 gap-1 px-2 text-[11px] border-primary/30 text-primary hover:bg-primary/10"
+                >
+                  <UserPlus size={11} />
+                  {`Швачка (${selected.length})`}
+                </Button>
+              }
+              items={[
+                ...(sewerUsers.length > 0
+                  ? sewerUsers.map((user) => ({
+                      label:   `${user.name} ${user.lastName}`.trim() || '—',
+                      icon:    <UserPlus size={12} />,
+                      onClick: () => handleBulkAssign(user._id),
+                    }))
+                  : [{ label: 'Немає виконавців', icon: null, disabled: true }]),
+                {
+                  label:       'Зняти швачку',
+                  icon:        <Undo2 size={12} />,
+                  destructive: true,
+                  onClick:     () => handleBulkAssign(undefined),
+                },
+              ]}
+            />
+            <SubTaskDayPicker
+              value={null}
+              onChange={handleBulkDay}
+              trigger={
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={selected.length === 0}
+                  className="h-6 gap-1 px-2 text-[11px] border-primary/30 text-primary hover:bg-primary/10"
+                >
+                  <CalendarDays size={11} />
+                  {`Дата (${selected.length})`}
+                </Button>
+              }
+            />
+            <ActionsMenu
+              align="end"
+              trigger={
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={selected.length === 0}
+                  className="h-6 gap-1 px-2 text-[11px] border-primary/30 text-primary hover:bg-primary/10"
+                >
+                  <Plus size={11} />
+                  {`Робота (${selected.length})`}
+                </Button>
+              }
+              items={extraWorks.length > 0
+                ? extraWorks.map((work) => {
+                    const isOn = hasWorkOnAll(work._id)
+                    return {
+                      label:     work.name,
+                      icon:      toggleItemIcon(isOn),
+                      className: toggleItemClass(isOn),
+                      keepOpen:  true,
+                      onClick:   () => handleBulkExtraWork(work),
+                    }
+                  })
+                : [{ label: 'Довідник порожній', icon: null, disabled: true }]}
+            />
+          </div>
+        </div>
+      )}
+
       {task.subTasks.length === 0 && (
         <p className="text-[11px] text-muted-foreground">Немає виконавців</p>
       )}
@@ -347,6 +560,8 @@ const SewingTaskSubTasks = ({ taskId }: { taskId: string }) => {
           sewerUsers={sewerUsers}
           extraWorks={extraWorks}
           canMerge={canMerge(sub)}
+          isSelected={selectedIds.has(sub._id)}
+          onToggleSelect={() => toggleSelect(sub._id)}
           splitId={splitState.id}
           splitQty={splitState.qty}
           onSplit={(id) => setSplitState({ id, qty: '' })}
@@ -365,7 +580,7 @@ type SewingTaskDialogProps = { taskId: string; productionOrderId: string; itemId
 
 const SewingTaskDialog = ({ taskId, productionOrderId, itemIds }: SewingTaskDialogProps) => (
   <div className="flex gap-4 max-h-[75vh]">
-    <ScrollArea className="w-80 shrink-0 border-r pr-1">
+    <ScrollArea className="w-88 shrink-0 border-r pr-1">
       <OrderInfoPanel productionOrderId={productionOrderId} itemIds={itemIds} />
     </ScrollArea>
     <ScrollArea className="flex-1 min-w-0">
@@ -405,7 +620,7 @@ const SewingTaskCard = ({ task, isSelected, onSelect }: CardProps) => {
           {`Замовлення #${task.orderIndex ?? task.keycrmOrderId} · ${task.specName ?? ''}`}
         </span>
       ),
-      className: cn('sm:w-200 sm:max-w-200', isCustom && 'border-2 border-violet-400'),
+      className: cn('sm:w-240 sm:max-w-240', isCustom && 'border-2 border-violet-400'),
       content: (
         <SewingTaskDialog
           taskId={task._id}
@@ -547,9 +762,14 @@ type Props = {
 }
 
 export const OrdersList = ({ selectedId, onSelect }: Props) => {
-  const { data: tasks      = [] } = useQuery(convexQuery(api.queries.sewing.getSewingTasksWithCuttingProgress, {}))
+  const [day, setDay]               = useState<number | null>(null)
+  // No day → the full list; a day → only tasks with something planned on it (server-side).
+  const { data: tasks      = [] } = useQuery({
+    ...convexQuery(api.queries.sewing.getSewingTasksWithCuttingProgress, day != null ? { day } : {}),
+    placeholderData: keepPreviousData,
+  })
   const [search, setSearch]         = useState('')
-  const [statusFilter, setStatusFilter] = useState<string[]>([])
+  const [statusFilter, setStatusFilter] = useState<string[]>(['new'])
 
   const toggleStatusFilter = (status: string) =>
     setStatusFilter((prev) => prev.includes(status) ? prev.filter((s) => s !== status) : [...prev, status])
@@ -573,6 +793,25 @@ export const OrdersList = ({ selectedId, onSelect }: Props) => {
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Пошук..."
             className="flex-1 min-w-0 bg-transparent text-xs outline-none placeholder:text-muted-foreground/60"
+          />
+          <SubTaskDayPicker
+            value={day}
+            onChange={setDay}
+            trigger={
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                title="Фільтр за днем пошиву"
+                className={cn(
+                  'h-5 -mr-1 shrink-0 gap-1 px-1.5 text-[11px] tabular-nums',
+                  day != null ? 'bg-primary/10 text-primary font-medium hover:bg-primary/15 hover:text-primary' : 'text-muted-foreground',
+                )}
+              >
+                <CalendarDays className="size-3" />
+                {day != null && format(new UTCDate(day), 'dd.MM')}
+              </Button>
+            }
           />
         </div>
 

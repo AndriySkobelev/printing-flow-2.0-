@@ -82,6 +82,9 @@ export const sewingSubTasks = {
   extraWorks: v.optional(v.array(subTaskExtraWorkV)),
   // The sub-task this one was split off from — where "повернути" merges it back.
   splitFromId: v.optional(v.id("sewingSubTasks")),
+  // Split off a sub-task that already had a sewer or a day — such parts wait
+  // in the planner's "not distributed" strip (other unplanned ones don't).
+  splitWhilePlanned: v.optional(v.boolean()),
 };
 
 export const sewingLogs = {
@@ -180,6 +183,7 @@ const sewingLogsTable = defineTable(sewingLogs)
 const sewingSubTasksTable = defineTable(sewingSubTasks)
   .index("by_sewingTask", ["sewingTaskId"])
   .index("by_assignedTo", ["assignedTo"])
+  .index("by_startDate", ["startDate"])
   .index("by_productionOrderItem", ["productionOrderItemId"]);
 const sewingTasksTable = defineTable(sewingTasks)
   .index("by_productionOrder", ["productionOrderId"])
