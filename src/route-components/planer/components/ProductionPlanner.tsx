@@ -19,7 +19,7 @@ import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { MyPopover } from '@/components/my-popover'
 import { SEWER_COLORS, DAY_NAMES, DAY_START, DAY_END, DAY_MINS } from '../constants'
-import { toDateStr, addDays, getMondayOf, snap15, fmtDur } from '../helpers'
+import { toDateStr, addDays, getMondayOf, snap15, fmtDur, taskDurationMinutes } from '../helpers'
 import { usePlannerStore, type PlannedTask } from '../store'
 import { useUpdateSewingSubTaskDates } from '../queries'
 
@@ -496,7 +496,7 @@ const ProductionPlanner = () => {
         isScheduled,
         startDate,
         startMinute,
-        durationMinutes: Math.max(20, pt.quantity * 3),
+        durationMinutes: taskDurationMinutes(pt.quantity, pt.extraWorks),
         quantity:        pt.quantity,
         size:            pt.size ?? undefined,
         orderNumber:     pt.orderNumber,

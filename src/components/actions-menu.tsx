@@ -1,6 +1,7 @@
 import { type ReactNode } from 'react'
 import { MoreHorizontal, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,6 +20,9 @@ export type ActionItem = {
   disabled?: boolean
   onClick?: () => void
   destructive?: boolean
+  className?: string
+  // Leave the menu open after clicking (for toggles picked several at a time).
+  keepOpen?: boolean
   subItems?: ActionItem[]
 }
 
@@ -44,7 +48,13 @@ const renderItem = (item: ActionItem, i: number) => {
         </DropdownMenuSubTrigger>
         <DropdownMenuSubContent className="w-44">
           {item.subItems.map((sub, j) => (
-            <DropdownMenuItem key={j} disabled={sub.disabled} onClick={sub.onClick} className="gap-2 text-xs">
+            <DropdownMenuItem
+              key={j}
+              disabled={sub.disabled}
+              onClick={sub.onClick}
+              onSelect={sub.keepOpen ? (e) => e.preventDefault() : undefined}
+              className={cn('gap-2 text-xs', sub.className)}
+            >
               {sub.icon}
               {sub.label}
             </DropdownMenuItem>

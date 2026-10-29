@@ -3,6 +3,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 
+// The image viewer (LIGHTBOX_CLASS in images-section) portals to <body>, outside
+// this dialog: clicks there must not count as "outside", and Esc closes the
+// viewer rather than the dialog while it's open.
+const isInLightbox = (target: EventTarget | null) =>
+  target instanceof Element && !!target.closest('.app-lightbox')
+const isLightboxOpen = () => !!document.querySelector('.rc-image-preview-operations-wrapper.app-lightbox')
+
 type FooterProps = {
   formId?: string,
   isLoading: boolean,
@@ -76,7 +83,10 @@ export default function MyDialog({
         <DialogContent
           className={clsx('max-w-none', className)}
           onInteractOutside={(event) => {
-            if (!outerClose) return event.preventDefault()
+            if (!outerClose || isInLightbox(event.target)) return event.preventDefault()
+          }}
+          onEscapeKeyDown={(event) => {
+            if (isLightboxOpen()) event.preventDefault()
           }}
         >
           {

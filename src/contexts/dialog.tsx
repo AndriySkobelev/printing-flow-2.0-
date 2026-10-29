@@ -4,7 +4,7 @@ import { createContext, useState, useCallback, useMemo, ReactElement } from "rea
 type DialogOptions = {
   trigger?: any
   content: any
-  title?: string
+  title?: React.ReactNode
   description?: string | ReactElement
   withForm?: boolean
   form?: any

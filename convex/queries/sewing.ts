@@ -1,5 +1,6 @@
 import { v } from 'convex/values'
 import { query, mutation } from '../_generated/server'
+import type { Id } from '../_generated/dataModel'
 
 // ─── QUERIES ────────────────────────────────────────────────────────────────
 
@@ -78,6 +79,20 @@ export const getSewingTasksWithCuttingProgress = query({
   handler: async (ctx) => {
     const sewingTasks = await ctx.db.query('sewingTasks').collect()
 
+    // Branding types used anywhere in an order (cutting or after sewing) —
+    // shared by all of the order's sewing tasks, so read its items once.
+    const orderBrandingTypes = new Map<string, Promise<string[]>>()
+    const getOrderBrandingTypes = (productionOrderId: Id<'productionOrders'>) => {
+      if (!orderBrandingTypes.has(productionOrderId)) {
+        orderBrandingTypes.set(productionOrderId, ctx.db
+          .query('productionOrderItems')
+          .withIndex('by_productionOrder', q => q.eq('productionOrderId', productionOrderId))
+          .collect()
+          .then(items => [...new Set(items.flatMap(i => [...(i.brandingType ?? []), ...(i.cuttingBrandingType ?? [])]))]))
+      }
+      return orderBrandingTypes.get(productionOrderId)!
+    }
+
     return Promise.all(sewingTasks.map(async (task) => {
       // Sub-tasks with resolved user names
       const subTasks = await ctx.db
@@ -98,6 +113,7 @@ export const getSewingTasksWithCuttingProgress = query({
           userName,
           isCustomSewing:      st.isCustomSewing      ?? item?.isCustomSewing      ?? false,
           customSewingComment: st.customSewingComment ?? item?.customSewingComment ?? undefined,
+          isCustomCut:         item?.isCustomCut ?? false,
         }
       }))
 
@@ -164,6 +180,7 @@ export const getSewingTasksWithCuttingProgress = query({
         fabricColorHex,
         labelColorHex,
         cuttingProgress: { totalQty, completedQty, logs },
+        brandingTypes: await getOrderBrandingTypes(task.productionOrderId),
       }
     }))
   },
@@ -195,6 +212,7 @@ export const getPlannerSubTasks = query({
             startDateMs:     st.startDate  ?? null,
             quantity:        st.quantity,
             size:            st.size       ?? null,
+            extraWorks:      st.extraWorks ?? [],
             orderNumber:     sewingTask.orderIndex ?? sewingTask.keycrmOrderId,
             specName:        sewingTask.specName,
             color:           colorHex,
@@ -341,6 +359,74 @@ export const splitSewingSubTask = mutation({
       quantity:              splitQty,
       completedQty:          0,
       status:                'new',
+      extraWorks:            original.extraWorks,
+      splitFromId:           sewingSubTaskId,
+    })
+  },
+})
+
+// Undoes a split: folds the part's quantity back into the sub-task it was split
+// from and deletes the part. Parts split before splitFromId existed fall back to
+// the oldest sub-task of the same order item in the same sewing task.
+export const mergeSewingSubTaskIntoParent = mutation({
+  args: { sewingSubTaskId: v.id('sewingSubTasks') },
+  handler: async (ctx, { sewingSubTaskId }) => {
+    const part = await ctx.db.get(sewingSubTaskId)
+    if (!part) throw new Error('sewingSubTask not found')
+    if (part.status !== 'new' || (part.completedQty ?? 0) > 0)
+      throw new Error('Частину вже почали шити — повернути не можна')
+    const log = await ctx.db.query('sewingLogs').withIndex('by_sewingSubTask', q => q.eq('sewingSubTaskId', sewingSubTaskId)).first()
+    if (log) throw new Error('По частині вже є записи пошиву — повернути не можна')
+
+    let parent = part.splitFromId ? await ctx.db.get(part.splitFromId) : null
+    if (!parent && part.productionOrderItemId) {
+      const siblings = await ctx.db
+        .query('sewingSubTasks')
+        .withIndex('by_sewingTask', q => q.eq('sewingTaskId', part.sewingTaskId))
+        .collect()
+      parent = siblings
+        .filter(s => s._id !== part._id && s.productionOrderItemId === part.productionOrderItemId && s._creationTime < part._creationTime)
+        .sort((a, b) => a._creationTime - b._creationTime)[0] ?? null
+    }
+    if (!parent) throw new Error('Не знайдено підзадачу, від якої відділено цю частину')
+    if (parent.status === 'done') throw new Error('Основна підзадача вже готова — повернути не можна')
+
+    await ctx.db.patch(parent._id, { quantity: parent.quantity + part.quantity })
+
+    // Parts split off this one now belong to the parent.
+    const children = await ctx.db
+      .query('sewingSubTasks')
+      .withIndex('by_sewingTask', q => q.eq('sewingTaskId', part.sewingTaskId))
+      .collect()
+    await Promise.all(children
+      .filter(c => c.splitFromId === part._id)
+      .map(c => ctx.db.patch(c._id, { splitFromId: parent._id })))
+
+    await ctx.db.delete(part._id)
+  },
+})
+
+// Adds the catalog work to the sub-task, or removes it if it's already there.
+export const toggleSewingSubTaskExtraWork = mutation({
+  args: {
+    sewingSubTaskId: v.id('sewingSubTasks'),
+    extraWorkId:     v.id('extraWorks'),
+  },
+  handler: async (ctx, { sewingSubTaskId, extraWorkId }) => {
+    const subTask = await ctx.db.get(sewingSubTaskId)
+    if (!subTask) throw new Error('sewingSubTask not found')
+
+    const current = subTask.extraWorks ?? []
+    if (current.some(w => w.workId === extraWorkId)) {
+      const next = current.filter(w => w.workId !== extraWorkId)
+      await ctx.db.patch(sewingSubTaskId, { extraWorks: next.length ? next : undefined })
+      return
+    }
+
+    const work = await ctx.db.get(extraWorkId)
+    if (!work) throw new Error('Роботу не знайдено')
+    await ctx.db.patch(sewingSubTaskId, {
+      extraWorks: [...current, { workId: work._id, name: work.name, minutesPerUnit: work.minutesPerUnit, price: work.price }],
     })
   },
 })

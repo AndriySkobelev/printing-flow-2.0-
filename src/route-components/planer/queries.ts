@@ -31,6 +31,18 @@ export function useSplitSewingSubTask() {
   })
 }
 
+export const useMergeSewingSubTaskIntoParent = () =>
+  useMutation({
+    mutationFn: useConvexMutation(api.queries.sewing.mergeSewingSubTaskIntoParent),
+    onError: (e: Error) => toast.error(e.message),
+  })
+
+export const useToggleSewingSubTaskExtraWork = () =>
+  useMutation({
+    mutationFn: useConvexMutation(api.queries.sewing.toggleSewingSubTaskExtraWork),
+    onError: (e: Error) => toast.error(e.message),
+  })
+
 export function usePlannerEvents(from: string, to: string) {
   return useQuery(convexQuery(api.queries.planner.getEventsByDateRange, { from, to }))
 }

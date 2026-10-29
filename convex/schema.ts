@@ -117,6 +117,16 @@ export const systemSettingsSchema = {
 
 const systemSettingsTable = defineTable(systemSettingsSchema)
 
+// Catalog of extra work that can be added to a sewing sub-task (planner),
+// e.g. "Пришити бирку". Time is per unit; price is for future payroll.
+export const extraWorksSchema = {
+  name:           v.string(),
+  minutesPerUnit: v.number(),
+  price:          v.optional(v.number()),
+}
+
+const extraWorksTable = defineTable(extraWorksSchema)
+
 export type Materials = Doc<'materials'>;
 export type MaterialVariants = Doc<'materialVariants'>;
 export type Users = Doc<'users'>;
@@ -136,6 +146,7 @@ export default defineSchema({
   cuttingTaskSizes: cuttingTaskSizesTable,
   sewingTasks: sewingTasksTable,
   sewingSubTasks: sewingSubTasksTable,
+  extraWorks: extraWorksTable,
   sewingLogs: sewingLogsTable,
   brandingTasks: brandingTasksTable,
   fabricColors: fabricColorsTable

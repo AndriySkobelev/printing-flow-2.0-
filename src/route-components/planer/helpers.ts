@@ -28,3 +28,10 @@ export function fmtDur(mins: number) {
   const m = mins % 60
   return h > 0 ? `${h}г${m > 0 ? ' ' + m + 'хв' : ''}` : `${m}хв`
 }
+
+type ExtraWork = { minutesPerUnit: number }
+
+// Planned sewing time: base norm (3 min/pc, at least 20 min) plus every added
+// extra work's per-unit norm.
+export const taskDurationMinutes = (qty: number, extraWorks: ExtraWork[] = []) =>
+  Math.max(20, qty * 3) + qty * extraWorks.reduce((sum, w) => sum + w.minutesPerUnit, 0)
