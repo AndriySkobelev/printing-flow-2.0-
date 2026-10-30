@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import ProductionPlanner from './components/ProductionPlanner'
+import { SewingKanban } from './components/sewing-kanban'
 import { OrdersList } from './components/orders-list'
 
 const Planner = () => {
@@ -11,7 +11,7 @@ const Planner = () => {
         <OrdersList selectedId={selectedId} onSelect={setSelectedId} />
       </div>
       <div className="flex-1 min-w-0 overflow-hidden">
-        <ProductionPlanner />
+        <SewingKanban />
       </div>
     </div>
   )

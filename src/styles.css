@@ -288,3 +288,9 @@ code {
   color: var(--muted-foreground);
   white-space: nowrap;
 }
+
+/* Image viewer portals sit outside open Radix dialogs, which disable pointer
+   events on <body> — re-enable them for the viewer (see images-section). */
+.app-lightbox {
+  pointer-events: auto;
+}

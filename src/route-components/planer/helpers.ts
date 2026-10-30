@@ -28,3 +28,5 @@ export function fmtDur(mins: number) {
   const m = mins % 60
   return h > 0 ? `${h}г${m > 0 ? ' ' + m + 'хв' : ''}` : `${m}хв`
 }
+
+export { taskDurationMinutes, SEWER_DAY_CAPACITY } from 'convex/lib/sewingDuration'

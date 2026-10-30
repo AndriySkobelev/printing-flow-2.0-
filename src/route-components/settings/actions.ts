@@ -9,3 +9,24 @@ export const useUpdateSystemSettings = () =>
     onSuccess: () => toast.success('Налаштування збережено'),
     onError: (e: Error) => toast.error(e.message),
   })
+
+export const useCreateExtraWork = () =>
+  useMutation({
+    mutationFn: useConvexMutation(api.queries.extraWorks.createExtraWork),
+    onSuccess: () => toast.success('Роботу додано'),
+    onError: (e: Error) => toast.error(e.message),
+  })
+
+export const useUpdateExtraWork = () =>
+  useMutation({
+    mutationFn: useConvexMutation(api.queries.extraWorks.updateExtraWork),
+    onSuccess: () => toast.success('Роботу збережено'),
+    onError: (e: Error) => toast.error(e.message),
+  })
+
+export const useDeleteExtraWork = () =>
+  useMutation({
+    mutationFn: useConvexMutation(api.queries.extraWorks.deleteExtraWork),
+    onSuccess: () => toast.success('Роботу видалено'),
+    onError: (e: Error) => toast.error(e.message),
+  })
