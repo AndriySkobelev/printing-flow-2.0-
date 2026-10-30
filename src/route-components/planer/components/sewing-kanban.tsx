@@ -513,31 +513,6 @@ export const SewingKanban = () => {
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd} onDragCancel={() => setDragging(null)}>
       <div className="flex flex-col h-full">
         <div className="flex items-center gap-2 px-3 py-2 border-b shrink-0">
-          <Button variant="ghost" size="icon-sm" onClick={() => setAnchor(d => addDays(d, -7))}><ChevronLeft size={16} /></Button>
-          <span className="text-sm font-medium min-w-[180px] text-center">
-            {`${format(days[0], 'dd.MM')} – ${format(days[4], 'dd.MM.yyyy')}`}
-          </span>
-          <Button variant="ghost" size="icon-sm" onClick={() => setAnchor(d => addDays(d, 7))}><ChevronRight size={16} /></Button>
-          <Button variant="outline" size="sm" onClick={() => setAnchor(new UTCDate())} className="ml-1">
-            Сьогодні
-          </Button>
-
-          <div className="ml-auto flex items-center gap-2 text-xs" title={`${fmtDur(teamUsed)} з ${fmtDur(teamCapacity)}`}>
-            <span className="text-muted-foreground">Тиждень</span>
-            <div className="w-24 h-1.5 rounded-full bg-muted overflow-hidden">
-              <div
-                className={cn('h-full rounded-full', teamPct > 100 ? 'bg-red-500' : teamPct > 80 ? 'bg-amber-400' : 'bg-emerald-500')}
-                style={{ width: `${Math.min(100, teamPct)}%` }}
-              />
-            </div>
-            <span className={cn('font-semibold tabular-nums', teamPct > 100 ? 'text-red-500' : teamPct > 80 ? 'text-amber-500' : 'text-emerald-600')}>
-              {teamPct}%
-            </span>
-            {poolWeek > 0 && (
-              <span className="text-amber-700 tabular-nums">{`+${fmtDur(poolWeek)} не призначено`}</span>
-            )}
-          </div>
-
           <div className="flex items-center gap-1 rounded-lg bg-muted p-1">
             {sewers.map(s => (
               <Button
@@ -561,6 +536,33 @@ export const SewingKanban = () => {
               </Button>
             ))}
           </div>
+
+          <div className="ml-auto flex flex-col items-end gap-0.5 text-xs" title={`${fmtDur(teamUsed)} з ${fmtDur(teamCapacity)}`}>
+            <div className="flex items-center gap-2">
+              <span className="text-muted-foreground">Тиждень</span>
+              <div className="w-24 h-1.5 rounded-full bg-muted overflow-hidden">
+                <div
+                  className={cn('h-full rounded-full', teamPct > 100 ? 'bg-red-500' : teamPct > 80 ? 'bg-amber-400' : 'bg-emerald-500')}
+                  style={{ width: `${Math.min(100, teamPct)}%` }}
+                />
+              </div>
+              <span className={cn('font-semibold tabular-nums', teamPct > 100 ? 'text-red-500' : teamPct > 80 ? 'text-amber-500' : 'text-emerald-600')}>
+                {teamPct}%
+              </span>
+            </div>
+            {poolWeek > 0 && (
+              <span className="text-[11px] text-amber-700 tabular-nums">{`+${fmtDur(poolWeek)} не призначено`}</span>
+            )}
+          </div>
+
+          <Button variant="ghost" size="icon-sm" onClick={() => setAnchor(d => addDays(d, -7))}><ChevronLeft size={16} /></Button>
+          <span className="text-sm font-medium min-w-[180px] text-center">
+            {`${format(days[0], 'dd.MM')} – ${format(days[4], 'dd.MM.yyyy')}`}
+          </span>
+          <Button variant="ghost" size="icon-sm" onClick={() => setAnchor(d => addDays(d, 7))}><ChevronRight size={16} /></Button>
+          <Button variant="outline" size="sm" onClick={() => setAnchor(new UTCDate())} className="ml-1">
+            Сьогодні
+          </Button>
         </div>
 
         {(backlog.length > 0 || noDay.length > 0) && (
@@ -576,7 +578,7 @@ export const SewingKanban = () => {
             )}
             {backlog.length > 0 && noDay.length > 0 && <div className="w-px shrink-0 bg-border" />}
             {noDay.length > 0 && (
-              <TaskStrip title={`Без дня · ${sewer.name} (${noDay.length})`} className="text-amber-700">
+              <TaskStrip title={`Без дати (${noDay.length})`} className="text-amber-700">
                 {noDay.map(task => (
                   <div key={task.id} className="w-56 shrink-0">
                     <TaskCard task={task} zone={null} sewer={sewer} actions={actions} />
