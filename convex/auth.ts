@@ -5,6 +5,13 @@ import { Id } from "./_generated/dataModel";
 
 export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
   providers: [Google],
+  callbacks: {
+    // A brand-new account has to be approved by a super_admin first.
+    async afterUserCreatedOrUpdated(ctx, { userId, existingUserId }) {
+      if (existingUserId) return
+      await ctx.db.patch(userId, { isApproved: false })
+    },
+  },
   // callbacks: {
   //   async createOrUpdateUser(ctx, args) {
   //     if (args.existingUserId) {

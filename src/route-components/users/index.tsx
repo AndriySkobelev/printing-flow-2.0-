@@ -1,15 +1,17 @@
 import { useContext } from 'react'
 import { type HeaderObject } from 'simple-table-core'
-import { Ellipsis, Trash2, SquarePen, Timer } from 'lucide-react'
+import { Ellipsis, Trash2, SquarePen, Timer, Check } from 'lucide-react'
 import { type Id } from 'convex/_generated/dataModel'
-import { ROLE_LABELS, type UserRole } from '@/constants/roles'
+import { ROLE_LABELS, SUPER_ADMIN, type UserRole } from '@/constants/roles'
 import { DialogContext } from '@/contexts/dialog'
+import { AuthContext } from '@/contexts/auth'
+import { Button } from '@/components/ui/button'
 import { MyPopover } from '@/components/my-popover'
 import AppTable from '@/components/ui/app-table'
 import UserAvatar from '@/components/UserAvatar'
 import EditUserForm, { type EditUserFormType } from './forms/edit-user-form'
 import SeamstressForm from './forms/seamstress-form'
-import { useGetAllUsers, useUpdateUser, useDeleteUser } from './queries'
+import { useGetAllUsers, useUpdateUser, useDeleteUser, useApproveUser } from './queries'
 
 const FORM_ID = 'edit-user-form'
 const SEAMSTRESS_FORM_ID = 'seamstress-form'
@@ -27,7 +29,20 @@ type UserRow = {
   workHours?: number
   startDate?: string
   image?: string
+  isApproved?: boolean
   developingSpecification?: DevelopingEntry[]
+}
+
+// Accounts signed up via Google wait here until a super_admin approves them.
+const ApprovalCell = ({ row, canApprove }: { row: UserRow; canApprove: boolean }) => {
+  const { mutate: approveUser, isPending } = useApproveUser()
+  if (row.isApproved !== false) return <span className="text-xs text-green-700">Підтверджено</span>
+  if (!canApprove) return <span className="text-xs text-amber-700">Очікує підтвердження</span>
+  return (
+    <Button size="sm" className="h-7 text-xs" disabled={isPending} onClick={() => approveUser({ id: row._id })}>
+      <Check size={12} /> Підтвердити
+    </Button>
+  )
 }
 
 function ActionsCell({
@@ -70,6 +85,8 @@ export default function UsersTable() {
   const { data, isLoading } = useGetAllUsers()
   const { mutate: updateUser } = useUpdateUser()
   const { openDialog, closeDialog } = useContext(DialogContext)
+  const { user } = useContext(AuthContext)
+  const isSuperAdmin = user?.role === SUPER_ADMIN
 
   const handleSeamstress = (row: UserRow) => {
     openDialog({
@@ -145,6 +162,13 @@ export default function UsersTable() {
       cellRenderer: ({ row }: any) => (
         <span>{row.role ? (ROLE_LABELS[row.role as UserRole] ?? row.role) : '—'}</span>
       ),
+    },
+    {
+      accessor: 'isApproved',
+      label: 'Доступ',
+      width: 170,
+      type: 'other',
+      cellRenderer: ({ row }: any) => <ApprovalCell row={row} canApprove={isSuperAdmin} />,
     },
     {
       accessor: 'birthday',
