@@ -16,4 +16,5 @@ export type SubTask = {
   images:        AttachedFile[]
   isCustomSewing?:      boolean
   customSewingComment?: string | null
+  extraWorks?:          { workId: string; name: string; minutesPerUnit: number }[]
 }
