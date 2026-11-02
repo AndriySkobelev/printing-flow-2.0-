@@ -389,7 +389,7 @@ export const getDaySubTasksForAllUsers = query({
   handler: async (ctx, { day }) => {
     const userId = await getAuthUserId(ctx)
     const me     = userId ? await ctx.db.get(userId) : null
-    if (me?.role !== 'super_admin') throw new Error('Forbidden')
+    if (me?.role !== 'super_admin' && me?.role !== 'admin') throw new Error('Forbidden')
 
     const dayStart = utcDayStart(day)
     const subTasks = await ctx.db

@@ -5,6 +5,9 @@ import { api } from 'convex/_generated/api'
 import { type Id } from 'convex/_generated/dataModel'
 import { AuthContext } from '@/contexts/auth'
 import { SUPER_ADMIN } from '@/constants/roles'
+
+// Roles that see every sewer's tasks instead of only their own.
+const SEES_ALL_TASKS = [SUPER_ADMIN, 'admin']
 import { Scissors } from 'lucide-react'
 import { ExpandableSection } from '@/components/ui/expandable-section'
 import { DaySwitcher, getTodayDayMs, startOfUTCDay } from '@/components/ui/day-switcher'
@@ -38,7 +41,7 @@ const TaskList = ({ tasks }: { tasks: SubTask[] }) => {
 
 type SewerGroup = { key: string; name: string; tasks: SubTask[] }
 
-// super_admin view: the day's tasks of every sewer, one section each;
+// super_admin / admin view: the day's tasks of every sewer, one section each;
 // tasks on the day without a sewer come last.
 const groupBySewer = (tasks: (SubTask & { assignedTo?: string; sewerName: string | null })[]): SewerGroup[] => {
   const groups = new Map<string, SewerGroup>()
@@ -54,31 +57,31 @@ const groupBySewer = (tasks: (SubTask & { assignedTo?: string; sewerName: string
 const SewingTasksPage = () => {
   const { user } = useContext(AuthContext)
   const [selectedDay, setSelectedDay] = useState(getTodayDayMs)
-  const isSuperAdmin = user?.role === SUPER_ADMIN
+  const seesAll = SEES_ALL_TASKS.includes(user?.role)
 
   const { data: myTasks = [], isLoading: isMyLoading } = useQuery({
     ...convexQuery(api.queries.sewing.getMySubTasks, {
       userId: user?._id as Id<'users'>,
     }),
-    enabled: !!user?._id && !isSuperAdmin,
+    enabled: !!user?._id && !seesAll,
   })
 
   const { data: allTasks = [], isLoading: isAllLoading } = useQuery({
     ...convexQuery(api.queries.sewing.getDaySubTasksForAllUsers, { day: selectedDay }),
-    enabled: isSuperAdmin,
+    enabled: seesAll,
   })
 
-  const isLoading = isSuperAdmin ? isAllLoading : isMyLoading
+  const isLoading = seesAll ? isAllLoading : isMyLoading
 
   // Only tasks scheduled (startDate set) for the selected day.
-  const dayTasks = isSuperAdmin
+  const dayTasks = seesAll
     ? allTasks
     : myTasks.filter(t => t.startDate !== undefined && startOfUTCDay(t.startDate) === selectedDay)
 
   return (
     <div className="flex flex-col h-full p-3 gap-4 overflow-y-auto">
       <div className="flex items-center justify-between shrink-0 h-10">
-        <h1 className="text-base font-semibold">{isSuperAdmin ? 'Завдання пошиву' : 'Мої завдання пошиву'}</h1>
+        <h1 className="text-base font-semibold">{seesAll ? 'Завдання пошиву' : 'Мої завдання пошиву'}</h1>
         <DaySwitcher value={selectedDay} onChange={setSelectedDay} />
       </div>
 
@@ -95,7 +98,7 @@ const SewingTasksPage = () => {
         </div>
       )}
 
-      {isSuperAdmin
+      {seesAll
         ? groupBySewer(allTasks as any).map(group => (
             <section key={group.key} className="flex flex-col gap-2 border-t pt-3 first:border-t-0 first:pt-0">
               <h2 className="text-sm font-semibold">{`${group.name} (${group.tasks.length})`}</h2>
