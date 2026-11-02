@@ -93,12 +93,15 @@ interface FormSelectProps {
   className?: string,
   placeholder?: string;
   addOnChange?: () => void;
+  // Multi select: keep picked values on one line and scroll them sideways
+  // instead of letting the input grow taller with every value.
+  singleLine?: boolean;
   modeOption?: keyof OptionTypes;
   valueMode?: 'value' | 'object';
   options: Array<{ value: string | number; label: string }> | any;
 }
 
-const FormSelect: FunctionComponent<FormSelectProps> = ({ options, label, placeholder, disabled, isMulti = false, valueMode = 'value', className, modeOption = 'default', addOnChange }) => {
+const FormSelect: FunctionComponent<FormSelectProps> = ({ options, label, placeholder, disabled, isMulti = false, valueMode = 'value', className, modeOption = 'default', addOnChange, singleLine = false }) => {
   const field = useFieldContext();
   const name = useMemo(() => field.name, [field.name]);
   const value = useMemo(() => field.state.value as string | number | undefined, [field.state.value]);
@@ -120,6 +123,7 @@ const FormSelect: FunctionComponent<FormSelectProps> = ({ options, label, placeh
         name={name}
         options={options}
         isMulti={isMulti}
+        closeMenuOnSelect={!isMulti}
         isDisabled={disabled}
         className='hover:active:border-none'
         placeholder={placeholder ?? "Виберіть..."}
@@ -141,6 +145,12 @@ const FormSelect: FunctionComponent<FormSelectProps> = ({ options, label, placeh
             ...baseStyles,
             borderRadius: '8px',
             borderColor: '#e7e3e4',
+          }),
+          // A long placeholder in a narrow select is cut off instead of wrapping.
+          placeholder: (baseStyles) => ({ ...baseStyles, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }),
+          ...(singleLine && {
+            valueContainer: (baseStyles) => ({ ...baseStyles, flexWrap: 'nowrap', overflowX: 'auto' }),
+            multiValue: (baseStyles) => ({ ...baseStyles, flexShrink: 0 }),
           }),
         }}/>
         {!isValid && <div className="text-sm text-red-500 ml-2">{errors?.[0]?.message}</div>}

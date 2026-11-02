@@ -130,7 +130,7 @@ export const getProductsWithSpec = query({
     const gproupedByParentId = groupBy(prop('parentId'), products);
     const specIds = keys(gproupedByParentId);
     const specs = await getAll(ctx.db, specIds) || [];
-    const combineProducs = specs.flatMap((spec) => addToAll({ name: spec?.name, parentMaterials: spec?.materials }, gproupedByParentId[spec?._id as any] as unknown as Array<any> ));
+    const combineProducs = specs.filter(spec => spec !== null).flatMap((spec) => addToAll({ name: spec?.name, parentMaterials: spec?.materials }, gproupedByParentId[spec?._id as any] as unknown as Array<any> ));
 
     return combineProducs;
   }
@@ -147,7 +147,9 @@ export const getSearchProducts = query({
     const gproupedByParentId = groupBy(prop('parentId'), products);
     const specIds = keys(gproupedByParentId);
     const specs = await getAll(ctx.db, specIds) || [];
-    const combineProducs = specs.flatMap((spec) => addToAll(
+    // Products whose specification was deleted are left out — a null spec
+    // used to crash the whole search.
+    const combineProducs = specs.filter(spec => spec !== null).flatMap((spec) => addToAll(
       { name: spec?.name, price: spec?.productionPrice },
       gproupedByParentId[spec?._id as any] as unknown as Array<any>
     ));
