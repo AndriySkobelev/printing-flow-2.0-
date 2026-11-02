@@ -328,6 +328,7 @@ export const getPlannerSubTasks = query({
             sewingSubTaskId: st._id,
             sewerId:         st.assignedTo ?? null,
             startDateMs:     st.startDate  ?? null,
+            deadlineMs:      sewingTask.endDate,
             quantity:        st.quantity,
             size:            st.size       ?? null,
             extraWorks:      st.extraWorks ?? [],
