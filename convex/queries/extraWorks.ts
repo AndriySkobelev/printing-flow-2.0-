@@ -12,18 +12,20 @@ export const getExtraWorks = query({
 const extraWorkArgs = {
   name:           v.string(),
   minutesPerUnit: v.number(),
+  price:          v.optional(v.number()),
 }
 
-const validate = ({ name, minutesPerUnit }: { name: string; minutesPerUnit: number }) => {
+const validate = ({ name, minutesPerUnit, price }: { name: string; minutesPerUnit: number; price?: number }) => {
   if (!name.trim()) throw new Error('Вкажіть назву')
   if (!(minutesPerUnit > 0)) throw new Error('Норма часу має бути більше 0')
+  if (price !== undefined && !(price >= 0)) throw new Error('Ціна не може бути відʼємною')
 }
 
 export const createExtraWork = mutation({
   args: extraWorkArgs,
   handler: async (ctx, args) => {
     validate(args)
-    return ctx.db.insert('extraWorks', { name: args.name.trim(), minutesPerUnit: args.minutesPerUnit })
+    return ctx.db.insert('extraWorks', { name: args.name.trim(), minutesPerUnit: args.minutesPerUnit, price: args.price })
   },
 })
 
@@ -31,7 +33,8 @@ export const updateExtraWork = mutation({
   args: { extraWorkId: v.id('extraWorks'), ...extraWorkArgs },
   handler: async (ctx, { extraWorkId, ...args }) => {
     validate(args)
-    await ctx.db.patch(extraWorkId, { name: args.name.trim(), minutesPerUnit: args.minutesPerUnit })
+    // price: undefined clears a previously set price
+    await ctx.db.patch(extraWorkId, { name: args.name.trim(), minutesPerUnit: args.minutesPerUnit, price: args.price })
   },
 })
 

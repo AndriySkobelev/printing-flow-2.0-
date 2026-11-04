@@ -20,6 +20,7 @@ export const PAGE_ROLES: Record<string, UserRole[]> = {
   '/app/materials':           [SUPER_ADMIN, 'admin'],
   '/app/fabrics':             [SUPER_ADMIN, 'admin'],
   '/app/specifications':      [SUPER_ADMIN, 'admin'],
+  '/app/extra-works':         [SUPER_ADMIN, 'admin'],
   '/app/users':                [SUPER_ADMIN, 'admin'],
   '/app/settings':             [SUPER_ADMIN, 'admin'],
   '/app/products':             [SUPER_ADMIN, 'admin'],

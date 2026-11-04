@@ -37,9 +37,11 @@ interface AppTableProps {
   searchPlaceholder?: string;
   // Restricts the search box to these accessors instead of every column.
   columnSearch?: string[];
+  // Rendered before the search box, on the same row (e.g. an "add" button).
+  toolbar?: React.ReactNode;
 }
 
-const AppTable = ({ fallback, className, defaultHeaders, height, rows, isLoading, getRowId, withSearch, searchPlaceholder, columnSearch, quickFilter, ...props }: AppTableProps) => {
+const AppTable = ({ fallback, className, defaultHeaders, height, rows, isLoading, getRowId, withSearch, searchPlaceholder, columnSearch, quickFilter, toolbar, ...props }: AppTableProps) => {
   const [search, setSearch] = useState('');
 
   const table = (
@@ -62,14 +64,17 @@ const AppTable = ({ fallback, className, defaultHeaders, height, rows, isLoading
 
   return (
     <div className="flex flex-col gap-2 h-full min-h-0">
-      <div className="relative w-64 shrink-0">
-        <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-        <Input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder={searchPlaceholder ?? 'Пошук...'}
-          className="h-8 pl-8 text-sm"
-        />
+      <div className="flex items-center gap-2 shrink-0">
+        {toolbar}
+        <div className="relative w-64">
+          <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={searchPlaceholder ?? 'Пошук...'}
+            className="h-8 pl-8 text-sm"
+          />
+        </div>
       </div>
       <div className="flex-1 min-h-0">
         {table}

@@ -7,9 +7,11 @@ import { Button } from '@/components/ui/button'
 const schema = z.object({
   name:           z.string().trim().min(1, 'Вкажіть назву'),
   minutesPerUnit: z.string().refine(v => Number(v) > 0, 'Більше 0'),
+  // Optional — empty means no price set.
+  price:          z.string().refine(v => v === '' || Number(v) >= 0, 'Не менше 0'),
 })
 
-export type ExtraWorkFormValues = { name: string; minutesPerUnit: number }
+export type ExtraWorkFormValues = { name: string; minutesPerUnit: number; price?: number }
 
 type Props = {
   defaultValues?: ExtraWorkFormValues
@@ -23,8 +25,13 @@ export const ExtraWorkForm = ({ defaultValues, onSubmit }: Props) => {
     defaultValues: {
       name:           defaultValues?.name ?? '',
       minutesPerUnit: defaultValues ? String(defaultValues.minutesPerUnit) : '',
+      price:          defaultValues?.price != null ? String(defaultValues.price) : '',
     },
-    onSubmit: ({ value }) => onSubmit({ name: value.name.trim(), minutesPerUnit: Number(value.minutesPerUnit) }),
+    onSubmit: ({ value }) => onSubmit({
+      name:           value.name.trim(),
+      minutesPerUnit: Number(value.minutesPerUnit),
+      price:          value.price === '' ? undefined : Number(value.price),
+    }),
   })
 
   return (
@@ -32,9 +39,10 @@ export const ExtraWorkForm = ({ defaultValues, onSubmit }: Props) => {
       onSubmit={e => { e.preventDefault(); form.handleSubmit() }}
       className="flex flex-col gap-4 w-full"
     >
-      <div className="grid grid-cols-[1fr_140px] gap-3">
+      <div className="grid grid-cols-[1fr_120px_120px] gap-3">
         <form.AppField name="name"           children={f => <f.FormTextField label="Назва" placeholder="Пришити бирку" />} />
         <form.AppField name="minutesPerUnit" children={f => <f.FormTextNumberField label="Хв на 1 шт" type="number" />} />
+        <form.AppField name="price"          children={f => <f.FormTextNumberField label="Ціна, грн" type="number" />} />
       </div>
 
       <form.Subscribe selector={s => [s.canSubmit, s.isSubmitting] as const}>
