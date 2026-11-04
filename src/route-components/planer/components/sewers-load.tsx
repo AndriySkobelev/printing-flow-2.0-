@@ -1,10 +1,12 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { convexQuery } from '@convex-dev/react-query'
 import { UTCDate } from '@date-fns/utc'
-import { format } from 'date-fns'
+import { addDays, format } from 'date-fns'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { api } from 'convex/_generated/api'
 import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
 import { SEWER_COLORS, DAY_NAMES } from '../constants'
 import { fmtDur, taskDurationMinutes, dayKey, weekDays, msToDay, loadTone, SEWER_DAY_CAPACITY } from '../helpers'
 
@@ -14,8 +16,10 @@ export const SewersLoad = () => {
   const { data: sewerData = [] } = useQuery(convexQuery(api.queries.sewing.getSewerUsers, {}))
   const { data: subTasks  = [] } = useQuery(convexQuery(api.queries.sewing.getPlannerSubTasks, {}))
 
-  const days  = useMemo(() => weekDays(new UTCDate()), [])
-  const today = dayKey(new UTCDate())
+  const [anchor, setAnchor] = useState(() => new UTCDate())
+  const days        = useMemo(() => weekDays(anchor), [anchor])
+  const today       = dayKey(new UTCDate())
+  const isThisWeek  = dayKey(days[0]) === dayKey(weekDays(new UTCDate())[0])
 
   // sewerId → day → minutes
   const load = useMemo(() => {
@@ -37,9 +41,24 @@ export const SewersLoad = () => {
         <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
           {`Швачки (${sewerData.length})`}
         </p>
-        <span className="text-[10px] text-muted-foreground tabular-nums">
-          {`${format(days[0], 'dd.MM')} – ${format(days[4], 'dd.MM')}`}
-        </span>
+        <div className="flex items-center gap-0.5">
+          <Button variant="ghost" size="icon-sm" className="size-6" onClick={() => setAnchor(d => addDays(d, -7))}>
+            <ChevronLeft size={14} />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className={cn('h-6 px-1.5 text-[10px] tabular-nums', isThisWeek ? 'text-muted-foreground' : 'text-primary font-semibold')}
+            title={isThisWeek ? undefined : 'Повернутись до поточного тижня'}
+            disabled={isThisWeek}
+            onClick={() => setAnchor(new UTCDate())}
+          >
+            {`${format(days[0], 'dd.MM')} – ${format(days[4], 'dd.MM')}`}
+          </Button>
+          <Button variant="ghost" size="icon-sm" className="size-6" onClick={() => setAnchor(d => addDays(d, 7))}>
+            <ChevronRight size={14} />
+          </Button>
+        </div>
       </div>
 
       {sewerData.length === 0 && <p className="text-xs text-muted-foreground">Немає швачок</p>}
