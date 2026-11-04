@@ -23,6 +23,7 @@ import {
   ShoppingBag,
   Users,
   Warehouse,
+  Wrench,
   X,
 } from 'lucide-react'
 import { useAuth } from '@/hooks/auth-hooks'
@@ -112,6 +113,7 @@ const navConfig: NavItem[] = [
           { to: '/app/specifications', label: 'Виробів', icon: ClipboardList },
         ],
       },
+      { to: '/app/extra-works', label: 'Додаткові роботи', icon: Wrench },
     ],
   },
   {

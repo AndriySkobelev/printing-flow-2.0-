@@ -21,7 +21,7 @@ import { Button } from '@/components/ui/button'
 import { ActionsMenu } from '@/components/actions-menu'
 import { cn } from '@/lib/utils'
 import { SEWER_COLORS, DAY_NAMES } from '../constants'
-import { fmtDur, taskDurationMinutes, SEWER_DAY_CAPACITY as DAY_CAPACITY } from '../helpers'
+import { fmtDur, taskDurationMinutes, endDateColor, SEWER_DAY_CAPACITY as DAY_CAPACITY } from '../helpers'
 import { useUpdateSewingSubTaskAssignee, useSetSewingSubTaskDay, useSplitSewingSubTask } from '../queries'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -43,6 +43,7 @@ type KanbanTask = {
   isCustom?:       boolean
   sewerId:         string | null
   day:             string | null   // yyyy-MM-dd
+  deadline:        number          // sewing task end date, ms
 }
 
 // A drop target: a day column of the active sewer, or a day's "no sewer" zone.
@@ -206,6 +207,13 @@ const TaskCardBody = ({ task, sewer, actions, onStartSplit }: {
       <span className={cn('size-1.5 rounded-full', STATUS_DOT[task.status])} />
       <span className="text-muted-foreground">{STATUS_LABEL[task.status]}</span>
       <span className="ml-auto tabular-nums">{task.quantity} шт</span>
+      {/* Deadline vs the day the card sits on (today when it has no day). */}
+      <span
+        className={cn('tabular-nums', endDateColor(task.deadline, task.day ? dayToMs(task.day) : undefined))}
+        title="Дата здачі"
+      >
+        до {format(new UTCDate(task.deadline), 'dd.MM')}
+      </span>
       <span className="tabular-nums font-medium">{fmtDur(task.durationMinutes)}</span>
     </div>
   </div>
@@ -430,6 +438,7 @@ export const SewingKanban = () => {
           isCustom:        st.isCustom,
           sewerId:         over ? over.sewerId : st.sewerId ? String(st.sewerId) : null,
           day:             over ? over.day : st.startDateMs != null ? msToDay(st.startDateMs) : null,
+          deadline:        st.deadlineMs,
         }
       })
       .sort(byOrder),

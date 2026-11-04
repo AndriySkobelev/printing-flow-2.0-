@@ -1,5 +1,5 @@
 import { type ReactNode } from 'react'
-import { Play, Pause } from 'lucide-react'
+import { Play, CheckCheck } from 'lucide-react'
 import { type SubTask } from './types'
 
 export const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
@@ -9,16 +9,13 @@ export const STATUS_CONFIG: Record<string, { label: string; className: string }>
   paused:      { label: 'Пауза',     className: 'bg-gray-100 text-gray-500' },
 }
 
-const startAction = { label: 'В роботі', icon: <Play size={11} />, next: 'in_progress' as const }
-
-// Before a task is started, the only move is new → in_progress. Once it's
-// running, this same action toggles between the remaining statuses
-// (in_progress ↔ paused); "done" is handled by its own button.
-export const toggleAction: Record<SubTask['status'], { label: string; icon: ReactNode; next: 'in_progress' | 'paused' }> = {
-  new:         startAction,
-  paused:      startAction,
-  in_progress: { label: 'Пауза', icon: <Pause size={11} />, next: 'paused' as const },
-  done:        startAction, // never rendered — the button is hidden once a task is done
+// The single main button walks a task forward: start (or resume) → done.
+// Pausing is a separate button shown only while the task is running.
+export const mainAction: Record<SubTask['status'], { label: string; icon: ReactNode; next: 'in_progress' | 'done' }> = {
+  new:         { label: 'В роботу',   icon: <Play size={11} />,       next: 'in_progress' },
+  paused:      { label: 'Продовжити', icon: <Play size={11} />,       next: 'in_progress' },
+  in_progress: { label: 'Виконати',   icon: <CheckCheck size={11} />, next: 'done' },
+  done:        { label: 'Виконати',   icon: <CheckCheck size={11} />, next: 'done' }, // never rendered — no actions once done
 }
 
 export const formatDate = (ts: number) =>

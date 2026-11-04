@@ -1,7 +1,9 @@
 import { v } from 'convex/values'
 import { query, mutation } from '../_generated/server'
 import type { Id } from '../_generated/dataModel'
-import type { MutationCtx } from '../_generated/server'
+import type { MutationCtx, QueryCtx } from '../_generated/server'
+import type { Doc } from '../_generated/dataModel'
+import { getAuthUserId } from '@convex-dev/auth/server'
 import { taskDurationMinutes, SEWER_DAY_CAPACITY } from '../lib/sewingDuration'
 
 const DAY_MS = 24 * 60 * 60 * 1000
@@ -326,6 +328,7 @@ export const getPlannerSubTasks = query({
             sewingSubTaskId: st._id,
             sewerId:         st.assignedTo ?? null,
             startDateMs:     st.startDate  ?? null,
+            deadlineMs:      sewingTask.endDate,
             quantity:        st.quantity,
             size:            st.size       ?? null,
             extraWorks:      st.extraWorks ?? [],
@@ -344,6 +347,30 @@ export const getPlannerSubTasks = query({
   },
 })
 
+// A sub-task with what the sewer needs to see: order, spec, deadline, images, custom notes.
+const withSewerDetails = async (ctx: QueryCtx, st: Doc<'sewingSubTasks'>) => {
+  const task            = await ctx.db.get(st.sewingTaskId)
+  const productionOrder = task ? await ctx.db.get(task.productionOrderId) : null
+
+  const item    = st.productionOrderItemId ? await ctx.db.get(st.productionOrderItemId) : null
+  const product = item?.productId ? await ctx.db.get(item.productId) : null
+  const spec    = product ? await ctx.db.get(product.parentId) : null
+
+  return {
+    ...st,
+    keycrmOrderId: task?.keycrmOrderId ?? null,
+    orderIndex:    task?.orderIndex    ?? null,
+    specName:      task?.specName      ?? null,
+    color:         task?.color         ?? null,
+    taskEndDate:   task?.endDate       ?? null,
+    images:        [...(productionOrder?.attachedFiles ?? []), ...(spec?.attachedFiles ?? [])],
+    // Fall back to the linked productionOrderItem's custom flag — older
+    // sub-tasks don't copy it themselves (see getSewingTasksWithCuttingProgress).
+    isCustomSewing:      st.isCustomSewing      ?? item?.isCustomSewing      ?? false,
+    customSewingComment: st.customSewingComment ?? item?.customSewingComment ?? undefined,
+  }
+}
+
 export const getMySubTasks = query({
   args: { userId: v.id('users') },
   handler: async (ctx, { userId }) => {
@@ -352,26 +379,29 @@ export const getMySubTasks = query({
       .withIndex('by_assignedTo', q => q.eq('assignedTo', userId))
       .collect()
 
+    return Promise.all(subTasks.map(st => withSewerDetails(ctx, st)))
+  },
+})
+
+// Every sub-task planned on the day (UTC midnight), whoever it's on — super_admin only.
+export const getDaySubTasksForAllUsers = query({
+  args: { day: v.number() },
+  handler: async (ctx, { day }) => {
+    const userId = await getAuthUserId(ctx)
+    const me     = userId ? await ctx.db.get(userId) : null
+    if (me?.role !== 'super_admin' && me?.role !== 'admin') throw new Error('Forbidden')
+
+    const dayStart = utcDayStart(day)
+    const subTasks = await ctx.db
+      .query('sewingSubTasks')
+      .withIndex('by_startDate', q => q.gte('startDate', dayStart).lt('startDate', dayStart + DAY_MS))
+      .collect()
+
     return Promise.all(subTasks.map(async (st) => {
-      const task           = await ctx.db.get(st.sewingTaskId)
-      const productionOrder = task ? await ctx.db.get(task.productionOrderId) : null
-
-      const item    = st.productionOrderItemId ? await ctx.db.get(st.productionOrderItemId) : null
-      const product = item?.productId ? await ctx.db.get(item.productId) : null
-      const spec    = product ? await ctx.db.get(product.parentId) : null
-
+      const sewer = st.assignedTo ? await ctx.db.get(st.assignedTo) : null
       return {
-        ...st,
-        keycrmOrderId: task?.keycrmOrderId ?? null,
-        orderIndex:    task?.orderIndex    ?? null,
-        specName:      task?.specName      ?? null,
-        color:         task?.color         ?? null,
-        taskEndDate:   task?.endDate       ?? null,
-        images:        [...(productionOrder?.attachedFiles ?? []), ...(spec?.attachedFiles ?? [])],
-        // Fall back to the linked productionOrderItem's custom flag — older
-        // sub-tasks don't copy it themselves (see getSewingTasksWithCuttingProgress).
-        isCustomSewing:      st.isCustomSewing      ?? item?.isCustomSewing      ?? false,
-        customSewingComment: st.customSewingComment ?? item?.customSewingComment ?? undefined,
+        ...(await withSewerDetails(ctx, st)),
+        sewerName: sewer ? `${sewer.name ?? ''} ${sewer.lastName ?? ''}`.trim() || '—' : null,
       }
     }))
   },

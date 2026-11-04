@@ -47,7 +47,6 @@ const ProductsSection = ({ items, productionOrderId, readOnly }: { items: OrderI
   const { mutate: updateAll } = useUpdateAllOrderItemsBrandingType()
   const { mutate: addItems }  = useAddProductionOrderItems()
   const { openDialog, closeDialog } = useContext(DialogContext)
-  const { openDrawer, closeDrawer } = useContext(DrawerContext)
 
   const handleConfigureAll = useCallback(() => {
     const id = openDialog({
@@ -70,12 +69,11 @@ const ProductsSection = ({ items, productionOrderId, readOnly }: { items: OrderI
   }, [productionOrderId, updateAll, openDialog, closeDialog])
 
   const handleAddProduct = useCallback(() => {
-    openDrawer({
-      direction: 'right',
-      title:   'Додати товар',
-      outerClose: true,
-      className: 'w-150',
-      formId: 'add-product-form',
+    const id = openDialog({
+      title:     'Додати товар',
+      className: 'sm:w-250 sm:max-w-250',
+      withForm:  true,
+      formId:    'add-product-form',
       content: (
         <AddProductForm
           formId="add-product-form"
@@ -93,13 +91,13 @@ const ProductsSection = ({ items, productionOrderId, readOnly }: { items: OrderI
                   shipmentType: p.shipmentType,
                 })),
               },
-              { onSuccess: () => closeDrawer() },
+              { onSuccess: () => closeDialog(id) },
             )
           }}
         />
       ),
     })
-  }, [productionOrderId, openDrawer, closeDrawer])
+  }, [productionOrderId, openDialog, closeDialog])
 
   return (
     <section className="p-3 flex flex-col gap-3">
@@ -188,7 +186,7 @@ const OrderDetailsContent = ({ productionOrderId, onBack, readOnly }: { producti
               <b className="text-foreground">{formatDate(order.plannedShipDate)}</b>
             </span>
           </div>
-          <div className="flex flex-col justify-between items-end gap-1.5 shrink-0 h-[stretch]">
+          <div className="flex flex-col justify-between items-end gap-1.5 shrink-0 self-stretch">
             {STATUS_CONFIG[order.status] && (
               <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${STATUS_CONFIG[order.status].className}`}>
                 {STATUS_CONFIG[order.status].label}

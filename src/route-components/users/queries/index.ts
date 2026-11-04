@@ -13,6 +13,13 @@ export const useUpdateUser = () =>
     onError: (e: Error) => toast.error(`Помилка: ${e.message}`, { duration: 3000, position: 'top-center' }),
   })
 
+export const useApproveUser = () =>
+  useMutation({
+    mutationFn: useConvexMutation(api.queries.users.approveUser),
+    onSuccess: () => toast.success('Користувача підтверджено.', { duration: 3000, position: 'top-center' }),
+    onError: (e: Error) => toast.error(`Помилка: ${e.message}`, { duration: 3000, position: 'top-center' }),
+  })
+
 export const useDeleteUser = () =>
   useMutation({
     mutationFn: useConvexMutation(api.queries.users.deleteUser),

@@ -5,6 +5,26 @@ import { Id } from "./_generated/dataModel";
 
 export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
   providers: [Google],
+  callbacks: {
+    // One deployment serves several frontends (localhost, the Netlify dev
+    // branch), so besides SITE_URL accept the origins listed in
+    // AUTH_ALLOWED_ORIGINS (comma-separated).
+    async redirect({ redirectTo }) {
+      const siteUrl = process.env.SITE_URL!.replace(/\/$/, '')
+      if (redirectTo.startsWith('/') || redirectTo.startsWith('?')) return `${siteUrl}${redirectTo}`
+      const allowed = [siteUrl, ...(process.env.AUTH_ALLOWED_ORIGINS ?? '').split(',')]
+        .map(o => o.trim().replace(/\/$/, ''))
+        .filter(Boolean)
+      const origin = new URL(redirectTo).origin
+      if (!allowed.includes(origin)) throw new Error(`Invalid redirectTo origin: ${origin}`)
+      return redirectTo
+    },
+    // A brand-new account has to be approved by a super_admin first.
+    async afterUserCreatedOrUpdated(ctx, { userId, existingUserId }) {
+      if (existingUserId) return
+      await ctx.db.patch(userId, { isApproved: false })
+    },
+  },
   // callbacks: {
   //   async createOrUpdateUser(ctx, args) {
   //     if (args.existingUserId) {

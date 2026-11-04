@@ -18,7 +18,7 @@ import { Checkbox } from '@/components/ui/check-box'
 import { DialogContext } from '@/contexts/dialog'
 import { BRANDING_TYPES, BRANDING_LABELS } from '@/route-components/order-details/types'
 import { usePlannerStore } from '../store'
-import { taskDurationMinutes, fmtDur } from '../helpers'
+import { taskDurationMinutes, fmtDur, endDateColor } from '../helpers'
 import { useUpdateSewingSubTaskAssignee, useSplitSewingSubTask, useUpdateSewingTaskStatus, useToggleSewingSubTaskExtraWork, useMergeSewingSubTaskIntoParent, useSetSewingSubTaskDay, useBulkAssignSewingSubTasks, useBulkSetSewingSubTaskDay, useBulkSetSewingSubTaskExtraWork } from '../queries'
 import { OrderInfoPanel } from './order-info-panel'
 
@@ -55,24 +55,6 @@ const STATUS_FILTER_OPTIONS = ['new', 'distributed', 'in_progress', 'done', 'pau
 
 const formatDate = (ts?: number | null) =>
   ts ? new UTCDate(ts).toLocaleDateString('uk-UA', { day: '2-digit', month: '2-digit' }) : '—'
-
-// Whole calendar days between today and the given timestamp (negative once it's overdue).
-const daysUntil = (ts?: number | null) => {
-  if (!ts) return null
-  const end   = new UTCDate(ts)
-  const now   = new UTCDate()
-  const endDay = Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), end.getUTCDate())
-  const today  = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
-  return Math.round((endDay - today) / 86_400_000)
-}
-
-const endDateColor = (ts?: number | null) => {
-  const days = daysUntil(ts)
-  if (days === null) return 'text-muted-foreground'
-  if (days < 0)  return 'text-red-500 font-semibold'
-  if (days <= 2) return 'text-amber-500 font-semibold'
-  return 'text-muted-foreground'
-}
 
 const formatTime = (ts: number) =>
   new UTCDate(ts).toLocaleString('uk-UA', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })

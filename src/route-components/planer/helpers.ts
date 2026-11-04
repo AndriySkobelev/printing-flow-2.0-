@@ -1,3 +1,4 @@
+import { UTCDate } from '@date-fns/utc'
 import { SNAP } from './constants'
 
 export function snap15(m: number) {
@@ -27,6 +28,26 @@ export function fmtDur(mins: number) {
   const h = Math.floor(mins / 60)
   const m = mins % 60
   return h > 0 ? `${h}г${m > 0 ? ' ' + m + 'хв' : ''}` : `${m}хв`
+}
+
+// Whole calendar days from `from` (today by default) to the given timestamp —
+// negative once it's past.
+export const daysUntil = (ts?: number | null, from?: number) => {
+  if (!ts) return null
+  const end    = new UTCDate(ts)
+  const start  = from != null ? new UTCDate(from) : new UTCDate()
+  const endDay = Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), end.getUTCDate())
+  const day    = Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate())
+  return Math.round((endDay - day) / 86_400_000)
+}
+
+// Deadline highlight: red once past, amber within 2 days.
+export const endDateColor = (ts?: number | null, from?: number) => {
+  const days = daysUntil(ts, from)
+  if (days === null) return 'text-muted-foreground'
+  if (days < 0)  return 'text-red-500 font-semibold'
+  if (days <= 2) return 'text-amber-500 font-semibold'
+  return 'text-muted-foreground'
 }
 
 export { taskDurationMinutes, SEWER_DAY_CAPACITY } from 'convex/lib/sewingDuration'

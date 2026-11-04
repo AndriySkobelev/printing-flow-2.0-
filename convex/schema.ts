@@ -45,6 +45,9 @@ export const users = {
   birthday: v.optional(v.string()),
   workHours: v.optional(v.number()),
   startDate: v.optional(v.string()),
+  // false for users who signed up themselves and wait for a super_admin to let
+  // them in; missing on accounts that existed before approval was introduced.
+  isApproved: v.optional(v.boolean()),
   developingSpecification: v.optional(v.array(v.object({
     specificationId: v.id('specifications'),
     developingTime:  v.number(),

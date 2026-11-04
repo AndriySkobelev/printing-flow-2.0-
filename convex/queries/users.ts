@@ -18,6 +18,16 @@ async function requireAdmin(ctx: any) {
   if (user?.role !== 'admin' && user?.role !== 'super_admin') throw new Error('Forbidden');
 }
 
+export const approveUser = mutation({
+  args: { id: v.id('users') },
+  handler: async (ctx, { id }) => {
+    const userId = await getAuthUserId(ctx);
+    const me = userId ? await ctx.db.get(userId) : null;
+    if (me?.role !== 'super_admin') throw new Error('Forbidden');
+    await ctx.db.patch(id, { isApproved: true });
+  },
+});
+
 export const updateCurrentUser = mutation({
   args: {
     name:      v.optional(v.string()),
