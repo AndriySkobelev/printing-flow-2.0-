@@ -4,7 +4,7 @@ import { convexQuery } from '@convex-dev/react-query'
 import { api } from 'convex/_generated/api'
 import { type Id } from 'convex/_generated/dataModel'
 import { UTCDate } from '@date-fns/utc'
-import { addDays, startOfWeek, format } from 'date-fns'
+import { addDays, format } from 'date-fns'
 import { ChevronLeft, ChevronRight, UserPlus, CalendarDays, UserMinus, Undo2, Sparkles, Plus, Minus, SplitSquareHorizontal, Wrench } from 'lucide-react'
 import {
   DndContext,
@@ -21,7 +21,7 @@ import { Button } from '@/components/ui/button'
 import { ActionsMenu } from '@/components/actions-menu'
 import { cn } from '@/lib/utils'
 import { SEWER_COLORS, DAY_NAMES } from '../constants'
-import { fmtDur, taskDurationMinutes, endDateColor, SEWER_DAY_CAPACITY as DAY_CAPACITY } from '../helpers'
+import { fmtDur, taskDurationMinutes, endDateColor, dayKey, weekDays, msToDay, SEWER_DAY_CAPACITY as DAY_CAPACITY } from '../helpers'
 import { useUpdateSewingSubTaskAssignee, useSetSewingSubTaskDay, useSplitSewingSubTask } from '../queries'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -51,19 +51,11 @@ type Zone = { day: string; kind: 'sewer' | 'pool' }
 
 // ─── Date helpers ────────────────────────────────────────────────────────────
 
-const dayKey = (d: Date) => format(d, 'yyyy-MM-dd')
-
-const weekDays = (anchor: Date) => {
-  const monday = startOfWeek(anchor, { weekStartsOn: 1 })
-  return Array.from({ length: 5 }, (_, i) => addDays(monday, i))
-}
-
 // yyyy-MM-dd ⇄ UTC-midnight ms, as stored in sub-task startDate.
 const dayToMs = (key: string) => {
   const [y, m, d] = key.split('-').map(Number)
   return Date.UTC(y, m - 1, d)
 }
-const msToDay = (ms: number) => dayKey(new UTCDate(ms))
 
 const STATUS_DOT: Record<KanbanTask['status'], string> = {
   new:         'bg-blue-400',

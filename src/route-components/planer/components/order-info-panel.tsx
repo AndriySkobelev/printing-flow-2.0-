@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { MyPopover } from '@/components/my-popover'
 import { OrderImages } from '@/route-components/order-details/components/order-images'
 import { SubcontractorSection } from '@/route-components/order-details/components/subcontractor-section'
+import { SewersLoad } from './sewers-load'
 import { BRANDING_TYPES, BRANDING_LABELS, type BrandingTypeValue } from '@/route-components/order-details/types'
 
 const formatDate = (ts: number) =>
@@ -129,6 +130,10 @@ export const OrderInfoPanel = ({ productionOrderId, itemIds }: Props) => {
 
       <div className="border-t">
         <SubcontractorSection productionOrderId={productionOrderId} readOnly />
+      </div>
+
+      <div className="border-t">
+        <SewersLoad />
       </div>
     </div>
   )

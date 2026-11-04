@@ -1,4 +1,5 @@
 import { UTCDate } from '@date-fns/utc'
+import { addDays as addDaysFns, startOfWeek, format } from 'date-fns'
 import { SNAP } from './constants'
 
 export function snap15(m: number) {
@@ -51,3 +52,22 @@ export const endDateColor = (ts?: number | null, from?: number) => {
 }
 
 export { taskDurationMinutes, SEWER_DAY_CAPACITY } from 'convex/lib/sewingDuration'
+
+// ─── Planner week ────────────────────────────────────────────────────────────
+
+export const dayKey = (d: Date) => format(d, 'yyyy-MM-dd')
+
+// Mon–Fri of the week containing `anchor`.
+export const weekDays = (anchor: Date) => {
+  const monday = startOfWeek(anchor, { weekStartsOn: 1 })
+  return Array.from({ length: 5 }, (_, i) => addDaysFns(monday, i))
+}
+
+// UTC-midnight ms, as stored in sub-task startDate → yyyy-MM-dd.
+export const msToDay = (ms: number) => dayKey(new UTCDate(ms))
+
+// Load colour by percent of capacity: red over 100, amber over 80.
+export const loadTone = (pct: number) => ({
+  text: pct > 100 ? 'text-red-500' : pct > 80 ? 'text-amber-500' : 'text-emerald-600',
+  bar:  pct > 100 ? 'bg-red-500'   : pct > 80 ? 'bg-amber-400'   : 'bg-emerald-500',
+})
