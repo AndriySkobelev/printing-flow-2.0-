@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useContext, useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { convexQuery } from '@convex-dev/react-query'
 import { api } from 'convex/_generated/api'
@@ -20,6 +20,8 @@ import {
 import { Button } from '@/components/ui/button'
 import { ActionsMenu } from '@/components/actions-menu'
 import { cn } from '@/lib/utils'
+import { DialogContext } from '@/contexts/dialog'
+import { sewingTaskDialog } from './orders-list'
 import { SEWER_COLORS, DAY_NAMES } from '../constants'
 import { fmtDur, taskDurationMinutes, endDateColor, dayKey, weekDays, msToDay, SEWER_DAY_CAPACITY as DAY_CAPACITY } from '../helpers'
 import { useUpdateSewingSubTaskAssignee, useSetSewingSubTaskDay, useSplitSewingSubTask } from '../queries'
@@ -29,7 +31,10 @@ import { useUpdateSewingSubTaskAssignee, useSetSewingSubTaskDay, useSplitSewingS
 type Sewer = { id: string; name: string; color: string }
 
 type KanbanTask = {
-  id:              string
+  id:                string
+  sewingTaskId:      string
+  productionOrderId: string
+  itemIds:           string[]
   orderNumber:     string
   specName:        string
   color:           string   // fabric color, used as card accent
@@ -79,6 +84,7 @@ type CardActions = {
   onAssign:   (taskId: string, sewerId: string | null) => void
   onSetDay:   (taskId: string, day: string | null) => void
   onSplit:    (taskId: string, qty: number) => void
+  onOpen:     (task: KanbanTask) => void
 }
 
 const toggleItemIcon = (isOn: boolean) => (
@@ -130,7 +136,7 @@ const TaskCardBody = ({ task, sewer, actions, onStartSplit }: {
           {task.extraWorks.length}
         </span>
       )}
-      <div className="ml-auto" onPointerDown={e => e.stopPropagation()}>
+      <div className="ml-auto" onPointerDown={e => e.stopPropagation()} onClick={e => e.stopPropagation()}>
         {actions && (
           <ActionsMenu
             items={[
@@ -228,6 +234,7 @@ const TaskCard = ({ task, zone, sewer, actions }: { task: KanbanTask; zone: Zone
         {...listeners}
         {...attributes}
         className={cn('cursor-grab active:cursor-grabbing select-none', isDragging && 'opacity-30')}
+        onClick={() => actions.onOpen(task)}
       >
         <TaskCardBody task={task} sewer={sewer} actions={actions} onStartSplit={() => setSplitting(true)} />
       </div>
@@ -417,6 +424,9 @@ export const SewingKanban = () => {
         const over = pending[id]
         return {
           id,
+          sewingTaskId:      String(st.sewingTaskId),
+          productionOrderId: String(st.productionOrderId),
+          itemIds:           st.itemIds.map(String),
           orderNumber:     String(st.orderNumber),
           specName:        st.specName,
           color:           st.color,
@@ -487,15 +497,36 @@ export const SewingKanban = () => {
   const handleSplit = (taskId: string, qty: number) =>
     splitSubTask({ sewingSubTaskId: taskId as Id<'sewingSubTasks'>, splitQty: qty })
 
-  const actions: CardActions = { sewers, days, onAssign: handleAssign, onSetDay: handleSetDay, onSplit: handleSplit }
+  const { openDialog } = useContext(DialogContext)
+  // A drop can fire a click on the dragged card — skip opening the order right after a drag.
+  const justDragged = useRef(false)
+  const handleOpen = (task: KanbanTask) => {
+    if (justDragged.current) return
+    openDialog(sewingTaskDialog({
+      taskId:            task.sewingTaskId,
+      productionOrderId: task.productionOrderId,
+      itemIds:           task.itemIds,
+      orderNumber:       task.orderNumber,
+      specName:          task.specName,
+      isCustom:          !!task.isCustom,
+    }))
+  }
+
+  const actions: CardActions = { sewers, days, onAssign: handleAssign, onSetDay: handleSetDay, onSplit: handleSplit, onOpen: handleOpen }
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }))
 
   const handleDragStart = ({ active }: DragStartEvent) => setDragging(String(active.id))
 
   // Drops the task on the day — into the active sewer's column, or the day's "no sewer" zone.
+  const markDragged = () => {
+    justDragged.current = true
+    setTimeout(() => { justDragged.current = false }, 0)
+  }
+
   const handleDragEnd = ({ active, over }: DragEndEvent) => {
     setDragging(null)
+    markDragged()
     const zone = over?.data.current?.zone as Zone | undefined
     const task = tasks.find(t => t.id === active.id)
     if (!zone || !task || !sewer) return
@@ -511,7 +542,7 @@ export const SewingKanban = () => {
   }
 
   return (
-    <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd} onDragCancel={() => setDragging(null)}>
+    <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd} onDragCancel={() => { setDragging(null); markDragged() }}>
       <div className="flex flex-col h-full">
         <div className="flex items-center gap-2 px-3 py-2 border-b shrink-0">
           <div className="flex items-center gap-1 rounded-lg bg-muted p-1">

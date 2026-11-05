@@ -5,7 +5,7 @@ import { useQuery, keepPreviousData } from '@tanstack/react-query'
 import { convexQuery } from '@convex-dev/react-query'
 import { api } from 'convex/_generated/api'
 import { type FunctionReturnType } from 'convex/server'
-import { Search, ChevronRight, Plus, Minus, Undo2, SplitSquareHorizontal, UserPlus, Sparkles, CalendarDays } from 'lucide-react'
+import { Search, Plus, Minus, Undo2, SplitSquareHorizontal, UserPlus, Sparkles, CalendarDays } from 'lucide-react'
 import { format } from 'date-fns'
 import { uk } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
@@ -571,6 +571,22 @@ const SewingTaskDialog = ({ taskId, productionOrderId, itemIds }: SewingTaskDial
   </div>
 )
 
+// Dialog of a sewing task's order — opened from the orders list and from kanban cards.
+export const sewingTaskDialog = ({ taskId, productionOrderId, itemIds, orderNumber, specName, isCustom }: SewingTaskDialogProps & {
+  orderNumber: string | number
+  specName?:   string | null
+  isCustom:    boolean
+}) => ({
+  title: (
+    <span className="flex items-center gap-1.5">
+      {isCustom && <Sparkles size={16} className="text-violet-500 shrink-0" />}
+      {`Замовлення #${orderNumber} · ${specName ?? ''}`}
+    </span>
+  ),
+  className: cn('sm:w-240 sm:max-w-240', isCustom && 'border-2 border-violet-400'),
+  content:   <SewingTaskDialog taskId={taskId} productionOrderId={productionOrderId} itemIds={itemIds} />,
+})
+
 // ─── SewingTaskCard ───────────────────────────────────────────────────────────
 
 type CardProps = {
@@ -594,24 +610,14 @@ const SewingTaskCard = ({ task, isSelected, onSelect }: CardProps) => {
   const isCustom        = hasCustomSewing || task.subTasks.some((s) => s.isCustomCut)
   const brandingTypes   = BRANDING_TYPES.filter((t) => task.brandingTypes.includes(t))
 
-  const handleOpenSubTasks = () => {
-    openDialog({
-      title: (
-        <span className="flex items-center gap-1.5">
-          {isCustom && <Sparkles size={16} className="text-violet-500 shrink-0" />}
-          {`Замовлення #${task.orderIndex ?? task.keycrmOrderId} · ${task.specName ?? ''}`}
-        </span>
-      ),
-      className: cn('sm:w-240 sm:max-w-240', isCustom && 'border-2 border-violet-400'),
-      content: (
-        <SewingTaskDialog
-          taskId={task._id}
-          productionOrderId={task.productionOrderId}
-          itemIds={task.subTasks.flatMap((s) => (s.productionOrderItemId ? [s.productionOrderItemId] : []))}
-        />
-      ),
-    })
-  }
+  const handleOpenSubTasks = () => openDialog(sewingTaskDialog({
+    taskId:            task._id,
+    productionOrderId: task.productionOrderId,
+    itemIds:           task.subTasks.flatMap((s) => (s.productionOrderItemId ? [s.productionOrderItemId] : [])),
+    orderNumber:       task.orderIndex ?? task.keycrmOrderId,
+    specName:          task.specName,
+    isCustom,
+  }))
 
   const canToggleStatus = TOGGLABLE_STATUSES.has(task.status)
   const handleToggleStatus = () => {
@@ -632,8 +638,8 @@ const SewingTaskCard = ({ task, isSelected, onSelect }: CardProps) => {
     >
       {/* Header — always visible */}
       <div
-        className={cn('flex overflow-hidden', isSelected ? 'bg-primary/5' : 'bg-card hover:bg-muted/40')}
-        onClick={() => onSelect(task._id)}
+        className={cn('flex overflow-hidden cursor-pointer', isSelected ? 'bg-primary/5' : 'bg-card hover:bg-muted/40')}
+        onClick={() => { onSelect(task._id); handleOpenSubTasks() }}
       >
         <div className="w-0.75 shrink-0" style={{ backgroundColor: accent }} />
 
@@ -712,16 +718,6 @@ const SewingTaskCard = ({ task, isSelected, onSelect }: CardProps) => {
           )}
         </div>
 
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon-sm"
-          className="shrink-0 self-center mr-1 cursor-pointer"
-          title="Пошив"
-          onClick={(e) => { e.stopPropagation(); handleOpenSubTasks() }}
-        >
-          <ChevronRight size={14} />
-        </Button>
       </div>
 
       {logsOpen && (

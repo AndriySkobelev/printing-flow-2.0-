@@ -303,6 +303,14 @@ export const getPlannerSubTasks = query({
   handler: async (ctx) => {
     const subTasks = await ctx.db.query('sewingSubTasks').collect()
 
+    // Order items per sewing task — the order dialog opened from a card highlights them.
+    const itemIdsByTask = new Map<string, Id<'productionOrderItems'>[]>()
+    for (const st of subTasks) {
+      if (!st.productionOrderItemId) continue
+      const key = String(st.sewingTaskId)
+      itemIdsByTask.set(key, [...(itemIdsByTask.get(key) ?? []), st.productionOrderItemId])
+    }
+
     const results = await Promise.all(
       subTasks
         // On the board: given to a sewer and/or put on a day, or split off a planned one.
@@ -326,6 +334,9 @@ export const getPlannerSubTasks = query({
 
           return {
             sewingSubTaskId: st._id,
+            sewingTaskId:      st.sewingTaskId,
+            productionOrderId: sewingTask.productionOrderId,
+            itemIds:           itemIdsByTask.get(String(st.sewingTaskId)) ?? [],
             sewerId:         st.assignedTo ?? null,
             startDateMs:     st.startDate  ?? null,
             deadlineMs:      sewingTask.endDate,
