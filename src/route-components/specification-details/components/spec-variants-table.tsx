@@ -12,7 +12,7 @@ import { DialogContext } from '@/contexts/dialog'
 import { useCreateSpecVariants, useBulkUpdateProductMaterials } from '../actions'
 import EditMaterialsForm, { type EditMaterialsFormType } from '../forms/edit-materials-form'
 import VariantDetailContent from './variant-detail-content'
-import { ColorFilterMenu } from './color-filter-menu'
+import { FilterMenu } from '@/components/filter-menu'
 
 type Props = {
   specificationId: string
@@ -258,7 +258,13 @@ export const SpecVariantsTable = ({ specificationId }: Props) => {
           <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground shrink-0">
             Варіанти ({products.length})
           </p>
-          <ColorFilterMenu colors={colorNames} selected={colorFilter} onChange={setColorFilter} />
+          <FilterMenu
+            label="Колір"
+            options={colorNames.map(c => ({ value: c, label: c }))}
+            selected={colorFilter}
+            onChange={setColorFilter}
+            searchPlaceholder="Пошук кольору..."
+          />
         </div>
         <div className="flex items-center gap-2 shrink-0">
           {selectedProductIds.length === 1 && (

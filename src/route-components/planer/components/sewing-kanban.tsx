@@ -5,7 +5,7 @@ import { api } from 'convex/_generated/api'
 import { type Id } from 'convex/_generated/dataModel'
 import { UTCDate } from '@date-fns/utc'
 import { addDays, format } from 'date-fns'
-import { ChevronLeft, ChevronRight, UserPlus, CalendarDays, UserMinus, Undo2, Sparkles, Plus, Minus, SplitSquareHorizontal, Wrench } from 'lucide-react'
+import { ChevronLeft, ChevronRight, UserPlus, CalendarDays, UserMinus, Undo2, Sparkles, Scissors, Plus, Minus, SplitSquareHorizontal, Wrench } from 'lucide-react'
 import {
   DndContext,
   DragOverlay,
@@ -46,6 +46,8 @@ type KanbanTask = {
   extraWorks:      { name: string; minutesPerUnit: number }[]
   status:          'new' | 'in_progress' | 'done' | 'paused'
   isCustom?:       boolean
+  cutDone:         number    // cut pieces of its order item
+  cutTotal:        number
   sewerId:         string | null
   day:             string | null   // yyyy-MM-dd
   deadline:        number          // sewing task end date, ms
@@ -97,6 +99,12 @@ const toggleItemIcon = (isOn: boolean) => (
 const toggleItemClass = (isOn: boolean) =>
   cn('my-0.5', isOn && 'bg-violet-50 text-violet-700 focus:bg-violet-100 focus:text-violet-800')
 
+// How far the card's order item is cut.
+const cutState = (task: KanbanTask) =>
+  task.cutTotal > 0 && task.cutDone >= task.cutTotal ? 'full'
+  : task.cutDone > 0 ? 'partial'
+  : 'none'
+
 const TaskCardBody = ({ task, sewer, actions, onStartSplit }: {
   task:          KanbanTask
   sewer?:        Sewer
@@ -105,11 +113,15 @@ const TaskCardBody = ({ task, sewer, actions, onStartSplit }: {
 }) => (
   <div
     className={cn(
-      'relative flex flex-col gap-1 rounded-md border bg-background pl-3 pr-1.5 py-1.5 text-[12px] shadow-xs',
-      task.isCustom ? 'border-violet-300 bg-violet-50/50' : 'border-border',
+      'relative flex flex-col gap-1 rounded-md border border-l-[3px] bg-background pl-2.5 pr-1.5 py-1.5 text-[12px] shadow-xs',
+      task.isCustom
+        ? 'border-violet-300 bg-violet-50/50'
+        : cutState(task) === 'full'    ? 'border-emerald-300 bg-emerald-50'
+        : cutState(task) === 'partial' ? 'border-amber-300 bg-amber-50'
+        : 'border-border',
     )}
+    style={{ borderLeftColor: task.color }}
   >
-    <span className="absolute inset-y-0 left-0 w-[3px] rounded-l-md" style={{ background: task.color }} />
     <div className="flex items-center gap-1.5">
       {sewer && (
         <span
@@ -122,6 +134,17 @@ const TaskCardBody = ({ task, sewer, actions, onStartSplit }: {
       )}
       <span className="font-semibold">#{task.orderNumber}</span>
       {task.isCustom && <Sparkles size={11} className="text-violet-600" />}
+      {cutState(task) === 'full' && (
+        <span title="Розкроєно" className="text-emerald-600">
+          <Scissors size={11} />
+        </span>
+      )}
+      {cutState(task) === 'partial' && (
+        <span title="Розкроєно частково" className="flex items-center gap-0.5 text-[10px] font-semibold text-amber-700 tabular-nums">
+          <Scissors size={11} />
+          {task.cutDone}/{task.cutTotal}
+        </span>
+      )}
       {task.size && (
         <span className="text-[10px] font-semibold px-1 py-0.5 rounded bg-muted border border-border/60 leading-none">
           {task.size}
@@ -438,6 +461,8 @@ export const SewingKanban = () => {
           extraWorks:      st.extraWorks,
           status:          st.status,
           isCustom:        st.isCustom,
+          cutDone:         st.cutDone,
+          cutTotal:        st.cutTotal,
           sewerId:         over ? over.sewerId : st.sewerId ? String(st.sewerId) : null,
           day:             over ? over.day : st.startDateMs != null ? msToDay(st.startDateMs) : null,
           deadline:        st.deadlineMs,

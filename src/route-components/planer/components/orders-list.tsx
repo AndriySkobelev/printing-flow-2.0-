@@ -11,8 +11,10 @@ import { uk } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { ExpandableSection } from '@/components/ui/expandable-section'
 import { ActionsMenu } from '@/components/actions-menu'
 import { MyPopover } from '@/components/my-popover'
+import { FilterMenu } from '@/components/filter-menu'
 import { Calendar } from '@/components/ui/calendar'
 import { Checkbox } from '@/components/ui/check-box'
 import { DialogContext } from '@/contexts/dialog'
@@ -560,12 +562,30 @@ const SewingTaskSubTasks = ({ taskId }: { taskId: string }) => {
 
 type SewingTaskDialogProps = { taskId: string; productionOrderId: string; itemIds: string[] }
 
+// Cutting progress of the task with its log entries, newest first.
+const CuttingHistory = ({ taskId }: { taskId: string }) => {
+  const { data: tasks = [] } = useQuery(convexQuery(api.queries.sewing.getSewingTasksWithCuttingProgress, {}))
+  const task = tasks.find((t) => t._id === taskId)
+  if (!task) return null
+
+  const { totalQty, completedQty, logs } = task.cuttingProgress
+  return (
+    <ExpandableSection title={`Розкрій · ${completedQty}/${totalQty} шт`} className="mb-3 pb-3 border-b">
+      <ProgressBar done={completedQty} total={totalQty} size="md" hex={task.fabricColorHex ?? '#6b7280'} />
+      <CuttingLogsPanel logs={logs} />
+    </ExpandableSection>
+  )
+}
+
 const SewingTaskDialog = ({ taskId, productionOrderId, itemIds }: SewingTaskDialogProps) => (
   <div className="flex gap-4 max-h-[75vh]">
-    <ScrollArea className="w-88 shrink-0 border-r pr-1">
+    {/* Radix wraps content in a display:table div that grows to fit wide rows
+        (images, the sewers' week) and clips them — keep it at the column width. */}
+    <ScrollArea className="w-88 shrink-0 border-r pr-1 [&_[data-slot=scroll-area-viewport]>div]:block!">
       <OrderInfoPanel productionOrderId={productionOrderId} itemIds={itemIds} />
     </ScrollArea>
     <ScrollArea className="flex-1 min-w-0">
+      <CuttingHistory taskId={taskId} />
       <SewingTaskSubTasks taskId={taskId} />
     </ScrollArea>
   </div>
@@ -596,14 +616,10 @@ type CardProps = {
 }
 
 const SewingTaskCard = ({ task, isSelected, onSelect }: CardProps) => {
-  const [logsOpen, setLogsOpen] = useState(false)
-
   const { mutate: updateTaskStatus } = useUpdateSewingTaskStatus()
   const { openDialog }               = useContext(DialogContext)
 
   const accent = task.fabricColorHex ?? '#6b7280'
-  const { totalQty, completedQty, logs } = task.cuttingProgress
-  const pct = totalQty > 0 ? Math.min(100, Math.round((completedQty / totalQty) * 100)) : 0
 
   const customSubTasks  = task.subTasks.filter((s) => s.isCustomSewing)
   const hasCustomSewing = customSubTasks.length > 0
@@ -651,19 +667,19 @@ const SewingTaskCard = ({ task, isSelected, onSelect }: CardProps) => {
                   className="shrink-0 text-violet-500"
                   title={customSubTasks.map((s) => s.customSewingComment).filter(Boolean).join('; ') || 'Індивідуальний пошив'}
                 >
-                  <Sparkles size={12} />
+                  <Sparkles size={14} />
                 </span>
               )}
-              <span className="text-[10px] font-bold shrink-0">#{task.orderIndex}</span>
-              <p className="text-[12px] font-medium leading-tight truncate">{task.specName}</p>
+              <span className="text-[12px] font-bold shrink-0">#{task.orderIndex}</span>
+              <p className="text-[14px] font-medium leading-tight truncate">{task.specName}</p>
             </div>
-            <span className={cn('text-[11px] shrink-0 tabular-nums', endDateColor(task.endDate))}>{formatDate(task.endDate)}</span>
+            <span className={cn('text-[13px] shrink-0 tabular-nums', endDateColor(task.endDate))}>{formatDate(task.endDate)}</span>
           </div>
 
           <div className="flex items-center gap-1.5">
             {task.colorName && (
               <span
-                className="shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded-full leading-none"
+                className="shrink-0 text-[12px] font-semibold px-1.5 py-0.5 rounded-full leading-none"
                 style={{ backgroundColor: accent, color: task.labelColorHex ?? '#ffffff' }}
               >
                 {task.colorName}
@@ -675,7 +691,7 @@ const SewingTaskCard = ({ task, isSelected, onSelect }: CardProps) => {
                 variant="ghost"
                 size="sm"
                 key={task.status}
-                className="h-auto p-0 gap-1 text-[10px] text-muted-foreground hover:bg-transparent hover:text-foreground"
+                className="h-auto p-0 gap-1 text-[12px] text-muted-foreground hover:bg-transparent hover:text-foreground"
                 title="Змінити статус"
                 onClick={(e) => { e.stopPropagation(); handleToggleStatus() }}
               >
@@ -685,32 +701,17 @@ const SewingTaskCard = ({ task, isSelected, onSelect }: CardProps) => {
             ) : (
               <>
                 <span className={cn('size-1.5 rounded-full shrink-0', STATUS_DOT[task.status])} />
-                <span className="text-[10px] text-muted-foreground">{STATUS_LABEL[task.status]}</span>
+                <span className="text-[12px] text-muted-foreground">{STATUS_LABEL[task.status]}</span>
               </>
             )}
-            <span className="text-[10px] text-muted-foreground ml-auto">{task.totalQuantity} шт</span>
+            <span className="text-[12px] text-muted-foreground ml-auto">{task.totalQuantity} шт</span>
           </div>
 
-          <div className="flex flex-col gap-0.5 mt-0.5">
-            <div className="flex items-center justify-between text-[10px] text-muted-foreground">
-              <span>Розкрій</span>
-              <span className="tabular-nums">{completedQty}/{totalQty} шт</span>
-            </div>
-            <Button
-              type="button"
-              variant="ghost"
-              className="w-full h-auto p-0 justify-start hover:bg-transparent"
-              onClick={(e) => { e.stopPropagation(); setLogsOpen((v) => !v) }}
-              title="Переглянути записи розкрою"
-            >
-              <ProgressBar done={completedQty} total={totalQty} size="md" hex={accent} />
-            </Button>
-          </div>
 
           {brandingTypes.length > 0 && (
             <div className="flex flex-wrap gap-1 mt-0.5">
               {brandingTypes.map((type) => (
-                <span key={type} className="px-1.5 py-0.5 rounded-full text-[10px] font-medium leading-none bg-primary/10 text-primary">
+                <span key={type} className="px-1.5 py-0.5 rounded-full text-[12px] font-medium leading-none bg-primary/10 text-primary">
                   {BRANDING_LABELS[type]}
                 </span>
               ))}
@@ -720,14 +721,6 @@ const SewingTaskCard = ({ task, isSelected, onSelect }: CardProps) => {
 
       </div>
 
-      {logsOpen && (
-        <div className="px-3 py-2 border-t border-border/60 bg-muted/5">
-          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">
-            Записи розкрою
-          </p>
-          <CuttingLogsPanel logs={logs} />
-        </div>
-      )}
     </div>
   )
 }
@@ -749,9 +742,6 @@ export const OrdersList = ({ selectedId, onSelect }: Props) => {
   const [search, setSearch]         = useState('')
   const [statusFilter, setStatusFilter] = useState<string[]>(['new'])
 
-  const toggleStatusFilter = (status: string) =>
-    setStatusFilter((prev) => prev.includes(status) ? prev.filter((s) => s !== status) : [...prev, status])
-
   const filtered = tasks
     .filter((t) => !search.trim() || t.keycrmOrderId.includes(search) || t.specName?.toLowerCase().includes(search.toLowerCase()))
     .filter((t) => statusFilter.length === 0 || statusFilter.includes(t.status))
@@ -772,6 +762,26 @@ export const OrdersList = ({ selectedId, onSelect }: Props) => {
             placeholder="Пошук..."
             className="flex-1 min-w-0 bg-transparent text-xs outline-none placeholder:text-muted-foreground/60"
           />
+        </div>
+
+        {/* Filters */}
+        <div className="flex items-center gap-1.5 rounded-md bg-muted/40 px-1.5 py-1">
+          <FilterMenu
+            label="Статус"
+            options={STATUS_FILTER_OPTIONS.map((status) => ({
+              value:  status,
+              search: STATUS_LABEL[status],
+              label:  (
+                <span className="flex items-center gap-1.5 text-xs">
+                  <span className={cn('size-1.5 rounded-full shrink-0', STATUS_DOT[status])} />
+                  {STATUS_LABEL[status]}
+                </span>
+              ),
+            }))}
+            selected={statusFilter}
+            onChange={setStatusFilter}
+            triggerClassName="bg-background"
+          />
           <SubTaskDayPicker
             value={day}
             onChange={setDay}
@@ -782,7 +792,7 @@ export const OrdersList = ({ selectedId, onSelect }: Props) => {
                 size="sm"
                 title="Фільтр за днем пошиву"
                 className={cn(
-                  'h-5 -mr-1 shrink-0 gap-1 px-1.5 text-[11px] tabular-nums',
+                  'h-6 shrink-0 gap-1 px-1.5 text-[11px] tabular-nums',
                   day != null ? 'bg-primary/10 text-primary font-medium hover:bg-primary/15 hover:text-primary' : 'text-muted-foreground',
                 )}
               >
@@ -791,35 +801,12 @@ export const OrdersList = ({ selectedId, onSelect }: Props) => {
               </Button>
             }
           />
-        </div>
-
-        <div className="flex items-center gap-1 flex-wrap">
-          {STATUS_FILTER_OPTIONS.map((status) => {
-            const active = statusFilter.includes(status)
-            return (
-              <Button
-                key={status}
-                type="button"
-                variant="outline"
-                onClick={() => toggleStatusFilter(status)}
-                className={cn(
-                  'h-auto gap-1 text-[10px] px-1.5 py-0.5 rounded-full font-normal',
-                  active
-                    ? 'border-primary/60 bg-primary/10 text-foreground'
-                    : 'text-muted-foreground hover:border-foreground/30 hover:text-foreground',
-                )}
-              >
-                <span className={cn('size-1.5 rounded-full shrink-0', STATUS_DOT[status])} />
-                {STATUS_LABEL[status]}
-              </Button>
-            )
-          })}
-          {statusFilter.length > 0 && (
+          {(statusFilter.length > 0 || day != null) && (
             <Button
               type="button"
               variant="ghost"
-              onClick={() => setStatusFilter([])}
-              className="h-auto text-[10px] px-1.5 py-0.5 text-muted-foreground hover:text-foreground font-normal"
+              onClick={() => { setStatusFilter([]); setDay(null) }}
+              className="ml-auto h-6 text-[11px] px-1.5 text-muted-foreground hover:text-foreground font-normal"
             >
               Скинути
             </Button>

@@ -17,7 +17,7 @@ import { SizeInfo } from './components/size-info'
 import { type SpecData } from './components/spec-info'
 import { CuttingSpecDetails } from './components/cutting-spec-details'
 import { OrderInfo } from './components/order-info'
-import { StatusFilter } from './components/status-filter'
+import { FilterMenu } from '@/components/filter-menu'
 import { OrderLogs } from '@/components/order-logs'
 import { DrawerContext } from '@/contexts/drawer'
 import { AuthContext } from '@/contexts/auth'
@@ -439,7 +439,11 @@ export default function ProductionCut() {
 
   const statusOptions = useMemo(
     () => (Object.entries(STATUSES) as [Status, { label: string; className: string }][])
-      .map(([key, cfg]) => ({ key, label: cfg.label, className: cfg.className })),
+      .map(([key, cfg]) => ({
+        value:  key,
+        search: cfg.label,
+        label:  <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${cfg.className}`}>{cfg.label}</span>,
+      })),
     [],
   )
 
@@ -492,7 +496,7 @@ export default function ProductionCut() {
           value={search}
           onChange={e => setSearch(e.target.value)}
         />
-        <StatusFilter selected={statusFilter} onChange={setStatusFilter} options={statusOptions} />
+        <FilterMenu label="Статус" options={statusOptions} selected={statusFilter} onChange={setStatusFilter} triggerClassName="h-9" />
         <div className="h-5 w-px bg-border" />
         <div className="flex gap-1">
           <Button size="sm" variant={typeFilter === 'all' ? 'default' : 'outline'} onClick={() => setTypeFilter('all')}>

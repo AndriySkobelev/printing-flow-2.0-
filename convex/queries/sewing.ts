@@ -332,8 +332,20 @@ export const getPlannerSubTasks = query({
 
           const item = st.productionOrderItemId ? await ctx.db.get(st.productionOrderItemId) : null
 
+          // Cutting progress of the card's order item.
+          const cutSizes = st.productionOrderItemId
+            ? await ctx.db
+                .query('cuttingTaskSizes')
+                .withIndex('by_productionOrderItem', (q) => q.eq('productionOrderItemId', st.productionOrderItemId!))
+                .collect()
+            : []
+          const cutTotal = cutSizes.reduce((sum, sz) => sum + sz.quantity, 0)
+          const cutDone  = cutSizes.reduce((sum, sz) => sum + Math.min(sz.completedQty, sz.quantity), 0)
+
           return {
             sewingSubTaskId: st._id,
+            cutDone,
+            cutTotal,
             sewingTaskId:      st.sewingTaskId,
             productionOrderId: sewingTask.productionOrderId,
             itemIds:           itemIdsByTask.get(String(st.sewingTaskId)) ?? [],
