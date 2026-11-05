@@ -187,6 +187,7 @@ const Fabrics: FunctionComponent<FabricsProps> = () => {
             defaultHeaders={fabricHeaders(handleConfirmDeleteFabric, handleEditFabric, selectedFabricId, setSelectedFabricId)}
             onCellClick={handleFabricClick}
             getRowId={(row) => row.row._id as string}
+            selectedRowId={selectedFabricId}
           />
         </div>
         <div className="flex flex-col gap-2 flex-1">

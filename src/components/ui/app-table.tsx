@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState } from 'react';
+import { lazy, Suspense, useState, useId } from 'react';
 import { type HeaderObject, type CellClickProps, QuickFilterConfig, RowSelectionChangeProps} from 'simple-table-core';
 import { Search } from 'lucide-react';
 import { Spinner } from '@/components/ui/spinner';
@@ -39,12 +39,30 @@ interface AppTableProps {
   columnSearch?: string[];
   // Rendered before the search box, on the same row (e.g. an "add" button).
   toolbar?: React.ReactNode;
+  // Highlights the row whose getRowId equals this (e.g. the one picked by a click).
+  selectedRowId?: string | null;
 }
 
-const AppTable = ({ fallback, className, defaultHeaders, height, rows, isLoading, getRowId, withSearch, searchPlaceholder, columnSearch, quickFilter, toolbar, ...props }: AppTableProps) => {
+const AppTable = ({ fallback, className, defaultHeaders, height, rows, isLoading, getRowId, withSearch, searchPlaceholder, columnSearch, quickFilter, toolbar, selectedRowId, ...props }: AppTableProps) => {
   const [search, setSearch] = useState('');
+  const tableId = useId();
+
+  // simple-table has no row-class API; its cells carry data-row-id = "<index path>-<getRowId>".
+  const selectedStyle = selectedRowId && (
+    <style>{`
+      [data-app-table="${tableId}"] .st-cell[data-row-id$="-${CSS.escape(selectedRowId)}"] {
+        background-color: color-mix(in oklab, var(--primary) 10%, var(--background, #fff));
+        font-weight: 600;
+      }
+      [data-app-table="${tableId}"] .st-cell[data-row-id$="-${CSS.escape(selectedRowId)}"][data-col-index="0"] {
+        box-shadow: inset 3px 0 0 var(--primary);
+      }
+    `}</style>
+  );
 
   const table = (
+    <div data-app-table={tableId} className="contents">
+    {selectedStyle}
     <Suspense fallback={fallback ?? <div className="flex items-center justify-center w-full h-32"><Spinner className="w-5 h-5" /></div>}>
       <SimpleTable
         rows={rows}
@@ -58,6 +76,7 @@ const AppTable = ({ fallback, className, defaultHeaders, height, rows, isLoading
         quickFilter={withSearch ? { mode: 'smart', text: search, caseSensitive: false, columns: columnSearch } : quickFilter}
         {...props}  />
     </Suspense>
+    </div>
   );
 
   if (!withSearch) return table;
