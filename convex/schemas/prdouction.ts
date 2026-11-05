@@ -85,6 +85,8 @@ export const sewingSubTasks = {
   // Split off a sub-task that already had a sewer or a day — such parts wait
   // in the planner's "not distributed" strip (other unplanned ones don't).
   splitWhilePlanned: v.optional(v.boolean()),
+  // Pieces cut beyond the order item's quantity — sewn as extra, apart from the order.
+  isOverrun: v.optional(v.boolean()),
 };
 
 export const sewingLogs = {

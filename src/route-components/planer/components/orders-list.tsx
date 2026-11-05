@@ -5,13 +5,14 @@ import { useQuery, keepPreviousData } from '@tanstack/react-query'
 import { convexQuery } from '@convex-dev/react-query'
 import { api } from 'convex/_generated/api'
 import { type FunctionReturnType } from 'convex/server'
-import { Search, Plus, Minus, Undo2, SplitSquareHorizontal, UserPlus, Sparkles, CalendarDays } from 'lucide-react'
+import { Search, Plus, PackagePlus, Minus, Undo2, SplitSquareHorizontal, UserPlus, Sparkles, CalendarDays } from 'lucide-react'
 import { format } from 'date-fns'
 import { uk } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { ExpandableSection } from '@/components/ui/expandable-section'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ActionsMenu } from '@/components/actions-menu'
 import { MyPopover } from '@/components/my-popover'
 import { FilterMenu } from '@/components/filter-menu'
@@ -161,6 +162,13 @@ const toggleItemClass = (isOn: boolean) =>
 
 type TaskMeta = { orderNumber: string; specName: string; color: string }
 
+// Marks a sub-task cut beyond the order — extra pieces that came out of that order.
+export const OverrunIcon = ({ orderNumber, size = 12 }: { orderNumber: string | number; size?: number }) => (
+  <span className="shrink-0 text-orange-500" title={`Надлишок з розкрою · замовлення #${orderNumber}`}>
+    <PackagePlus size={size} />
+  </span>
+)
+
 type SewerUser = { _id: string; name: string; lastName: string }
 
 type ExtraWork = FunctionReturnType<typeof api.queries.extraWorks.getExtraWorks>[number]
@@ -250,6 +258,7 @@ const SubTaskItem = ({
     >
       <div className="flex items-center gap-2 text-[13px]">
         <Checkbox checked={isSelected} onCheckedChange={onToggleSelect} className="bg-background" />
+        {sub.isOverrun && <OverrunIcon orderNumber={taskMeta.orderNumber} size={13} />}
         {sub.isCustomSewing && (
           <span className="shrink-0 text-violet-500" title={sub.customSewingComment || 'Індивідуальний пошив'}>
             <Sparkles size={13} />
@@ -396,7 +405,8 @@ const SewingTaskSubTasks = ({ taskId }: { taskId: string }) => {
   const canMerge = (sub: SubTaskRow) => {
     if (sub.status !== 'new' || (sub.completedQty ?? 0) > 0) return false
     if (sub.splitFromId) return true
-    return task.subTasks.some((s) => s._id !== sub._id && s.productionOrderItemId === sub.productionOrderItemId && s._creationTime < sub._creationTime)
+    if (sub.isOverrun) return false
+    return task.subTasks.some((s) => s._id !== sub._id && !s.isOverrun && s.productionOrderItemId === sub.productionOrderItemId && s._creationTime < sub._creationTime)
   }
 
   const handleSplitConfirm = () => {
@@ -434,6 +444,28 @@ const SewingTaskSubTasks = ({ taskId }: { taskId: string }) => {
 
   const handleBulkDay = (day: number | null) =>
     bulkSetDay({ sewingSubTaskIds: selected, day }, { onSuccess: clearSelected })
+
+  const orderSubs   = task.subTasks.filter((s) => !s.isOverrun)
+  const overrunSubs = task.subTasks.filter((s) => s.isOverrun)
+
+  const renderSub = (sub: SubTaskRow) => (
+    <SubTaskItem
+      key={sub._id}
+      sub={sub}
+      taskMeta={taskMeta}
+      sewerUsers={sewerUsers}
+      extraWorks={extraWorks}
+      canMerge={canMerge(sub)}
+      isSelected={selectedIds.has(sub._id)}
+      onToggleSelect={() => toggleSelect(sub._id)}
+      splitId={splitState.id}
+      splitQty={splitState.qty}
+      onSplit={(id) => setSplitState({ id, qty: '' })}
+      onSplitQtyChange={(qty) => setSplitState((s) => ({ ...s, qty }))}
+      onSplitConfirm={handleSplitConfirm}
+      onSplitCancel={() => setSplitState({ id: null, qty: '' })}
+    />
+  )
 
   return (
     <div className="flex flex-col gap-2">
@@ -536,24 +568,17 @@ const SewingTaskSubTasks = ({ taskId }: { taskId: string }) => {
         <p className="text-[11px] text-muted-foreground">Немає виконавців</p>
       )}
 
-      {task.subTasks.map((sub) => (
-        <SubTaskItem
-          key={sub._id}
-          sub={sub}
-          taskMeta={taskMeta}
-          sewerUsers={sewerUsers}
-          extraWorks={extraWorks}
-          canMerge={canMerge(sub)}
-          isSelected={selectedIds.has(sub._id)}
-          onToggleSelect={() => toggleSelect(sub._id)}
-          splitId={splitState.id}
-          splitQty={splitState.qty}
-          onSplit={(id) => setSplitState({ id, qty: '' })}
-          onSplitQtyChange={(qty) => setSplitState((s) => ({ ...s, qty }))}
-          onSplitConfirm={handleSplitConfirm}
-          onSplitCancel={() => setSplitState({ id: null, qty: '' })}
-        />
-      ))}
+      {orderSubs.map(renderSub)}
+
+      {overrunSubs.length > 0 && (
+        <div className="flex flex-col gap-2 mt-2 pt-3 border-t border-dashed">
+          <p className="flex items-center gap-1.5 text-[10px] font-semibold text-orange-600 uppercase tracking-wide">
+            <PackagePlus size={12} />
+            {`Надлишок з розкрою · ${overrunSubs.reduce((sum, s) => sum + s.quantity, 0)} шт`}
+          </p>
+          {overrunSubs.map(renderSub)}
+        </div>
+      )}
     </div>
   )
 }
@@ -607,6 +632,68 @@ export const sewingTaskDialog = ({ taskId, productionOrderId, itemIds, orderNumb
   content:   <SewingTaskDialog taskId={taskId} productionOrderId={productionOrderId} itemIds={itemIds} />,
 })
 
+// The order dialog for a task row of getSewingTasksWithCuttingProgress.
+const taskDialog = (task: SewingTaskRow) => sewingTaskDialog({
+  taskId:            task._id,
+  productionOrderId: task.productionOrderId,
+  itemIds:           task.subTasks.flatMap((s) => (s.productionOrderItemId ? [s.productionOrderItemId] : [])),
+  orderNumber:       task.orderIndex ?? task.keycrmOrderId,
+  specName:          task.specName,
+  isCustom:          task.subTasks.some((s) => s.isCustomSewing || s.isCustomCut),
+})
+
+// ─── OverrunCard ──────────────────────────────────────────────────────────────
+
+// An over-cut sub-task in the "Надлишок" tab; opens the order it came out of.
+const OverrunCard = ({ task, sub }: { task: SewingTaskRow; sub: SubTaskRow }) => {
+  const { openDialog } = useContext(DialogContext)
+  const accent      = task.fabricColorHex ?? '#6b7280'
+  const orderNumber = task.orderIndex ?? task.keycrmOrderId
+  const isAssigned  = sub.userName && sub.userName !== '—'
+
+  return (
+    <div
+      className="flex overflow-hidden rounded-lg border border-orange-200 bg-card hover:bg-muted/40 cursor-pointer transition-colors"
+      onClick={() => openDialog(taskDialog(task))}
+    >
+      <div className="w-0.75 shrink-0" style={{ backgroundColor: accent }} />
+      <div className="flex flex-col gap-1 px-2.5 py-2 min-w-0 flex-1">
+        <div className="flex items-center gap-2 min-w-0">
+          <OverrunIcon orderNumber={orderNumber} size={14} />
+          <span className="text-[12px] font-bold shrink-0">#{orderNumber}</span>
+          <p className="text-[14px] font-medium leading-tight truncate">{task.specName}</p>
+          <span className="text-[13px] font-semibold tabular-nums shrink-0 ml-auto">{sub.quantity} шт</span>
+        </div>
+        <div className="flex items-center gap-1.5 text-[12px]">
+          {task.colorName && (
+            <span
+              className="shrink-0 font-semibold px-1.5 py-0.5 rounded-full leading-none"
+              style={{ backgroundColor: accent, color: task.labelColorHex ?? '#ffffff' }}
+            >
+              {task.colorName}
+            </span>
+          )}
+          {sub.size && (
+            <span className="shrink-0 font-semibold px-1.5 py-0.5 rounded bg-muted border border-border/60 leading-none">
+              {sub.size}
+            </span>
+          )}
+          <span className={cn('truncate', isAssigned ? 'text-foreground' : 'text-muted-foreground italic')}>
+            {isAssigned ? sub.userName : 'Не призначено'}
+          </span>
+          {sub.startDate != null && (
+            <span className="text-muted-foreground tabular-nums shrink-0">{format(new UTCDate(sub.startDate), 'dd.MM')}</span>
+          )}
+          <span className="flex items-center gap-1 shrink-0 ml-auto text-muted-foreground">
+            <span className={cn('size-1.5 rounded-full', STATUS_DOT[sub.status])} />
+            {STATUS_LABEL[sub.status] ?? sub.status}
+          </span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── SewingTaskCard ───────────────────────────────────────────────────────────
 
 type CardProps = {
@@ -626,14 +713,7 @@ const SewingTaskCard = ({ task, isSelected, onSelect }: CardProps) => {
   const isCustom        = hasCustomSewing || task.subTasks.some((s) => s.isCustomCut)
   const brandingTypes   = BRANDING_TYPES.filter((t) => task.brandingTypes.includes(t))
 
-  const handleOpenSubTasks = () => openDialog(sewingTaskDialog({
-    taskId:            task._id,
-    productionOrderId: task.productionOrderId,
-    itemIds:           task.subTasks.flatMap((s) => (s.productionOrderItemId ? [s.productionOrderItemId] : [])),
-    orderNumber:       task.orderIndex ?? task.keycrmOrderId,
-    specName:          task.specName,
-    isCustom,
-  }))
+  const handleOpenSubTasks = () => openDialog(taskDialog(task))
 
   const canToggleStatus = TOGGLABLE_STATUSES.has(task.status)
   const handleToggleStatus = () => {
@@ -742,14 +822,34 @@ export const OrdersList = ({ selectedId, onSelect }: Props) => {
   const [search, setSearch]         = useState('')
   const [statusFilter, setStatusFilter] = useState<string[]>(['new'])
 
+  const [tab, setTab]               = useState<'orders' | 'overrun'>('orders')
+  // Over-cut pieces not put on a day yet, across all orders (ignores the day filter).
+  const { data: allTasks = [] }   = useQuery(convexQuery(api.queries.sewing.getSewingTasksWithCuttingProgress, {}))
+
+  const matchesSearch = (t: SewingTaskRow) =>
+    !search.trim() || t.keycrmOrderId.includes(search) || String(t.orderIndex ?? '').includes(search) || !!t.specName?.toLowerCase().includes(search.toLowerCase())
+
   const filtered = tasks
-    .filter((t) => !search.trim() || t.keycrmOrderId.includes(search) || t.specName?.toLowerCase().includes(search.toLowerCase()))
+    .filter(matchesSearch)
     .filter((t) => statusFilter.length === 0 || statusFilter.includes(t.status))
+
+  const overrun = allTasks.flatMap((task) =>
+    task.subTasks.filter((sub) => sub.isOverrun && sub.status !== 'done' && sub.startDate == null).map((sub) => ({ task, sub })))
+  const overrunQty      = overrun.reduce((sum, { sub }) => sum + sub.quantity, 0)
+  const overrunFiltered = overrun.filter(({ task }) => matchesSearch(task))
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <div className="px-3 py-2 border-b shrink-0 flex items-center" style={{ minHeight: 41 }}>
-        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Замовлення</p>
+      <div className="px-1.5 py-1.5 border-b shrink-0 flex items-center" style={{ minHeight: 41 }}>
+        <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)} className="w-full">
+          <TabsList className="w-full">
+            <TabsTrigger value="orders" className="flex-1 text-xs">Замовлення</TabsTrigger>
+            <TabsTrigger value="overrun" className="flex-1 gap-1 text-xs">
+              <PackagePlus size={12} className="text-orange-500" />
+              {`Надлишок (${overrunQty})`}
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
       </div>
 
       <div className="px-1.5 py-1.5 border-b shrink-0 flex flex-col gap-1.5">
@@ -765,7 +865,7 @@ export const OrdersList = ({ selectedId, onSelect }: Props) => {
         </div>
 
         {/* Filters */}
-        <div className="flex items-center gap-1.5 rounded-md bg-muted/40 px-1.5 py-1">
+        {tab === 'orders' && <div className="flex items-center gap-1.5 rounded-md bg-muted/40 px-1.5 py-1">
           <FilterMenu
             label="Статус"
             options={STATUS_FILTER_OPTIONS.map((status) => ({
@@ -811,22 +911,33 @@ export const OrdersList = ({ selectedId, onSelect }: Props) => {
               Скинути
             </Button>
           )}
-        </div>
+        </div>}
       </div>
       <ScrollArea className="max-h-200">
-        <div className="flex-1 overflow-y-auto flex flex-col gap-1 p-1.5">
-          {filtered.length === 0 && (
-            <p className="text-xs text-muted-foreground text-center mt-4">Немає завдань</p>
-          )}
-          {filtered.map((task) => (
-            <SewingTaskCard
-              key={task._id}
-              task={task}
-              isSelected={selectedId === task._id}
-              onSelect={onSelect}
-            />
-          ))}
-        </div>
+        {tab === 'orders' ? (
+          <div className="flex-1 overflow-y-auto flex flex-col gap-1 p-1.5">
+            {filtered.length === 0 && (
+              <p className="text-xs text-muted-foreground text-center mt-4">Немає завдань</p>
+            )}
+            {filtered.map((task) => (
+              <SewingTaskCard
+                key={task._id}
+                task={task}
+                isSelected={selectedId === task._id}
+                onSelect={onSelect}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="flex-1 overflow-y-auto flex flex-col gap-1 p-1.5">
+            {overrunFiltered.length === 0 && (
+              <p className="text-xs text-muted-foreground text-center mt-4">Немає надлишку</p>
+            )}
+            {overrunFiltered.map(({ task, sub }) => (
+              <OverrunCard key={sub._id} task={task} sub={sub} />
+            ))}
+          </div>
+        )}
       </ScrollArea>
     </div>
   )

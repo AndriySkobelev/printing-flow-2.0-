@@ -344,6 +344,7 @@ export const getPlannerSubTasks = query({
 
           return {
             sewingSubTaskId: st._id,
+            isOverrun:       st.isOverrun ?? false,
             cutDone,
             cutTotal,
             sewingTaskId:      st.sewingTaskId,
@@ -541,6 +542,7 @@ export const splitSewingSubTask = mutation({
       extraWorks:            original.extraWorks,
       splitFromId:           sewingSubTaskId,
       ...(wasPlanned && { splitWhilePlanned: true }),
+      ...(original.isOverrun && { isOverrun: true }),
     })
     await syncSewingTaskDistributed(ctx, [original.sewingTaskId])
     return partId
@@ -561,13 +563,13 @@ export const mergeSewingSubTaskIntoParent = mutation({
     if (log) throw new Error('По частині вже є записи пошиву — повернути не можна')
 
     let parent = part.splitFromId ? await ctx.db.get(part.splitFromId) : null
-    if (!parent && part.productionOrderItemId) {
+    if (!parent && part.productionOrderItemId && !part.isOverrun) {
       const siblings = await ctx.db
         .query('sewingSubTasks')
         .withIndex('by_sewingTask', q => q.eq('sewingTaskId', part.sewingTaskId))
         .collect()
       parent = siblings
-        .filter(s => s._id !== part._id && s.productionOrderItemId === part.productionOrderItemId && s._creationTime < part._creationTime)
+        .filter(s => s._id !== part._id && !s.isOverrun && s.productionOrderItemId === part.productionOrderItemId && s._creationTime < part._creationTime)
         .sort((a, b) => a._creationTime - b._creationTime)[0] ?? null
     }
     if (!parent) throw new Error('Не знайдено підзадачу, від якої відділено цю частину')

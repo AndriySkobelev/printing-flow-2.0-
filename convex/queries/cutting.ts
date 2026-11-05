@@ -299,6 +299,7 @@ export const addCuttingTaskSizeLog = mutation({
           quantity: extraQty,
           completedQty: 0,
           status: 'new',
+          isOverrun: true,
         });
       }
     }

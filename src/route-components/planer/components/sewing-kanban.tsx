@@ -21,7 +21,7 @@ import { Button } from '@/components/ui/button'
 import { ActionsMenu } from '@/components/actions-menu'
 import { cn } from '@/lib/utils'
 import { DialogContext } from '@/contexts/dialog'
-import { sewingTaskDialog } from './orders-list'
+import { sewingTaskDialog, OverrunIcon } from './orders-list'
 import { SEWER_COLORS, DAY_NAMES } from '../constants'
 import { fmtDur, taskDurationMinutes, endDateColor, dayKey, weekDays, msToDay, SEWER_DAY_CAPACITY as DAY_CAPACITY } from '../helpers'
 import { useUpdateSewingSubTaskAssignee, useSetSewingSubTaskDay, useSplitSewingSubTask } from '../queries'
@@ -46,6 +46,7 @@ type KanbanTask = {
   extraWorks:      { name: string; minutesPerUnit: number }[]
   status:          'new' | 'in_progress' | 'done' | 'paused'
   isCustom?:       boolean
+  isOverrun:       boolean   // cut beyond the order — extra pieces
   cutDone:         number    // cut pieces of its order item
   cutTotal:        number
   sewerId:         string | null
@@ -132,6 +133,7 @@ const TaskCardBody = ({ task, sewer, actions, onStartSplit }: {
           {sewer.name[0]}
         </span>
       )}
+      {task.isOverrun && <OverrunIcon orderNumber={task.orderNumber} size={11} />}
       <span className="font-semibold">#{task.orderNumber}</span>
       {task.isCustom && <Sparkles size={11} className="text-violet-600" />}
       {cutState(task) === 'full' && (
@@ -461,6 +463,7 @@ export const SewingKanban = () => {
           extraWorks:      st.extraWorks,
           status:          st.status,
           isCustom:        st.isCustom,
+          isOverrun:       st.isOverrun,
           cutDone:         st.cutDone,
           cutTotal:        st.cutTotal,
           sewerId:         over ? over.sewerId : st.sewerId ? String(st.sewerId) : null,
