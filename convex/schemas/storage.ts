@@ -78,6 +78,11 @@ export const reservations = {
   productionOrderItemId: v.id('productionOrderItems'),
   materialId: v.union(v.id('materialVariants'), v.id('fabricVariants')),
   status: v.union(v.literal('active'), v.literal('released'), v.literal('fulfilled')),
+  // How much of `quantity` was free on stock when it was reserved (the rest had
+  // to be ordered / waited for). Missing on reservations made before it existed.
+  coveredAtReserve: v.optional(v.number()),
+  // Free stock (inStock − reserved) of the material right before this reservation.
+  freeAtReserve: v.optional(v.number()),
 }
 
 export const stockBalances = {

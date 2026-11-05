@@ -17,6 +17,7 @@ import { SizeInfo } from './components/size-info'
 import { type SpecData } from './components/spec-info'
 import { CuttingSpecDetails } from './components/cutting-spec-details'
 import { OrderInfo } from './components/order-info'
+import { MaterialReservationCell, type FabricReservation } from './components/material-reservation'
 import { FilterMenu } from '@/components/filter-menu'
 import { OrderLogs } from '@/components/order-logs'
 import { DrawerContext } from '@/contexts/drawer'
@@ -73,6 +74,7 @@ interface Order {
   specName: string
   spec: SpecData | null
   material: string
+  fabricReservations: FabricReservation[]
   color: string
   sizes: Partial<Record<Size, number>>
   sizeDetails: SizeDetail[]
@@ -256,7 +258,13 @@ const makeHeaders = (
     accessor: 'specName', label: 'Виріб', width: 140, isSortable: true, type: 'string',
     cellRenderer: ({ row }) => <SpecCell row={row as OrderRow} />,
   },
-  { accessor: 'material', label: 'Матеріал', width: 160, isSortable: true, type: 'string' },
+  {
+    accessor: 'material', label: 'Матеріал', width: 160, isSortable: true, type: 'string',
+    cellRenderer: ({ row }) => {
+      const o = row as OrderRow
+      return <MaterialReservationCell material={o.material} reservations={o.fabricReservations} />
+    },
+  },
   { accessor: 'color',    label: 'Колір',    width: 120, isSortable: true, type: 'string' },
   ...SIZES.map((s): HeaderObject => ({
     accessor: `sz_${s}`,
@@ -293,7 +301,7 @@ const makeHeaders = (
             >
               {n}
               {quantityChange && (
-                <span className="absolute top-0 -right-1.5 min-w-4 h-4 px-0.5 rounded bg-red-500 text-white text-[9px] line-through font-semibold flex items-center justify-center leading-none">
+                <span className="absolute top-0 -right-1.5 min-w-4 h-4 px-0.5 rounded bg-red-500 text-white text-[9px] font-semibold flex items-center justify-center leading-none">
                   {quantityChange.oldQty}
                 </span>
               )}
@@ -373,6 +381,7 @@ export default function ProductionCut() {
       manager:           task.keycrmManager ?? null,
       type:              deriveType(task.specName),
       material:          task.fabric,
+      fabricReservations: task.fabricReservations,
       color:             task.color,
       specName:          task.specName,
       spec:              (task.spec as SpecData | null) ?? null,

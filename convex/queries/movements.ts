@@ -337,8 +337,29 @@ export const createOrderMaterialReservations = async (ctx: MutationCtx, {
     throw new Error(`Неможливо зарезервувати матеріали:\n${missingAssignments.join('\n')}`);
   }
 
-  await Promise.all(pendingReservations.map((reservation) =>
+  // Free stock (inStock − reserved) per material before this order, used up in
+  // order by its own reservations — what each one found on the shelf.
+  const freeByMaterial = new Map<string, number>();
+  const coveredAtReserve: number[] = [];
+  const freeAtReserve: number[] = [];
+  for (const reservation of pendingReservations) {
+    if (!freeByMaterial.has(reservation.materialId)) {
+      const balance = await ctx.db
+        .query('stockBalances')
+        .withIndex('by_materialId', q => q.eq('materialId', reservation.materialId))
+        .first();
+      freeByMaterial.set(reservation.materialId, (balance?.inStock ?? 0) - (balance?.reserved ?? 0));
+    }
+    const free = freeByMaterial.get(reservation.materialId)!;
+    coveredAtReserve.push(Math.min(reservation.quantity, Math.max(0, free)));
+    freeAtReserve.push(free);
+    freeByMaterial.set(reservation.materialId, free - reservation.quantity);
+  }
+
+  await Promise.all(pendingReservations.map((reservation, i) =>
     ctx.db.insert('reservations', {
+      coveredAtReserve: coveredAtReserve[i],
+      freeAtReserve: freeAtReserve[i],
       productionOrderItemId: reservation.productionOrderItemId,
       materialType: reservation.materialType,
       materialId: reservation.materialId,

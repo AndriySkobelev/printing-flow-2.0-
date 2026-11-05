@@ -39,12 +39,108 @@ async function resolveSpecForCuttingTask(ctx: QueryCtx, sizes: Array<{ productio
   return { ...omit(['productionPrice'], spec), materials };
 }
 
+// ─── Fabric reservation state ───────────────────────────────────────────────
+
+type CoverageState = 'full' | 'partial' | 'none'
+
+const coverageState = (covered: number, quantity: number): CoverageState =>
+  covered >= quantity - 0.0001 ? 'full' : covered > 0 ? 'partial' : 'none'
+
+// Stock of one material shared out among its active reservations, oldest
+// first: how much of each one's not-yet-used remainder is on the shelf now.
+const materialCoverage = async (ctx: QueryCtx, materialId: Id<'fabricVariants'> | Id<'materialVariants'>) => {
+  const [balance, active] = await Promise.all([
+    ctx.db.query('stockBalances').withIndex('by_materialId', q => q.eq('materialId', materialId)).first(),
+    ctx.db.query('reservations').withIndex('by_materialId', q => q.eq('materialId', materialId))
+      .filter(q => q.eq(q.field('status'), 'active'))
+      .collect(),
+  ])
+  const inStock  = balance?.inStock  ?? 0
+  const reserved = balance?.reserved ?? 0
+  let left = Math.max(0, inStock)
+  const coveredById = new Map<string, number>()
+  for (const r of active.sort((a, b) => a._creationTime - b._creationTime)) {
+    const remaining = Math.max(0, r.quantity - (r.fulfilledQty ?? 0))
+    const covered   = Math.min(remaining, left)
+    left -= covered
+    coveredById.set(r._id, covered)
+  }
+  return { inStock, reserved, coveredById }
+}
+
+// Per fabric variant of a cutting task: what was reserved for its items, how
+// much was free when reserving, how much is covered now and what's been used.
+const getTaskFabricReservations = async (
+  ctx: QueryCtx,
+  itemIds: Id<'productionOrderItems'>[],
+  coverageCache: Map<string, ReturnType<typeof materialCoverage>>,
+) => {
+  const reservations = (await Promise.all(itemIds.map(id =>
+    ctx.db.query('reservations').withIndex('by_productionOrderItemId', q => q.eq('productionOrderItemId', id)).collect(),
+  ))).flat().filter(r => r.materialType === 'fabricVariants' && r.status !== 'released')
+
+  const byMaterial = new Map<string, typeof reservations>()
+  for (const r of reservations) byMaterial.set(r.materialId, [...(byMaterial.get(r.materialId) ?? []), r])
+
+  // What the items need now by their spec (fabric per unit × item quantity) —
+  // can differ from the reservation if the quantity changed after reserving.
+  const neededByMaterial = new Map<string, number>()
+  for (const id of itemIds) {
+    const item = await ctx.db.get(id)
+    if (!item) continue
+    const spec = await getEffectiveSpecLines(ctx, item)
+    for (const line of spec?.lines ?? []) {
+      if (line.type !== 'fabric' || !line.id) continue
+      neededByMaterial.set(line.id, (neededByMaterial.get(line.id) ?? 0) + line.quantity * item.quantity)
+    }
+  }
+
+  return Promise.all([...byMaterial.entries()].map(async ([materialId, rows]) => {
+    if (!coverageCache.has(materialId)) coverageCache.set(materialId, materialCoverage(ctx, rows[0].materialId))
+    const { inStock, reserved, coveredById } = await coverageCache.get(materialId)!
+
+    const variant = await ctx.db.get(rows[0].materialId as Id<'fabricVariants'>)
+    const fabric  = variant ? await ctx.db.get(variant.parentId) : null
+
+    const quantity  = rows.reduce((sum, r) => sum + r.quantity, 0)
+    const used      = rows.reduce((sum, r) => sum + (r.status === 'fulfilled' ? r.quantity : (r.fulfilledQty ?? 0)), 0)
+    const coveredNow = used + rows.reduce((sum, r) => sum + (r.status === 'active' ? coveredById.get(r._id) ?? 0 : 0), 0)
+    const hasSnapshot = rows.every(r => r.coveredAtReserve != null)
+    const coveredAtReserve = hasSnapshot ? rows.reduce((sum, r) => sum + r.coveredAtReserve!, 0) : null
+    // Free stock when the first of these was reserved (later ones saw it already reduced).
+    const first = rows.reduce((a, b) => (b._creationTime < a._creationTime ? b : a))
+    const freeAtReserve = first.freeAtReserve ?? null
+
+    return {
+      materialId,
+      name:   fabric?.name ?? '—',
+      color:  variant?.color ?? null,
+      sku:    variant?.sku ?? null,
+      units:  fabric?.units ?? '',
+      needed: neededByMaterial.get(materialId) ?? null,
+      quantity,
+      used,
+      coveredNow,
+      stateNow:        coverageState(coveredNow, quantity),
+      coveredAtReserve,
+      freeAtReserve,
+      stateAtReserve:  coveredAtReserve == null ? null : coverageState(coveredAtReserve, quantity),
+      reservedAt:      Math.min(...rows.map(r => r._creationTime)),
+      inStock,
+      reservedTotal:   reserved,
+      free:            inStock - reserved,
+    }
+  }))
+}
+
 // ─── QUERIES ────────────────────────────────────────────────────────────────
 
 export const getAllCuttingTasks = query({
   args: {},
   handler: async (ctx) => {
     const tasks = await ctx.db.query('cuttingTasks').collect();
+    // Shared across tasks — many rows reserve the same fabric variant.
+    const coverageCache = new Map<string, ReturnType<typeof materialCoverage>>();
 
     const enriched = await Promise.all(
       tasks.map(async task => {
@@ -113,9 +209,14 @@ export const getAllCuttingTasks = query({
           }
         }))
 
+        const fabricReservations = await getTaskFabricReservations(
+          ctx, [...new Set(sizes.map(s => s.productionOrderItemId))], coverageCache,
+        )
+
         return {
           ...task,
           spec,
+          fabricReservations,
           sizes: sizesWithChanges,
           sizesMap,
           fabricColorHex: fabricColor?.hex ?? null,
