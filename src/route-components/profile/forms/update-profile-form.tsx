@@ -19,7 +19,7 @@ interface Props {
   onSubmit: (values: UpdateProfileFormType) => void
 }
 
-export default function UpdateProfileForm({ formId, defaultValues, onSubmit }: Props) {
+const UpdateProfileForm = ({ formId, defaultValues, onSubmit }: Props) => {
   const form = useAppForm({
     validationLogic: revalidateLogic(),
     validators: { onDynamic: schema },
@@ -53,3 +53,4 @@ export default function UpdateProfileForm({ formId, defaultValues, onSubmit }: P
     </form>
   )
 }
+export default UpdateProfileForm
