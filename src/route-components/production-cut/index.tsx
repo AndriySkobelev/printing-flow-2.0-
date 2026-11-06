@@ -570,11 +570,11 @@ export default function ProductionCut() {
         <StatusFilter selected={statusFilter} onChange={setStatusFilter} />
         <div className="h-5 w-px bg-border" />
         <div className="flex gap-1">
-          <Button size="sm" variant={typeFilter === 'all' ? 'default' : 'outline'} onClick={() => setTypeFilter('all')}>
+          <Button size="sm" className="transition-none" variant={typeFilter === 'all' ? 'default' : 'outline'} onClick={() => setTypeFilter('all')}>
             Всі
           </Button>
           {specNames.map(name => (
-            <Button key={name} size="sm" variant={typeFilter === name ? 'default' : 'outline'} onClick={() => setTypeFilter(name)}>
+            <Button key={name} size="sm" className="transition-none" variant={typeFilter === name ? 'default' : 'outline'} onClick={() => setTypeFilter(name)}>
               {name} ({specQtyByName.get(name) ?? 0})
             </Button>
           ))}

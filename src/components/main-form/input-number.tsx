@@ -11,20 +11,44 @@ interface InputNumberProps {
   name?: string
   value: number
   max: number
+  // What "Все" fills in; defaults to `max` (differs when over-production is allowed).
+  fillValue?: number
   label?: string
   className?: string
   error?: Array<{ message: string }>
   onChange: (value: number) => void
 }
 
-export const InputNumber = ({ name, value, max, label, className, error = [], onChange }: InputNumberProps) => {
-  const variants = new Array(Math.floor(max / 5)).fill(0).map((_, i) => (i + 1) * 5)
+const PRESETS = [5, 10, 25, 50, 100, 200, 500]
+const MAX_PRESETS = 4
+
+export const InputNumber = ({ name, value, max, fillValue = max, label, className, error = [], onChange }: InputNumberProps) => {
+  const fill = Math.max(1, Math.min(fillValue, max))
+  const presets = PRESETS.filter(p => p < fill).slice(-MAX_PRESETS)
+  const bigStep = fill >= 100 ? 10 : 5
+  const showBigStep = max > bigStep
+
+  const handleInput = (raw: string) => {
+    const n = parseInt(raw, 10)
+    onChange(Number.isNaN(n) ? 0 : Math.min(Math.max(n, 0), max))
+  }
 
   return (
-    <div className={clsx('flex flex-col gap-1 w-full', className)}>
+    <div className={clsx('flex flex-col gap-2 w-full', className)}>
       {label ? <div className="text-sm text-[#bbbfc7] capitalize ml-2">{label}</div> : null}
 
       <div className="flex items-center gap-2 w-full">
+        {showBigStep && (
+          <Button
+            type="button"
+            variant="outline"
+            className="w-12 shrink-0 px-0"
+            onClick={() => onChange(Math.max(1, value - bigStep))}
+            disabled={value <= 1}
+          >
+            −{bigStep}
+          </Button>
+        )}
         <Button
           type="button"
           variant="outline"
@@ -37,12 +61,15 @@ export const InputNumber = ({ name, value, max, label, className, error = [], on
         <Input
           name={name}
           type="number"
-          value={value}
+          inputMode="numeric"
+          min={1}
           max={max}
-          disabled
+          value={value || ''}
+          onChange={e => handleInput(e.target.value)}
+          onFocus={e => e.target.select()}
           title={`${error?.[0]?.message ?? ''}`}
           className={clsx(
-            'text-center h-9.5 shadow-none bg-white disabled:opacity-100 [&::-webkit-inner-spin-button]:appearance-none [appearance:textfield]',
+            'text-center text-base font-medium h-9.5 shadow-none bg-white [&::-webkit-inner-spin-button]:appearance-none [appearance:textfield]',
             error.length > 0 && 'border-red-500',
           )}
         />
@@ -55,23 +82,42 @@ export const InputNumber = ({ name, value, max, label, className, error = [], on
         >
           <Plus />
         </Button>
+        {showBigStep && (
+          <Button
+            type="button"
+            variant="outline"
+            className="w-12 shrink-0 px-0"
+            onClick={() => onChange(Math.min(max, value + bigStep))}
+            disabled={value >= max}
+          >
+            +{bigStep}
+          </Button>
+        )}
       </div>
 
-      {variants.length > 0 && (
-        <div className="flex items-center gap-2 w-full flex-wrap">
-          {variants.map(v => (
+      {fill > 1 && (
+        <div className="flex items-center gap-1.5 w-full">
+          {presets.map(v => (
             <Button
               key={v}
               type="button"
-              variant="outline"
-              size="icon"
-              className="flex-1"
+              variant={value === v ? 'default' : 'outline'}
+              size="sm"
+              className="flex-1 px-0 transition-none"
               onClick={() => onChange(v)}
-              disabled={v > max}
             >
               {v}
             </Button>
           ))}
+          <Button
+            type="button"
+            variant={value === fill ? 'default' : 'outline'}
+            size="sm"
+            className="flex-[1.5] transition-none"
+            onClick={() => onChange(fill)}
+          >
+            Все · {fill}
+          </Button>
         </div>
       )}
     </div>
@@ -82,11 +128,12 @@ export const InputNumber = ({ name, value, max, label, className, error = [], on
 
 interface FormInputNumberProps {
   max: number
+  fillValue?: number
   label?: string
   className?: string
 }
 
-export const FormInputNumber = ({ max, label, className }: FormInputNumberProps) => {
+export const FormInputNumber = ({ max, fillValue, label, className }: FormInputNumberProps) => {
   const field = useFieldContext()
   const name    = useMemo(() => field.name, [field.name])
   const value   = useMemo(() => Number(field.state.value ?? 1), [field.state.value])
@@ -102,6 +149,7 @@ export const FormInputNumber = ({ max, label, className }: FormInputNumberProps)
       name={name}
       value={value}
       max={max}
+      fillValue={fillValue}
       label={label}
       className={className}
       error={!isValid && errors?.length ? errors : []}
