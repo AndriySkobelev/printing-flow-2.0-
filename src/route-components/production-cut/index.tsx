@@ -543,7 +543,7 @@ export default function ProductionCut() {
   }, [orders])
 
   return (
-    <div className="flex flex-col gap-4 p-4">
+    <div className="flex h-full flex-col gap-4 p-4">
 
       {/* Stats */}
       <div className="flex flex-wrap gap-2">
@@ -582,13 +582,15 @@ export default function ProductionCut() {
       </div>
 
       {/* Table */}
-      <AppTable
-        rows={rows}
-        height={600}
-        rowHeight={52}
-        defaultHeaders={headers}
-        getRowId={({ row }) => (row as OrderRow).id}
-      />
+      <div className="min-h-0 flex-1">
+        <AppTable
+          rows={rows}
+          height="100%"
+          rowHeight={52}
+          defaultHeaders={headers}
+          getRowId={({ row }) => (row as OrderRow).id}
+        />
+      </div>
     </div>
   )
 }

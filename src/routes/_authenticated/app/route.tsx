@@ -21,9 +21,9 @@ const RouteComponent = () => {
     }
   }, [roleReady, allowed, location.pathname])
 
-  return <div>
+  return <div className='flex h-dvh flex-col'>
     <Header />
-    <div className='bg-primary/3 rounded-xl h-[90vh] w-[98vw] mx-auto shadow-[0px_0px_3px_#021b333d]'>
+    <div className='bg-primary/3 rounded-xl flex-1 min-h-0 mb-2 overflow-auto w-[98vw] mx-auto shadow-[0px_0px_3px_#021b333d]'>
       {allowed
         ? <Outlet />
         : <div className='flex justify-center items-center h-full'>
