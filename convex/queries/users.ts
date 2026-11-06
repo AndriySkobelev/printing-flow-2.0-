@@ -51,6 +51,26 @@ export const getAllUsers = query({
   },
 });
 
+export const getUserById = query({
+  args: { id: v.id('users') },
+  handler: async (ctx, { id }) => {
+    await requireAdmin(ctx);
+    return ctx.db.get(id);
+  },
+});
+
+// `allowedPages: undefined` resets the user back to their role defaults.
+export const updateUserPages = mutation({
+  args: {
+    id: v.id('users'),
+    allowedPages: v.optional(v.array(v.string())),
+  },
+  handler: async (ctx, { id, allowedPages }) => {
+    await requireAdmin(ctx);
+    await ctx.db.patch(id, { allowedPages });
+  },
+});
+
 export const updateUser = mutation({
   args: {
     id: v.id('users'),

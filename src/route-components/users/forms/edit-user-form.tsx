@@ -23,7 +23,7 @@ interface Props {
   onSubmit: (values: EditUserFormType) => void
 }
 
-export default function EditUserForm({ formId, defaultValues, onSubmit }: Props) {
+const EditUserForm = ({ formId, defaultValues, onSubmit }: Props) => {
   const form = useAppForm({
     validationLogic: revalidateLogic(),
     validators: { onDynamic: schema },
@@ -62,3 +62,5 @@ export default function EditUserForm({ formId, defaultValues, onSubmit }: Props)
     </form>
   )
 }
+
+export default EditUserForm

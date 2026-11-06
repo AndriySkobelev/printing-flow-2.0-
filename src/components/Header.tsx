@@ -28,7 +28,6 @@ import {
 } from 'lucide-react'
 import { useAuth } from '@/hooks/auth-hooks'
 import { canAccessPage } from '@/constants/page-roles'
-import type { UserRole } from '@/constants/roles'
 import UserAvatar from '@/components/UserAvatar'
 import {
   DropdownMenu,
@@ -404,10 +403,9 @@ const MobileMenu = ({ open, onClose, canSee, user }: {
 
 const Header = () => {
   const { user } = useAuth()
-  const userRole: UserRole | undefined = user?.role
   const [mobileOpen, setMobileOpen] = useState(false)
 
-  const canSee = (to?: string) => !to || canAccessPage(userRole, to)
+  const canSee = (to?: string) => !to || canAccessPage(user, to)
 
   return (
     <>

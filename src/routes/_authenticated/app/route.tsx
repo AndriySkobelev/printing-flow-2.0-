@@ -13,11 +13,11 @@ const RouteComponent = () => {
   // `user` (and its role) loads slightly after `isAuthenticated`, so treat
   // "not loaded yet" as neither allowed nor denied — just wait for it.
   const roleReady = !isLoading && !!user
-  const allowed = roleReady && canAccessPage(user.role, location.pathname)
+  const allowed = roleReady && canAccessPage(user, location.pathname)
 
   useEffect(() => {
     if (roleReady && !allowed) {
-      router.navigate({ to: getFirstAccessiblePage(user.role) })
+      router.navigate({ to: getFirstAccessiblePage(user) })
     }
   }, [roleReady, allowed, location.pathname])
 

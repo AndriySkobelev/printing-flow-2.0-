@@ -1,12 +1,15 @@
 import { SUPER_ADMIN, type UserRole } from '@/constants/roles'
 
-// Single source of truth for "who can see this page".
+// Single source of truth for "who can see this page" by default.
 // Keyed by the page's route path (as it appears in the URL, e.g. '/app/users').
 // Nested/detail routes (e.g. '/app/production-orders/<id>') inherit their
-// parent's roles automatically — see `canAccessPage`.
+// parent's access automatically — see `canAccessPage`.
 //
 // `super_admin` is intentionally listed everywhere so it never has to be
 // special-cased when reading this file.
+//
+// A user's `allowedPages` (set on the users page) overrides these role
+// defaults for that user.
 export const PAGE_ROLES: Record<string, UserRole[]> = {
   '/app/production-orders':   [SUPER_ADMIN, 'admin', 'manager'],
   '/app/inventory-movement':  [SUPER_ADMIN, 'admin', 'manager'],
@@ -30,34 +33,70 @@ export const PAGE_ROLES: Record<string, UserRole[]> = {
   // handled as a special case in `canAccessPage` rather than listed here.
 }
 
+export const PAGE_LABELS: Record<string, string> = {
+  '/app/production-orders':   'Замовлення',
+  '/app/inventory-movement':  'Рух матеріалів',
+  '/app/stock-balance':       'Залишки',
+  '/app/workload':            'Календар завантаження',
+  '/app/planner':             'Планер пошиву',
+  '/app/production-cut':      'Виробництво крою',
+  '/app/branding':            'Брендування',
+  '/app/packing-list':        'Пакування',
+  '/app/sewing-tasks':        'Мої завдання',
+  '/app/materials':           'Матеріали',
+  '/app/fabrics':             'Тканини',
+  '/app/specifications':      'Вироби (специфікації)',
+  '/app/extra-works':         'Додаткові роботи',
+  '/app/users':               'Користувачі',
+  '/app/settings':            'Система',
+  '/app/products':            'Товари',
+  '/app/store':               'Склад',
+  '/app/production-calendar': 'Виробничий календар',
+}
+
+export const ALL_PAGES = Object.keys(PAGE_ROLES)
+
+export type PageAccessUser = {
+  role?: UserRole
+  allowedPages?: string[]
+} | null | undefined
+
+/** Pages a role gets by default (when the user has no override). */
+export const getRolePages = (role: UserRole | undefined): string[] =>
+  role ? ALL_PAGES.filter(p => PAGE_ROLES[p].includes(role)) : []
+
+/** Effective pages for a user: super_admin → all, override → it, else role defaults. */
+export const getUserPages = (user: PageAccessUser): string[] => {
+  if (!user) return []
+  if (user.role === SUPER_ADMIN) return ALL_PAGES
+  if (user.allowedPages) return user.allowedPages.filter(p => p in PAGE_ROLES)
+  return getRolePages(user.role)
+}
+
 /**
- * Whether `role` may access `pathname`.
+ * Whether `user` may access `pathname`.
  * - '/app/profile' is always allowed (even with no role at all).
- * - A role-less user can't access anything else.
  * - Detail/nested routes (e.g. '/app/production-orders/abc') inherit the
- *   roles of their closest mapped ancestor.
+ *   access of their closest mapped ancestor.
  * - Pages missing from PAGE_ROLES are denied by default.
  */
-export const canAccessPage = (role: UserRole | undefined, pathname: string): boolean => {
+export const canAccessPage = (user: PageAccessUser, pathname: string): boolean => {
   if (pathname === '/app/profile') return true
-  if (!role) return false
 
-  const matchedPath = Object.keys(PAGE_ROLES).find(
+  const matchedPath = ALL_PAGES.find(
     path => pathname === path || pathname.startsWith(`${path}/`)
   )
   if (!matchedPath) return false
 
-  return PAGE_ROLES[matchedPath].includes(role)
+  return getUserPages(user).includes(matchedPath)
 }
 
 /**
  * Where to send a user who just got denied access to a page — the first
- * page (in PAGE_ROLES declaration order) their role is allowed to see,
- * falling back to '/app/profile' if their role matches nothing (or they
- * have no role at all).
+ * page (in PAGE_ROLES declaration order) they're allowed to see,
+ * falling back to '/app/profile'.
  */
-export const getFirstAccessiblePage = (role: UserRole | undefined): string => {
-  if (!role) return '/app/profile'
-  const path = Object.keys(PAGE_ROLES).find(p => PAGE_ROLES[p].includes(role))
-  return path ?? '/app/profile'
+export const getFirstAccessiblePage = (user: PageAccessUser): string => {
+  const pages = getUserPages(user)
+  return ALL_PAGES.find(p => pages.includes(p)) ?? '/app/profile'
 }

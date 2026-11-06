@@ -1,22 +1,18 @@
 import { useContext } from 'react'
-import { type HeaderObject } from 'simple-table-core'
-import { Ellipsis, Trash2, SquarePen, Timer, Check } from 'lucide-react'
+import { useNavigate } from '@tanstack/react-router'
+import { type CellClickProps, type HeaderObject } from 'simple-table-core'
+import { Ellipsis, Trash2, SquarePen, ChevronDown } from 'lucide-react'
 import { type Id } from 'convex/_generated/dataModel'
 import { ROLE_LABELS, SUPER_ADMIN, type UserRole } from '@/constants/roles'
-import { DialogContext } from '@/contexts/dialog'
 import { AuthContext } from '@/contexts/auth'
 import { Button } from '@/components/ui/button'
 import { MyPopover } from '@/components/my-popover'
 import AppTable from '@/components/ui/app-table'
 import UserAvatar from '@/components/UserAvatar'
-import EditUserForm, { type EditUserFormType } from './forms/edit-user-form'
-import SeamstressForm from './forms/seamstress-form'
-import { useGetAllUsers, useUpdateUser, useDeleteUser, useApproveUser } from './queries'
-
-const FORM_ID = 'edit-user-form'
-const SEAMSTRESS_FORM_ID = 'seamstress-form'
-
-type DevelopingEntry = { specificationId: Id<'specifications'>; developingTime: number }
+import { useGetAllUsers } from './queries'
+import { useDeleteUser } from './actions'
+import { ApprovalBadge } from './components/approval-badge'
+import { PageAccessEditor, PageAccessSummary } from './components/page-access-editor'
 
 type UserRow = {
   _id: Id<'users'>
@@ -24,136 +20,59 @@ type UserRow = {
   lastName?: string
   email?: string
   phone?: string
-  role?: string
-  birthday?: string
-  workHours?: number
-  startDate?: string
+  role?: UserRole
   image?: string
   isApproved?: boolean
-  developingSpecification?: DevelopingEntry[]
+  allowedPages?: string[]
 }
 
-// Accounts signed up via Google wait here until a super_admin approves them.
-const ApprovalCell = ({ row, canApprove }: { row: UserRow; canApprove: boolean }) => {
-  const { mutate: approveUser, isPending } = useApproveUser()
-  if (row.isApproved !== false) return <span className="text-xs text-green-700">Підтверджено</span>
-  if (!canApprove) return <span className="text-xs text-amber-700">Очікує підтвердження</span>
-  return (
-    <Button size="sm" className="h-7 text-xs" disabled={isPending} onClick={() => approveUser({ id: row._id })}>
-      <Check size={12} /> Підтвердити
-    </Button>
-  )
-}
+// Clicking these columns opens the user page; the others hold their own controls.
+const NAVIGATE_ACCESSORS = ['name', 'email', 'phone', 'role']
 
-function ActionsCell({
-  row,
-  onEdit,
-  onSeamstress,
-}: {
-  row: UserRow
-  onEdit: (row: UserRow) => void
-  onSeamstress: (row: UserRow) => void
-}) {
+const ActionsCell = ({ row, onOpen }: { row: UserRow; onOpen: (row: UserRow) => void }) => {
   const { mutate: deleteUser } = useDeleteUser()
   return (
     <div className="flex flex-col">
-      <div
-        onClick={() => onEdit(row)}
-        className="flex items-center gap-2 cursor-pointer hover:bg-gray-100 p-2 rounded text-sm"
-      >
-        <SquarePen size={12} /> Редагувати
-      </div>
-      {row.role === 'seamstress' && (
-        <div
-          onClick={() => onSeamstress(row)}
-          className="flex items-center gap-2 cursor-pointer hover:bg-gray-100 p-2 rounded text-sm"
-        >
-          <Timer size={12} /> Час виготовлення
-        </div>
-      )}
-      <div
+      <Button variant="ghost" size="sm" className="justify-start" onClick={() => onOpen(row)}>
+        <SquarePen size={12} /> Відкрити
+      </Button>
+      <Button
+        variant="ghost"
+        size="sm"
+        className="justify-start text-red-500 hover:bg-red-50 hover:text-red-500"
         onClick={() => deleteUser({ id: row._id })}
-        className="flex items-center gap-2 cursor-pointer hover:bg-red-50 text-red-500 p-2 rounded text-sm"
       >
         <Trash2 size={12} /> Видалити
-      </div>
+      </Button>
     </div>
   )
 }
 
-export default function UsersTable() {
+const UsersTable = () => {
   const { data, isLoading } = useGetAllUsers()
-  const { mutate: updateUser } = useUpdateUser()
-  const { openDialog, closeDialog } = useContext(DialogContext)
   const { user } = useContext(AuthContext)
+  const navigate = useNavigate()
   const isSuperAdmin = user?.role === SUPER_ADMIN
 
-  const handleSeamstress = (row: UserRow) => {
-    openDialog({
-      title: 'Час виготовлення специфікацій',
-      formId: SEAMSTRESS_FORM_ID,
-      withForm: true,
-      content: (
-        <SeamstressForm
-          formId={SEAMSTRESS_FORM_ID}
-          userId={row._id}
-          existing={row.developingSpecification}
-          onSuccess={() => closeDialog()}
-        />
-      ),
-    })
-  }
+  const openUser = (row: UserRow) =>
+    navigate({ to: '/app/users/$userId', params: { userId: row._id } })
 
-  const handleEdit = (row: UserRow) => {
-    openDialog({
-      title: 'Редагувати користувача',
-      formId: FORM_ID,
-      withForm: true,
-      content: (
-        <EditUserForm
-          formId={FORM_ID}
-          defaultValues={{
-            name:      row.name      ?? '',
-            lastName:  row.lastName  ?? '',
-            phone:     row.phone     ?? '',
-            birthday:  row.birthday  ?? '',
-            workHours: row.workHours,
-            startDate: row.startDate ?? '',
-            role:      row.role as UserRole | undefined,
-          }}
-          onSubmit={(values: EditUserFormType) => {
-            updateUser(
-              { id: row._id, data: { ...values, role: values.role as UserRole | undefined } },
-              { onSuccess: () => closeDialog() },
-            )
-          }}
-        />
-      ),
-    })
+  const handleCellClick = ({ row, accessor }: CellClickProps) => {
+    if (NAVIGATE_ACCESSORS.includes(String(accessor))) openUser(row as unknown as UserRow)
   }
 
   const headers: HeaderObject[] = [
     {
       accessor: 'name',
       label: 'Користувач',
-      width: 220,
+      width: 240,
       type: 'other',
       cellRenderer: ({ row }: any) => (
         <UserAvatar name={row.name} lastName={row.lastName} image={row.image} size="sm" showName />
       ),
     },
-    {
-      accessor: 'email',
-      label: 'Email',
-      width: 200,
-      type: 'string',
-    },
-    {
-      accessor: 'phone',
-      label: 'Телефон',
-      width: 130,
-      type: 'string',
-    },
+    { accessor: 'email', label: 'Email', width: 220, type: 'string' },
+    { accessor: 'phone', label: 'Телефон', width: 140, type: 'string' },
     {
       accessor: 'role',
       label: 'Роль',
@@ -168,25 +87,25 @@ export default function UsersTable() {
       label: 'Доступ',
       width: 170,
       type: 'other',
-      cellRenderer: ({ row }: any) => <ApprovalCell row={row} canApprove={isSuperAdmin} />,
+      cellRenderer: ({ row }: any) => <ApprovalBadge user={row} canApprove={isSuperAdmin} />,
     },
     {
-      accessor: 'birthday',
-      label: 'День народження',
-      width: 140,
-      type: 'string',
-    },
-    {
-      accessor: 'workHours',
-      label: 'Робочі години',
-      width: 150,
-      type: 'string',
-    },
-    {
-      accessor: 'startDate',
-      label: 'Дата початку',
-      width: 130,
-      type: 'string',
+      accessor: 'allowedPages',
+      label: 'Сторінки',
+      width: 220,
+      type: 'other',
+      cellRenderer: ({ row }: any) => (
+        <MyPopover
+          align="start"
+          trigger={
+            <Button variant="ghost" size="sm" className="h-7 gap-1 px-1.5">
+              <PageAccessSummary user={row} />
+              <ChevronDown size={12} className="text-muted-foreground" />
+            </Button>
+          }
+          content={<PageAccessEditor user={row} className="w-72" listClassName="max-h-64 overflow-y-auto pr-1" />}
+        />
+      ),
     },
     {
       accessor: '',
@@ -197,20 +116,23 @@ export default function UsersTable() {
       cellRenderer: ({ row }: { row: any }) => (
         <MyPopover
           trigger={<Ellipsis className="cursor-pointer" size={14} />}
-          content={<ActionsCell row={row} onEdit={handleEdit} onSeamstress={handleSeamstress} />}
+          content={<ActionsCell row={row} onOpen={openUser} />}
         />
       ),
     },
   ]
 
   return (
-    <div className="flex flex-col gap-4 p-4">
+    <div className="flex flex-col gap-4 p-4 h-full">
       <AppTable
         rows={data ?? []}
         isLoading={isLoading}
         defaultHeaders={headers}
         getRowId={({ row }) => row._id}
+        onCellClick={handleCellClick}
       />
     </div>
   )
 }
+
+export default UsersTable

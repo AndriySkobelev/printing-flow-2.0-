@@ -48,6 +48,9 @@ export const users = {
   // false for users who signed up themselves and wait for a super_admin to let
   // them in; missing on accounts that existed before approval was introduced.
   isApproved: v.optional(v.boolean()),
+  // Per-user page access override (route paths from PAGE_ROLES). When missing,
+  // access falls back to the role defaults.
+  allowedPages: v.optional(v.array(v.string())),
   developingSpecification: v.optional(v.array(v.object({
     specificationId: v.id('specifications'),
     developingTime:  v.number(),
