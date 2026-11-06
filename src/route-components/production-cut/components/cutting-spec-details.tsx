@@ -10,10 +10,16 @@ const STATUS_STYLES = {
   same:    { mark: '',  className: '' },
   added:   { mark: '+', className: 'bg-green-50 text-green-700' },
   changed: { mark: '~', className: 'bg-violet-50 text-violet-700' },
-  removed: { mark: '−', className: 'bg-red-50 text-red-600 line-through' },
+  removed: { mark: '−', className: 'bg-red-50 text-red-600' },
 } as const
 
-export const CuttingSpecDetails = ({ cuttingTaskId }: { cuttingTaskId: Id<'cuttingTasks'> }) => {
+type Props = {
+  cuttingTaskId: Id<'cuttingTasks'>
+  productName:   string
+  color?:        string
+}
+
+export const CuttingSpecDetails = ({ cuttingTaskId, productName, color }: Props) => {
   const { data: groups, isLoading } = useQuery(convexQuery(api.queries.cutting.getCuttingTaskSpecDetails, { cuttingTaskId }))
 
   if (isLoading) {
@@ -24,10 +30,25 @@ export const CuttingSpecDetails = ({ cuttingTaskId }: { cuttingTaskId: Id<'cutti
     )
   }
 
-  if (!groups || groups.length === 0) return <p className="text-xs text-muted-foreground">Специфікацію не знайдено</p>
+  const header = (
+    <div className="flex flex-col border-b pb-2">
+      <span className="text-sm font-semibold capitalize">{productName}</span>
+      {color && <span className="text-xs text-muted-foreground">{color}</span>}
+    </div>
+  )
+
+  if (!groups || groups.length === 0) {
+    return (
+      <div className="flex flex-col gap-2 min-w-60 max-w-90">
+        {header}
+        <p className="text-xs text-muted-foreground">Специфікацію не знайдено</p>
+      </div>
+    )
+  }
 
   return (
     <div className="flex flex-col gap-3 min-w-60 max-w-90">
+      {header}
       {groups.map((group, gi) => (
         <div key={gi} className="flex flex-col gap-0.5">
           {groups.length > 1 && (
@@ -37,14 +58,14 @@ export const CuttingSpecDetails = ({ cuttingTaskId }: { cuttingTaskId: Id<'cutti
             const style = STATUS_STYLES[line.status]
             return (
               <div key={`${line.lineId}-${i}`} className={clsx('flex items-center justify-between gap-3 rounded px-1.5 py-0.5 text-xs', style.className)}>
-                <span className="flex items-center gap-1 min-w-0">
-                  <span className="w-2.5 shrink-0 font-semibold">{style.mark}</span>
-                  <span className="truncate">
-                    {line.name}
-                    {line.color && <span className="opacity-60"> · {line.color}</span>}
-                  </span>
+                <span className={clsx('min-w-0 truncate', line.status === 'removed' && 'line-through')}>
+                  {line.name}
+                  {line.color && <span className="opacity-60"> · {line.color}</span>}
                 </span>
-                <span className="shrink-0 font-medium">{formatQty(line.quantity)} {line.units}</span>
+                <span className="flex shrink-0 items-center gap-1.5 font-medium">
+                  {formatQty(line.quantity)} {line.units}
+                  {style.mark && <span className="w-2.5 text-center font-semibold">{style.mark}</span>}
+                </span>
               </div>
             )
           })}

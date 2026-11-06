@@ -89,11 +89,11 @@ export const MaterialReservationCell = ({ material, reservations }: { material: 
           variant="ghost"
           size="sm"
           title={state.label}
-          className="h-auto p-0 gap-1.5 font-normal text-sm hover:bg-transparent hover:text-primary"
+          className="h-auto min-w-0 max-w-full p-0 gap-1.5 font-normal text-sm text-left whitespace-normal hover:bg-transparent hover:text-primary"
           onClick={e => e.stopPropagation()}
         >
           <Icon size={14} className={cn('shrink-0', state.className)} />
-          <span className="truncate">{material}</span>
+          <span className="line-clamp-2 leading-tight break-words" title={material}>{material}</span>
         </Button>
       }
       content={

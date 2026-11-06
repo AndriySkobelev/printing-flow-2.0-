@@ -41,9 +41,10 @@ interface AppTableProps {
   toolbar?: React.ReactNode;
   // Highlights the row whose getRowId equals this (e.g. the one picked by a click).
   selectedRowId?: string | null;
+  rowHeight?: number;
 }
 
-const AppTable = ({ fallback, className, defaultHeaders, height, rows, isLoading, getRowId, withSearch, searchPlaceholder, columnSearch, quickFilter, toolbar, selectedRowId, ...props }: AppTableProps) => {
+const AppTable = ({ fallback, className, defaultHeaders, height, rows, isLoading, getRowId, withSearch, searchPlaceholder, columnSearch, quickFilter, toolbar, selectedRowId, rowHeight = 40, ...props }: AppTableProps) => {
   const [search, setSearch] = useState('');
   const tableId = useId();
 
@@ -72,7 +73,7 @@ const AppTable = ({ fallback, className, defaultHeaders, height, rows, isLoading
         isLoading={isLoading}
         theme={'modern-light'}
         className={className}
-        customTheme={{ rowHeight: 40, headerHeight: 50 }}
+        customTheme={{ rowHeight, headerHeight: 50 }}
         quickFilter={withSearch ? { mode: 'smart', text: search, caseSensitive: false, columns: columnSearch } : quickFilter}
         {...props}  />
     </Suspense>
