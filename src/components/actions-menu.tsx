@@ -96,7 +96,7 @@ export const ActionsMenu = ({ items = [], groups, trigger, align = 'end' }: Acti
       <DropdownMenuTrigger asChild>
         {trigger ?? (
           <Button variant="ghost" size="icon" className="size-5 text-muted-foreground hover:text-foreground">
-            <MoreHorizontal className="size-3" />
+            <MoreHorizontal className="size-5" />
           </Button>
         )}
       </DropdownMenuTrigger>
