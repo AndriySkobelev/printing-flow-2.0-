@@ -4,11 +4,20 @@ import { defineTable } from 'convex/server';
 export enum TransactionType { INCOMING = 'incoming', OUTGOING = 'outgoing', RESERVE='reserve' }
 export const TRANSACTION_TYPES = { INCOMING: 'incoming', OUTGOING: 'outgoing', RESERVE: 'reserve' } as const;
 
+export const suppliersSchema = {
+  name: v.string(),
+  contactPerson: v.optional(v.string()),
+  phone: v.optional(v.string()),
+  website: v.optional(v.string()),
+  note: v.optional(v.string()),
+};
+
 export const fabricsSchema = {
   name: v.string(),
   skuPrefix: v.string(),
   units: v.union(v.literal('кг'), v.literal('м')),
   processingType: v.optional(v.union(v.string(), v.null())),
+  supplierId: v.optional(v.union(v.id('suppliers'), v.null())),
   updatedAt: v.optional(v.string()),
   lastIndexVariant: v.optional(v.number()),
 };
@@ -159,6 +168,7 @@ export const fabricColors = {
   labelHex: v.string(),
 }
 
+const suppliersTable = defineTable(suppliersSchema)
 const fabricsTable = defineTable(fabricsSchema)
 const fabricVariantsTable = defineTable(fabricVariantsSchema)
 const fabricColorsTable = defineTable(fabricColors)
@@ -171,6 +181,7 @@ const reservationsTable = defineTable(reservations)
 const stockBalancesTable = defineTable(stockBalances)
 
 export {
+  suppliersTable,
   fabricsTable,
   fabricVariantsTable,
   fabricColorsTable,

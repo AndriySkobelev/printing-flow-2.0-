@@ -101,9 +101,10 @@ export const createFabric = mutation({
     skuPrefix: fabricsSchema.skuPrefix,
     units: fabricsSchema.units,
     processingType: fabricsSchema.processingType,
+    supplierId: fabricsSchema.supplierId,
   },
-  handler: async (ctx, { name, skuPrefix, units, processingType }) => {
-    return ctx.db.insert("fabrics", { name, skuPrefix, units, processingType, lastIndexVariant: 0 });
+  handler: async (ctx, { name, skuPrefix, units, processingType, supplierId }) => {
+    return ctx.db.insert("fabrics", { name, skuPrefix, units, processingType, supplierId, lastIndexVariant: 0 });
   },
 })
 
@@ -163,6 +164,7 @@ export const updateFabric = mutation({
     skuPrefix: v.optional(fabricsSchema.skuPrefix),
     units: v.optional(fabricsSchema.units),
     processingType: v.optional(v.union(v.string(), v.null())),
+    supplierId: fabricsSchema.supplierId,
   },
   handler: async (ctx, { id, ...data }) => {
     await ctx.db.patch(id, data);

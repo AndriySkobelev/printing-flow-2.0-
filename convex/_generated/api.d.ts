@@ -30,6 +30,7 @@ import type * as queries_products from "../queries/products.js";
 import type * as queries_settings from "../queries/settings.js";
 import type * as queries_sewing from "../queries/sewing.js";
 import type * as queries_specifications from "../queries/specifications.js";
+import type * as queries_suppliers from "../queries/suppliers.js";
 import type * as queries_users from "../queries/users.js";
 import type * as schemas_constants from "../schemas/constants.js";
 import type * as schemas_orders from "../schemas/orders.js";
@@ -65,6 +66,7 @@ declare const fullApi: ApiFromModules<{
   "queries/settings": typeof queries_settings;
   "queries/sewing": typeof queries_sewing;
   "queries/specifications": typeof queries_specifications;
+  "queries/suppliers": typeof queries_suppliers;
   "queries/users": typeof queries_users;
   "schemas/constants": typeof schemas_constants;
   "schemas/orders": typeof schemas_orders;

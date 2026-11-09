@@ -21,6 +21,7 @@ import {
   Wand2,
   CalendarRange,
   ShoppingBag,
+  Truck,
   Users,
   Warehouse,
   Wrench,
@@ -81,8 +82,15 @@ const navConfig: NavItem[] = [
     label: 'Склад',
     icon: Warehouse,
     children: [
-      { to: '/app/inventory-movement', label: 'Рух матеріалів', icon: ArrowLeftRight },
-      { to: '/app/stock-balance', label: 'Залишки', icon: Layers },
+      {
+        type: 'subgroup',
+        label: 'Облік',
+        children: [
+          { to: '/app/inventory-movement', label: 'Рух матеріалів', icon: ArrowLeftRight },
+          { to: '/app/stock-balance', label: 'Залишки', icon: Layers },
+        ],
+      },
+      { to: '/app/suppliers', label: 'Постачальники', icon: Truck },
     ],
   },
   {

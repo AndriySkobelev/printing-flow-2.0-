@@ -89,6 +89,7 @@ type OptionTypes = typeof OptionModes;
 interface FormSelectProps {
   label?: string;
   isMulti?: boolean,
+  isClearable?: boolean;
   disabled?: boolean;
   className?: string,
   placeholder?: string;
@@ -101,7 +102,7 @@ interface FormSelectProps {
   options: Array<{ value: string | number; label: string }> | any;
 }
 
-const FormSelect: FunctionComponent<FormSelectProps> = ({ options, label, placeholder, disabled, isMulti = false, valueMode = 'value', className, modeOption = 'default', addOnChange, singleLine = false }) => {
+const FormSelect: FunctionComponent<FormSelectProps> = ({ options, label, placeholder, disabled, isMulti = false, isClearable = false, valueMode = 'value', className, modeOption = 'default', addOnChange, singleLine = false }) => {
   const field = useFieldContext();
   const name = useMemo(() => field.name, [field.name]);
   const value = useMemo(() => field.state.value as string | number | undefined, [field.state.value]);
@@ -123,6 +124,7 @@ const FormSelect: FunctionComponent<FormSelectProps> = ({ options, label, placeh
         name={name}
         options={options}
         isMulti={isMulti}
+        isClearable={isClearable}
         closeMenuOnSelect={!isMulti}
         isDisabled={disabled}
         className='hover:active:border-none'

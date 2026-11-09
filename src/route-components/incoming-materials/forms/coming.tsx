@@ -8,6 +8,7 @@ import { revalidateLogic } from '@tanstack/react-form';
 import { useAppForm } from "@/components/main-form";
 
 const comingFormSchema = z.object({
+  supplierId: z.string().optional(),
   parentId: z.object({ value: z.string(), label: z.string() }),
   variantId: z.object({ value: z.string(), label: z.string() }).optional(),
   materialType: z.enum(['fabrics', 'materials']),
@@ -66,6 +67,7 @@ const ComingMaterialForm: FunctionComponent<ComingMaterialFormProps> = ({
 }) => {
   const { data: fabricsData } = useQuery(convexQuery(api.queries.fabrics.getFabrics));
   const { data: materialsData } = useQuery(convexQuery(api.queries.materials.getMaterials));
+  const { data: suppliers = [] } = useQuery(convexQuery(api.queries.suppliers.getSuppliers, {}));
 
   const form = useAppForm({
     validationLogic: revalidateLogic(),
@@ -85,7 +87,13 @@ const ComingMaterialForm: FunctionComponent<ComingMaterialFormProps> = ({
     },
   });
 
-  const fabricsOptions = makeOptions(fabricsData || [], 'name', '_id');
+  const supplierOptions = makeOptions(suppliers, 'name', '_id');
+  const getFabricOptions = (supplierId?: string) => (fabricsData ?? [])
+    .filter(fabric => !supplierId || fabric.supplierId === supplierId)
+    .map(fabric => {
+      const supplierName = suppliers.find(s => s._id === fabric.supplierId)?.name;
+      return { value: fabric._id, label: supplierName ? `${fabric.name} · ${supplierName}` : fabric.name };
+    });
   const materialsOptions = makeOptions(materialsData || [], 'name', '_id');
 
   return (
@@ -105,35 +113,53 @@ const ComingMaterialForm: FunctionComponent<ComingMaterialFormProps> = ({
               label="Тип матеріалу"
               options={materialTypeOptions}
               addOnChange={() => {
-                form.setFieldValue('parentId', undefined as any);
+                form.setFieldValue('supplierId', undefined);
+                form.setFieldValue('parentId', null as any);
                 form.setFieldValue('variantId', undefined);
               }}
             />
           }
         />
-        <div className="flex gap-2">
-          <form.Subscribe
-            selector={(state) => state.values.materialType}
-            children={(materialType) => (
+        <form.Subscribe
+          selector={(state) => ({ materialType: state.values.materialType, supplierId: state.values.supplierId })}
+          children={({ materialType, supplierId }) => (
+            <div className="flex gap-2">
+              {materialType === 'fabrics' && (
+                <form.AppField
+                  name="supplierId"
+                  children={(field) =>
+                    <field.FormSelect
+                      isClearable
+                      label="Постачальник"
+                      placeholder="Усі"
+                      options={supplierOptions}
+                      addOnChange={() => {
+                        form.setFieldValue('parentId', null as any);
+                        form.setFieldValue('variantId', undefined);
+                      }}
+                    />
+                  }
+                />
+              )}
               <form.AppField
                 name="parentId"
                 children={(field) =>
                   <field.FormSelect
                     label="Матеріал"
                     valueMode='object'
-                    options={materialType === 'materials' ? materialsOptions : fabricsOptions}
+                    options={materialType === 'materials' ? materialsOptions : getFabricOptions(supplierId)}
                     addOnChange={() => form.setFieldValue('variantId', undefined)}
                   />
                 }
               />
-            )}
-          />
-        </div>
+            </div>
+          )}
+        />
         <form.Subscribe
           selector={(state) => ({ parentId: state.values.parentId, materialType: state.values.materialType })}
           children={({ parentId, materialType }) =>
             parentId?.value
-              ? <VariantField parentId={parentId.value} materialType={materialType} form={form} />
+              ? <VariantField key={parentId.value} parentId={parentId.value} materialType={materialType} form={form} />
               : null
           }
         />

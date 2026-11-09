@@ -35,6 +35,7 @@ const fabricHeaders = (
   { accessor: "skuPrefix",      label: "SKU префікс", width: 110, type: "string", headerRenderer: renderHeader },
   { accessor: "units",          label: "Од.",          width: 70,  type: "string", headerRenderer: renderHeader },
   { accessor: "processingType", label: "Обробка",      width: 130, type: "string", headerRenderer: renderHeader },
+  { accessor: "supplierName",   label: "Постачальник", width: 150, type: "string", headerRenderer: renderHeader },
   { accessor: "variantCount",   label: "Кольорів",     width: 90,  type: "number", headerRenderer: renderHeader },
   {
     accessor: "_actions",
@@ -78,6 +79,7 @@ const variantHeaders = (deleteVariant: DeleteVariantFn): HeaderObject[] => [
 
 const Fabrics: FunctionComponent<FabricsProps> = () => {
   const { data = [], isLoading } = useQuery(convexQuery(api.queries.fabrics.getFabrics));
+  const { data: suppliers = [] } = useQuery(convexQuery(api.queries.suppliers.getSuppliers, {}));
   const { mutate: createFabric } = useCreateFabric();
   const { mutate: addVariant } = useAddFabricVariants();
   const { mutate: deleteFabric } = useDeleteFabric();
@@ -96,7 +98,7 @@ const Fabrics: FunctionComponent<FabricsProps> = () => {
         <CreateFabricForm
           isEdit
           formId={formId}
-          defaultValues={{ name: row.name, skuPrefix: row.skuPrefix, units: row.units, processingType: row.processingType }}
+          defaultValues={{ name: row.name, skuPrefix: row.skuPrefix, units: row.units, processingType: row.processingType, supplierId: row.supplierId }}
           actionSubmit={(values) => {
             updateFabric({ id: row._id, ...values }, { onSuccess: () => closeDialog() })
           }}
@@ -123,6 +125,8 @@ const Fabrics: FunctionComponent<FabricsProps> = () => {
     skuPrefix: fabric.skuPrefix,
     units: fabric.units,
     processingType: fabric.processingType ?? '',
+    supplierId: fabric.supplierId ?? null,
+    supplierName: suppliers.find(s => s._id === fabric.supplierId)?.name ?? '',
     variantCount: fabric.variants.length,
   }));
 

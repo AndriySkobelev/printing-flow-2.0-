@@ -20,6 +20,7 @@ import {
   packagingLogsTable,
 } from './schemas/prdouction';
 import {
+  suppliersTable,
   fabricsTable,
   fabricVariantsTable,
   fabricColorsTable,
@@ -164,8 +165,10 @@ export default defineSchema({
   productionOrderLogs: productionOrderLogsTable,
   users: usersTable.index("email", ["email"]),
   orders: ordersTable.index("orderId", ["orderId"]),
+  suppliers: suppliersTable.index('by_name', ['name']),
   fabrics: fabricsTable
     .index('by_name', ['name'])
+    .index('by_supplierId', ['supplierId'])
     .searchIndex('search_name', {
       searchField: 'name',
     })

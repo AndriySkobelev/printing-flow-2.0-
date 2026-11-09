@@ -317,7 +317,7 @@ const ProductionOrdersPage = () => {
   const { openDialog, closeDialog } = useContext(DialogContext)
   const [inputValue, setInputValue] = useState('')
   const [search, setSearch] = useState<string | undefined>(undefined)
-  const [status, setStatus] = useState<StatusKey | null>(null)
+  const [status, setStatus] = useState<StatusKey | null>('new')
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
 

@@ -99,6 +99,31 @@ const resolveVariantMaterial = async (ctx: QueryCtx, {
   return material ? { ...material, color: variant?.color, size: variant?.size, sku: variant?.sku } : null;
 }
 
+// The same fabric from other suppliers: fabrics with the exact same name that
+// have a variant in the exact same color.
+const getFabricAlternatives = async (ctx: QueryCtx, fabricId: Id<'fabrics'>, name: string, color: string) => {
+  const sameName = await ctx.db.query('fabrics').withIndex('by_name', q => q.eq('name', name)).collect();
+  const alternatives = await Promise.all(sameName.filter(fabric => fabric._id !== fabricId).map(async (fabric) => {
+    const variants = await ctx.db.query('fabricVariants').withIndex('by_parentId', q => q.eq('parentId', fabric._id)).collect();
+    const variant = variants.find(v => v.color === color);
+    if (!variant) return null;
+
+    const [balance, supplier] = await Promise.all([
+      ctx.db.query('stockBalances').withIndex('by_materialId', q => q.eq('materialId', variant._id)).first(),
+      fabric.supplierId ? ctx.db.get(fabric.supplierId) : null,
+    ]);
+    return {
+      variantId: variant._id,
+      sku: variant.sku,
+      supplierName: supplier?.name ?? null,
+      available: (balance?.inStock ?? 0) - (balance?.reserved ?? 0),
+    };
+  }));
+  return alternatives
+    .filter((a): a is NonNullable<typeof a> => a !== null)
+    .sort((a, b) => b.available - a.available);
+}
+
 export const getMovementsWithMaterials = query({
   args: { paginationOpts: paginationOptsValidator },
   handler: async (ctx, args) => {
@@ -328,7 +353,7 @@ export const getOrderRequiredMaterials = query({
           id: required.materialId,
           type: required.materialType === 'materials' ? 'material' : 'fabric',
         });
-        return { ...required, units: material.units ?? required.units, material, inStock: null, reserved: null, available: null };
+        return { ...required, units: material.units ?? required.units, material, inStock: null, reserved: null, available: null, alternatives: [] };
       }
 
       const variantKey = required as { materialType: 'fabricVariants' | 'materialVariants', materialId: Id<'fabricVariants'> | Id<'materialVariants'> };
@@ -338,7 +363,10 @@ export const getOrderRequiredMaterials = query({
       ]);
       const inStock = balance?.inStock ?? 0;
       const reserved = balance?.reserved ?? 0;
-      return { ...required, units: material?.units ?? required.units, material, inStock, reserved, available: inStock - reserved };
+      const alternatives = variantKey.materialType === 'fabricVariants' && material?.color
+        ? await getFabricAlternatives(ctx, material._id as Id<'fabrics'>, material.name, material.color)
+        : [];
+      return { ...required, units: material?.units ?? required.units, material, inStock, reserved, available: inStock - reserved, alternatives };
     }));
   }
 })
