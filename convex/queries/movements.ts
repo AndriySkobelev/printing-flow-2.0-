@@ -112,6 +112,42 @@ export const getMovementsWithMaterials = query({
   }
 })
 
+const MOVEMENT_SEARCH_LIMIT = 200;
+
+// Walks newest-first and stops at the limit; materials are cached because the
+// same variant repeats across many movements.
+export const searchMovementsWithMaterials = query({
+  args: { search: v.string() },
+  handler: async (ctx, { search }) => {
+    const tokens = search.toLowerCase().split(/\s+/).filter(Boolean);
+    if (tokens.length === 0) return [];
+
+    const materials = new Map<string, Awaited<ReturnType<typeof resolveVariantMaterial>>>();
+    const found = [];
+    for await (const movement of ctx.db.query('storeMovements').order('desc')) {
+      if (!materials.has(movement.materialId)) {
+        materials.set(movement.materialId, await resolveVariantMaterial(ctx, movement));
+      }
+      const material = materials.get(movement.materialId) ?? null;
+      const text = [
+        material?.name,
+        material?.color,
+        material && 'size' in material ? material.size : null,
+        material?.sku,
+        movement.manager,
+        movement.description,
+        movement.orderId,
+      ].filter(value => value != null).join(' ').toLowerCase();
+
+      if (tokens.every(token => text.includes(token))) {
+        found.push({ ...movement, material });
+        if (found.length >= MOVEMENT_SEARCH_LIMIT) break;
+      }
+    }
+    return found;
+  },
+});
+
 type BalanceWithMaterial = Doc<'stockBalances'> & {
   material: NonNullable<Awaited<ReturnType<typeof resolveVariantMaterial>>>,
 };
