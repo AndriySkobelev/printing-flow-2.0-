@@ -5,7 +5,7 @@ import { paginationOptsValidator } from "convex/server";
 import { query, mutation } from "../_generated/server";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
-import { Id } from "../_generated/dataModel";
+import { Doc, Id } from "../_generated/dataModel";
 import { storeMovementsSchema } from  "../schemas/storage";
 import { resolveMaterialParent } from "./specifications";
 
@@ -112,17 +112,88 @@ export const getMovementsWithMaterials = query({
   }
 })
 
-export const getStockBalancesWithMaterials = query({
-  args: { paginationOpts: paginationOptsValidator },
-  handler: async (ctx, args) => {
-    const result = await ctx.db.query('stockBalances').paginate(args.paginationOpts);
-    const page = await Promise.all(result.page.map(async (balance) => {
+type BalanceWithMaterial = Doc<'stockBalances'> & {
+  material: NonNullable<Awaited<ReturnType<typeof resolveVariantMaterial>>>,
+};
+
+const toStockBalanceItem = ({ material, ...balance }: BalanceWithMaterial) => ({
+  _id: balance._id as string,
+  materialType: balance.materialType,
+  color: material.color ?? null,
+  size: 'size' in material ? material.size ?? null : null,
+  sku: material.sku ?? null,
+  units: material.units as string,
+  inStock: balance.inStock,
+  reserved: balance.reserved,
+  available: balance.inStock - balance.reserved,
+  updateAt: balance.updateAt,
+});
+
+// Without `search`, groups come without children — those load on expand.
+export const getStockBalanceGroups = query({
+  args: { search: v.optional(v.string()) },
+  handler: async (ctx, { search }) => {
+    const balances = await ctx.db.query('stockBalances').collect();
+    const resolved = await Promise.all(balances.map(async (balance) => ({
+      ...balance,
+      material: await resolveVariantMaterial(ctx, balance),
+    })));
+    const rows = resolved.filter((row): row is BalanceWithMaterial => row.material !== null);
+
+    const tokens = search?.toLowerCase().split(/\s+/).filter(Boolean) ?? [];
+    const matches = ({ material }: BalanceWithMaterial) => {
+      const text = [material.name, material.color, 'size' in material ? material.size : null, material.sku]
+        .filter(Boolean).join(' ').toLowerCase();
+      return tokens.every(token => text.includes(token));
+    };
+
+    const byParent = new Map<string, BalanceWithMaterial[]>();
+    for (const row of rows) {
+      const key = `${row.materialType}:${row.material._id}`;
+      byParent.set(key, [...(byParent.get(key) ?? []), row]);
+    }
+
+    return [...byParent.entries()].flatMap(([key, group]) => {
+      const matched = group.filter(matches);
+      if (tokens.length > 0 && matched.length === 0) return [];
+      const inStock = group.reduce((sum, row) => sum + row.inStock, 0);
+      const reserved = group.reduce((sum, row) => sum + row.reserved, 0);
+      return [{
+        _id: key,
+        parentId: group[0].material._id,
+        materialType: group[0].materialType,
+        name: group[0].material.name,
+        units: group[0].material.units as string,
+        variantsCount: group.length,
+        inStock,
+        reserved,
+        available: inStock - reserved,
+        updateAt: Math.max(...group.map(row => row.updateAt)),
+        data: tokens.length > 0 ? matched.map(toStockBalanceItem) : [],
+      }];
+    }).sort((a, b) => a.name.localeCompare(b.name, 'uk'));
+  },
+});
+
+export const getStockBalanceGroupItems = query({
+  args: {
+    materialType: v.union(v.literal('fabricVariants'), v.literal('materialVariants')),
+    parentId: v.union(v.id('fabrics'), v.id('materials')),
+  },
+  handler: async (ctx, { materialType, parentId }) => {
+    const variants = materialType === 'fabricVariants'
+      ? await ctx.db.query('fabricVariants').withIndex('by_parentId', q => q.eq('parentId', parentId as Id<'fabrics'>)).collect()
+      : await ctx.db.query('materialVariants').withIndex('by_parentId', q => q.eq('parentId', parentId as Id<'materials'>)).collect();
+
+    const items = await Promise.all(variants.map(async (variant) => {
+      const balance = await ctx.db.query('stockBalances').withIndex('by_materialId', q => q.eq('materialId', variant._id)).first();
+      if (!balance) return null;
       const material = await resolveVariantMaterial(ctx, balance);
-      return { ...balance, material };
+      return material ? toStockBalanceItem({ ...balance, material }) : null;
     }));
-    return { ...result, page };
-  }
-})
+    return items.filter(item => item !== null);
+  },
+});
 
 type RequiredMaterial = {
   unassigned: boolean,

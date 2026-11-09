@@ -29,7 +29,6 @@ const combineGroupItems = (items: any) => {
 export const ProductGroup = memo(({ items, productionOrderId, readOnly }: { items: OrderItem[]; productionOrderId: string; readOnly?: boolean }) => {
   const groupedItems = useMemo(() => groupBy(i => i.name, items), [items])
   const combineToTable = useMemo(() => combineGroupItems(groupedItems), [items])
-  console.log("🚀 ~ combineToTable:", combineToTable)
   const tableRef = useRef<TableAPI>(null);
   const [tableKey, setTableKey] = useState(0)
   const nestedTableRef = useRef<TableAPI>(null);

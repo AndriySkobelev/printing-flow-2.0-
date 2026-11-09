@@ -1,5 +1,5 @@
 import { lazy, Suspense, useState, useId } from 'react';
-import { type HeaderObject, type CellClickProps, QuickFilterConfig, RowSelectionChangeProps} from 'simple-table-core';
+import { type HeaderObject, type CellClickProps, type OnRowGroupExpandProps, QuickFilterConfig, RowSelectionChangeProps} from 'simple-table-core';
 import { Search } from 'lucide-react';
 import { Spinner } from '@/components/ui/spinner';
 import { Input } from '@/components/ui/input';
@@ -42,6 +42,10 @@ interface AppTableProps {
   // Highlights the row whose getRowId equals this (e.g. the one picked by a click).
   selectedRowId?: string | null;
   rowHeight?: number;
+  onRowGroupExpand?: (props: OnRowGroupExpandProps) => void | Promise<void>;
+  loadingStateRenderer?: React.ReactNode;
+  errorStateRenderer?: React.ReactNode;
+  tableEmptyStateRenderer?: React.ReactNode;
 }
 
 const AppTable = ({ fallback, className, defaultHeaders, height, rows, isLoading, getRowId, withSearch, searchPlaceholder, columnSearch, quickFilter, toolbar, selectedRowId, rowHeight = 40, ...props }: AppTableProps) => {
