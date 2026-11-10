@@ -3,8 +3,9 @@ import { useQuery } from '@tanstack/react-query'
 import { convexQuery } from '@convex-dev/react-query'
 import { api } from 'convex/_generated/api'
 import { type Id } from 'convex/_generated/dataModel'
-import { ChevronDown, ChevronUp, CornerDownRight } from 'lucide-react'
+import { ChevronDown, ChevronUp } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { MaterialRequirementRow, isMaterialSufficient } from '@/components/material-requirement-row'
 
 type Props = {
   productionOrderId: string
@@ -19,9 +20,7 @@ export const MaterialsSection = ({ productionOrderId, materialsReserved }: Props
 
   if (!data || data.length === 0) return null
 
-  const isRowSufficient = (row: (typeof data)[number]) =>
-    !row.unassigned && row.available !== null && row.available >= row.quantity
-  const allSufficient = data.every(isRowSufficient)
+  const allSufficient = data.every(isMaterialSufficient)
 
   return (
     <div className="flex flex-col gap-1.5 px-3 py-3">
@@ -47,47 +46,7 @@ export const MaterialsSection = ({ productionOrderId, materialsReserved }: Props
 
       {expanded && (
         <div className="flex flex-col gap-1.5 mt-1">
-          {data.map((row, i) => {
-            const insufficient = !row.unassigned && row.available !== null && row.available < row.quantity
-            return (
-              <div key={i} className="flex flex-col gap-0.5">
-                <div className="flex items-center justify-between gap-2 text-xs">
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    <span className="font-medium truncate">{row.material?.name ?? '—'}</span>
-                    {row.material && 'color' in row.material && row.material.color && (
-                      <span className="text-muted-foreground shrink-0">
-                        {row.material.color}{'size' in row.material && row.material.size ? ` · ${row.material.size}` : ''}
-                      </span>
-                    )}
-                    {row.unassigned && (
-                      <span className="px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 text-[10px] font-medium shrink-0">
-                        Не виз.
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-1 shrink-0">
-                    <span className="font-medium">{row.quantity.toFixed(2)} {row.units}</span>
-                    {!row.unassigned && (
-                      <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-medium ${insufficient ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
-                        {row.available?.toFixed(2)}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                {row.alternatives.map(alt => (
-                  <div key={alt.variantId} className="flex items-center justify-between gap-2 pl-1 text-xs text-muted-foreground">
-                    <div className="flex items-center gap-1 min-w-0">
-                      <CornerDownRight size={10} className="shrink-0" />
-                      <span className="truncate">{alt.supplierName ?? alt.sku}</span>
-                    </div>
-                    <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-medium shrink-0 ${alt.available < row.quantity ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
-                      {alt.available.toFixed(2)}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )
-          })}
+          {data.map((row, i) => <MaterialRequirementRow key={i} row={row} />)}
         </div>
       )}
     </div>

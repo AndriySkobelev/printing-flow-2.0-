@@ -264,6 +264,60 @@ type RequiredMaterial = {
   quantity: number,
 }
 
+const addRequired = (requiredByMaterial: Map<string, RequiredMaterial>, required: RequiredMaterial) => {
+  const key = `${required.materialType}:${required.materialId}`;
+  const existing = requiredByMaterial.get(key);
+  if (existing) {
+    existing.quantity += required.quantity;
+  } else {
+    requiredByMaterial.set(key, required);
+  }
+}
+
+// A spec line resolves to the product's own fabric/material when the product
+// overrides it, otherwise it stays on the spec's unassigned parent material.
+const getSpecLineRequired = (
+  specMaterial: Doc<'specifications'>['materials'][number],
+  product: Doc<'products'> | undefined,
+  itemQuantity: number,
+): RequiredMaterial => {
+  const override = product?.materials?.find((m) => m.lineId && m.lineId === specMaterial.lineId);
+
+  const materialType = override
+    ? (override.type === 'material' ? 'materialVariants' as const : 'fabricVariants' as const)
+    : (specMaterial.type === 'material' ? 'materials' as const : 'fabrics' as const)
+
+  return {
+    unassigned: !override,
+    materialType,
+    materialId: override ? override.id : specMaterial.id,
+    units: specMaterial.units,
+    quantity: Number(specMaterial.quantity) * (override?.multiplier ?? 1) * itemQuantity,
+  };
+}
+
+const enrichRequiredMaterial = async (ctx: QueryCtx, required: RequiredMaterial) => {
+  if (required.unassigned) {
+    const material = await resolveMaterialParent(ctx, {
+      id: required.materialId,
+      type: required.materialType === 'materials' ? 'material' : 'fabric',
+    });
+    return { ...required, units: material.units ?? required.units, material, inStock: null, reserved: null, available: null, alternatives: [] };
+  }
+
+  const variantKey = required as { materialType: 'fabricVariants' | 'materialVariants', materialId: Id<'fabricVariants'> | Id<'materialVariants'> };
+  const [material, balance] = await Promise.all([
+    resolveVariantMaterial(ctx, variantKey),
+    ctx.db.query('stockBalances').withIndex('by_materialId', q => q.eq('materialId', variantKey.materialId)).first(),
+  ]);
+  const inStock = balance?.inStock ?? 0;
+  const reserved = balance?.reserved ?? 0;
+  const alternatives = variantKey.materialType === 'fabricVariants' && material?.color
+    ? await getFabricAlternatives(ctx, material._id as Id<'fabrics'>, material.name, material.color)
+    : [];
+  return { ...required, units: material?.units ?? required.units, material, inStock, reserved, available: inStock - reserved, alternatives };
+}
+
 // What this order needs to be produced, aggregated per material, alongside
 // current stock. Mirrors createOrderMaterialReservations's resolution (product
 // assignment by lineId wins, else the spec's generic default) but is read-only
@@ -292,15 +346,6 @@ export const getOrderRequiredMaterials = query({
 
     // Phase 2: sync aggregation across items using the prefetched maps.
     const requiredByMaterial = new Map<string, RequiredMaterial>();
-    const addRequired = (required: RequiredMaterial) => {
-      const key = `${required.materialType}:${required.materialId}`;
-      const existing = requiredByMaterial.get(key);
-      if (existing) {
-        existing.quantity += required.quantity;
-      } else {
-        requiredByMaterial.set(key, required);
-      }
-    };
 
     for (const item of items) {
       if (!item.productId) continue;
@@ -309,7 +354,7 @@ export const getOrderRequiredMaterials = query({
       // resolution as createOrderMaterialReservations.
       if (item.specMaterials) {
         for (const line of item.specMaterials) {
-          addRequired({
+          addRequired(requiredByMaterial, {
             unassigned: false,
             materialType: line.type === 'material' ? 'materialVariants' : 'fabricVariants',
             materialId: line.id,
@@ -324,50 +369,13 @@ export const getOrderRequiredMaterials = query({
       const spec = specById.get(product.parentId);
       if (!spec) continue;
 
-      const productOverrides = product.materials ?? [];
-
       for (const specMaterial of spec.materials) {
-        const override = productOverrides.find((m) => m.lineId && m.lineId === specMaterial.lineId);
-
-        const materialType = override
-          ? (override.type === 'material' ? 'materialVariants' as const : 'fabricVariants' as const)
-          : (specMaterial.type === 'material' ? 'materials' as const : 'fabrics' as const)
-        const materialId = override ? override.id : specMaterial.id;
-        const multiplier = override?.multiplier ?? 1;
-        const quantity = Number(specMaterial.quantity) * multiplier * item.quantity;
-
-        addRequired({
-          unassigned: !override,
-          materialType,
-          materialId,
-          units: specMaterial.units,
-          quantity,
-        });
+        addRequired(requiredByMaterial, getSpecLineRequired(specMaterial, product, item.quantity));
       }
     }
 
     // Phase 3: enrich each aggregated material with display info + stock balance.
-    return Promise.all(Array.from(requiredByMaterial.values()).map(async (required) => {
-      if (required.unassigned) {
-        const material = await resolveMaterialParent(ctx, {
-          id: required.materialId,
-          type: required.materialType === 'materials' ? 'material' : 'fabric',
-        });
-        return { ...required, units: material.units ?? required.units, material, inStock: null, reserved: null, available: null, alternatives: [] };
-      }
-
-      const variantKey = required as { materialType: 'fabricVariants' | 'materialVariants', materialId: Id<'fabricVariants'> | Id<'materialVariants'> };
-      const [material, balance] = await Promise.all([
-        resolveVariantMaterial(ctx, variantKey),
-        ctx.db.query('stockBalances').withIndex('by_materialId', q => q.eq('materialId', variantKey.materialId)).first(),
-      ]);
-      const inStock = balance?.inStock ?? 0;
-      const reserved = balance?.reserved ?? 0;
-      const alternatives = variantKey.materialType === 'fabricVariants' && material?.color
-        ? await getFabricAlternatives(ctx, material._id as Id<'fabrics'>, material.name, material.color)
-        : [];
-      return { ...required, units: material?.units ?? required.units, material, inStock, reserved, available: inStock - reserved, alternatives };
-    }));
+    return Promise.all(Array.from(requiredByMaterial.values()).map(required => enrichRequiredMaterial(ctx, required)));
   }
 })
 
@@ -631,3 +639,34 @@ export const consumeItemReservations = async (ctx: MutationCtx, {
     }
   }
 }
+
+export const getOrderProcessingMaterials = query({
+  args: {
+    lines: v.array(v.object({
+      specificationId: v.id('specifications'),
+      color: v.string(),
+      quantity: v.number(),
+    })),
+  },
+  handler: async (ctx, { lines }) => {
+    const requiredByMaterial = new Map<string, RequiredMaterial>();
+
+    for (const line of lines) {
+      const spec = await ctx.db.get(line.specificationId);
+      if (!spec) continue;
+
+      const products = await ctx.db
+        .query('products')
+        .withIndex('by_parentId', q => q.eq('parentId', line.specificationId))
+        .collect();
+      const sameColor = products.filter(p => p.color === line.color);
+      const product = sameColor.find(p => p.materials?.length) ?? sameColor[0];
+
+      for (const specMaterial of spec.materials) {
+        addRequired(requiredByMaterial, getSpecLineRequired(specMaterial, product, line.quantity));
+      }
+    }
+
+    return Promise.all(Array.from(requiredByMaterial.values()).map(required => enrichRequiredMaterial(ctx, required)));
+  },
+})

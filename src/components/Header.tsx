@@ -3,6 +3,7 @@ import { Link, useLocation } from '@tanstack/react-router'
 import type { LucideIcon } from 'lucide-react'
 import {
   ArrowLeftRight,
+  Calculator,
   CalendarDays,
   ChevronDown,
   ChevronRight,
@@ -98,6 +99,7 @@ const navConfig: NavItem[] = [
     label: 'Виробництво',
     icon: CalendarDays,
     children: [
+      { to: '/app/order-processing', label: 'Обробка замовлень',     icon: Calculator              },
       { to: '/app/workload',        label: 'Календар завантаження',  icon: CalendarRange           },
       { to: '/app/planner',         label: 'Планер пошиву',          icon: Waypoints               },
       { to: '/app/production-cut',  label: 'Виробництво крою',       icon: ScissorsLineDashedIcon  },
