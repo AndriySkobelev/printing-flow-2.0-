@@ -15,7 +15,7 @@ import { Calendar } from '@/components/ui/calendar'
 import { UTCDate } from '@date-fns/utc'
 import { SizeInfo } from './components/size-info'
 import { type SpecData } from './components/spec-info'
-import { CuttingSpecDetails } from './components/cutting-spec-details'
+import { CuttingSpecDetails } from '@/components/spec-details'
 import { OrderInfo } from './components/order-info'
 import { MaterialReservationCell, type FabricReservation } from './components/material-reservation'
 import { OrderLogs } from '@/components/order-logs'
@@ -256,7 +256,7 @@ const SpecCell = ({ row }: { row: OrderRow }) => (
         )}
       </Button>
     }
-    content={<CuttingSpecDetails cuttingTaskId={row.id as Id<'cuttingTasks'>} productName={row.specName} color={row.color} />}
+    content={<CuttingSpecDetails cuttingTaskId={row.id as Id<'cuttingTasks'>} productName={row.specName} color={row.color} className="min-w-60 max-w-90" />}
   />
 )
 

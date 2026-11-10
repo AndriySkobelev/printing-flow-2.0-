@@ -6,7 +6,7 @@ import { getAuthUserId } from '@convex-dev/auth/server'
 import { resolveMaterialParent } from './specifications'
 import { consumeItemReservations } from './movements'
 import { advanceOrderToInProgress } from './orders'
-import { getBaseSpecLines, getEffectiveSpecLines, resolveSpecLineVariant, type SpecLine } from './orderItemSpec'
+import { getEffectiveSpecLines, getSpecDetailGroups } from './orderItemSpec'
 
 // ─── HELPERS ────────────────────────────────────────────────────────────────
 
@@ -244,44 +244,8 @@ export const getCuttingTaskSpecDetails = query({
       .withIndex('by_cuttingTask', q => q.eq('cuttingTaskId', cuttingTaskId))
       .collect();
 
-    const groups = new Map<string, { sizes: Array<string>, lines: Array<SpecLine>, base: Array<SpecLine> }>();
-
-    for (const s of sizes) {
-      const item = await ctx.db.get(s.productionOrderItemId);
-      if (!item) continue;
-      const effective = await getEffectiveSpecLines(ctx, item);
-      if (!effective) continue;
-
-      const key = JSON.stringify(effective.lines.map(l => [l.lineId, l.id, l.quantity]));
-      const group = groups.get(key);
-      if (group) {
-        group.sizes.push(s.size);
-      } else {
-        const base = effective.isCustom ? (await getBaseSpecLines(ctx, item) ?? []) : effective.lines;
-        groups.set(key, { sizes: [s.size], lines: effective.lines, base });
-      }
-    }
-
-    const toRow = async (line: SpecLine, status: 'same' | 'added' | 'changed' | 'removed') => {
-      const { materialName, color, units } = await resolveSpecLineVariant(ctx, line);
-      return { lineId: line.lineId, name: line.name || materialName || '—', materialName, color, quantity: line.quantity, units, status };
-    };
-
-    return Promise.all([...groups.values()].map(async ({ sizes, lines, base }) => {
-      const current = await Promise.all(lines.map((line) => {
-        const baseLine = base.find(b => b.lineId === line.lineId);
-        const status = !baseLine
-          ? 'added' as const
-          : baseLine.id !== line.id || Math.abs(baseLine.quantity - line.quantity) > 0.0001
-            ? 'changed' as const
-            : 'same' as const;
-        return toRow(line, status);
-      }));
-      const removed = await Promise.all(base
-        .filter(b => !lines.some(l => l.lineId === b.lineId))
-        .map(b => toRow(b, 'removed')));
-      return { sizes, lines: [...current, ...removed] };
-    }));
+    const entries = await Promise.all(sizes.map(async (s) => ({ size: s.size, item: await ctx.db.get(s.productionOrderItemId) })));
+    return getSpecDetailGroups(ctx, entries.flatMap(({ size, item }) => item ? [{ size, item }] : []));
   },
 });
 

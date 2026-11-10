@@ -5,7 +5,7 @@ import { useQuery, keepPreviousData } from '@tanstack/react-query'
 import { convexQuery } from '@convex-dev/react-query'
 import { api } from 'convex/_generated/api'
 import { type FunctionReturnType } from 'convex/server'
-import { Search, Plus, PackagePlus, Minus, Undo2, SplitSquareHorizontal, UserPlus, Sparkles, CalendarDays } from 'lucide-react'
+import { Search, Plus, PackagePlus, Minus, Undo2, SplitSquareHorizontal, UserPlus, Sparkles, CalendarDays, FilePen } from 'lucide-react'
 import { format } from 'date-fns'
 import { uk } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
@@ -20,7 +20,9 @@ import { Calendar } from '@/components/ui/calendar'
 import { Checkbox } from '@/components/ui/check-box'
 import { DialogContext } from '@/contexts/dialog'
 import { BRANDING_TYPES, BRANDING_LABELS } from '@/route-components/order-details/types'
+import { OrderItemSpecDetails } from '@/components/spec-details'
 import { usePlannerStore } from '../store'
+import { SEWER_COLORS } from '../constants'
 import { taskDurationMinutes, fmtDur, endDateColor } from '../helpers'
 import { useUpdateSewingSubTaskAssignee, useSplitSewingSubTask, useUpdateSewingTaskStatus, useToggleSewingSubTaskExtraWork, useMergeSewingSubTaskIntoParent, useSetSewingSubTaskDay, useBulkAssignSewingSubTasks, useBulkSetSewingSubTaskDay, useBulkSetSewingSubTaskExtraWork } from '../queries'
 import { OrderInfoPanel } from './order-info-panel'
@@ -160,7 +162,7 @@ const toggleItemIcon = (isOn: boolean) => (
 const toggleItemClass = (isOn: boolean) =>
   cn('my-0.5', isOn && 'bg-violet-50 text-violet-700 focus:bg-violet-100 focus:text-violet-800')
 
-type TaskMeta = { orderNumber: string; specName: string; color: string }
+type TaskMeta = { orderNumber: string; specName: string; color: string; colorName?: string }
 
 // Marks a sub-task cut beyond the order — extra pieces that came out of that order.
 export const OverrunIcon = ({ orderNumber, size = 12 }: { orderNumber: string | number; size?: number }) => (
@@ -200,7 +202,7 @@ const SubTaskItem = ({
   const { assign, unassign, setDuration } = usePlannerStore.getState()
 
   const subExtraWorks = sub.extraWorks ?? []
-  const durationMins  = taskDurationMinutes(sub.quantity, subExtraWorks)
+  const durationMins  = taskDurationMinutes(sub.quantity, subExtraWorks, sub.sewingNorm)
 
   // Keep an already-planned bar's length in step with the sub-task's time
   // (extra work added/removed) — driven by live data, so rapid toggles settle right.
@@ -238,6 +240,7 @@ const SubTaskItem = ({
 
   const isAssigned = sub.userName && sub.userName !== '—'
   const hasDay     = sub.startDate != null
+  const sewerIndex = Math.max(0, sewerUsers.findIndex((user) => user._id === sub.assignedTo))
   const splitQtyNum = parseInt(splitQty, 10)
 
   return (
@@ -264,13 +267,41 @@ const SubTaskItem = ({
             <Sparkles size={13} />
           </span>
         )}
+        {sub.hasCustomSpec && sub.productionOrderItemId && (
+          <MyPopover
+            align="start"
+            withArrow
+            trigger={
+              <Button type="button" variant="ghost" title="Специфікацію змінено" className="h-auto shrink-0 p-0 has-[>svg]:px-0 text-violet-500 hover:bg-transparent hover:text-violet-700">
+                <FilePen size={13} />
+              </Button>
+            }
+            content={
+              <OrderItemSpecDetails
+                itemId={sub.productionOrderItemId}
+                productName={taskMeta.specName}
+                color={taskMeta.colorName}
+                className="min-w-60 max-w-90"
+              />
+            }
+          />
+        )}
         {sub.size && (
           <span className="shrink-0 text-[12px] font-semibold px-1.5 py-0.5 rounded bg-muted border border-border/60 leading-none">
             {sub.size}
           </span>
         )}
-        <span className={cn('font-medium truncate flex-1', !isAssigned && 'text-muted-foreground italic')}>
-          {isAssigned ? sub.userName : 'Не призначено'}
+        {isAssigned && (
+          <span
+            title={sub.userName}
+            className="flex size-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white"
+            style={{ background: SEWER_COLORS[sewerIndex % SEWER_COLORS.length] }}
+          >
+            {sub.userName[0]}
+          </span>
+        )}
+        <span className="font-medium truncate flex-1 text-muted-foreground italic">
+          {!isAssigned && 'Не призначено'}
         </span>
         <span className="text-muted-foreground tabular-nums shrink-0">[{sub.quantity} шт]</span>
         <span className="text-muted-foreground tabular-nums shrink-0">{fmtDur(durationMins)}</span>
@@ -365,7 +396,7 @@ const SubTaskItem = ({
           </Button>
           {splitQtyNum > 0 && splitQtyNum < sub.quantity && (
             <span className="ml-1 text-[11px] text-muted-foreground tabular-nums">
-              {`відділяємо ${splitQtyNum} шт · ${fmtDur(taskDurationMinutes(splitQtyNum, subExtraWorks))}, залишиться ${sub.quantity - splitQtyNum} шт · ${fmtDur(taskDurationMinutes(sub.quantity - splitQtyNum, subExtraWorks))}`}
+              {`відділяємо ${splitQtyNum} шт · ${fmtDur(taskDurationMinutes(splitQtyNum, subExtraWorks, sub.sewingNorm))}, залишиться ${sub.quantity - splitQtyNum} шт · ${fmtDur(taskDurationMinutes(sub.quantity - splitQtyNum, subExtraWorks, sub.sewingNorm))}`}
             </span>
           )}
         </div>
@@ -398,6 +429,7 @@ const SewingTaskSubTasks = ({ taskId }: { taskId: string }) => {
     orderNumber: String(task.orderIndex ?? task.keycrmOrderId ?? ''),
     specName:    task.specName ?? '',
     color:       task.fabricColorHex ?? '#6b7280',
+    colorName:   task.colorName ?? undefined,
   }
 
   // A part split off another sub-task (same rule as the merge mutation's fallback

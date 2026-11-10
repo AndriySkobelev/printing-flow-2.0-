@@ -111,6 +111,56 @@ const getEditableItem = async (ctx: QueryCtx, itemId: Id<'productionOrderItems'>
   return item
 }
 
+// Spec elements per size: each item's effective lines, sizes with identical
+// lines grouped, and every line marked against the base spec: added / changed
+// (variant or quantity) / removed / same.
+export const getSpecDetailGroups = async (ctx: QueryCtx, entries: Array<{ size: string, item: Doc<'productionOrderItems'> }>) => {
+  const groups = new Map<string, { sizes: Array<string>, lines: Array<SpecLine>, base: Array<SpecLine> }>()
+
+  for (const { size, item } of entries) {
+    const effective = await getEffectiveSpecLines(ctx, item)
+    if (!effective) continue
+
+    const key = JSON.stringify(effective.lines.map(l => [l.lineId, l.id, l.quantity]))
+    const group = groups.get(key)
+    if (group) {
+      group.sizes.push(size)
+    } else {
+      const base = effective.isCustom ? (await getBaseSpecLines(ctx, item) ?? []) : effective.lines
+      groups.set(key, { sizes: [size], lines: effective.lines, base })
+    }
+  }
+
+  const toRow = async (line: SpecLine, status: 'same' | 'added' | 'changed' | 'removed') => {
+    const { materialName, color, units } = await resolveSpecLineVariant(ctx, line)
+    return { lineId: line.lineId, name: line.name || materialName || '—', materialName, color, quantity: line.quantity, units, status }
+  }
+
+  return Promise.all([...groups.values()].map(async ({ sizes, lines, base }) => {
+    const current = await Promise.all(lines.map((line) => {
+      const baseLine = base.find(b => b.lineId === line.lineId)
+      const status = !baseLine
+        ? 'added' as const
+        : baseLine.id !== line.id || Math.abs(baseLine.quantity - line.quantity) > 0.0001
+          ? 'changed' as const
+          : 'same' as const
+      return toRow(line, status)
+    }))
+    const removed = await Promise.all(base
+      .filter(b => !lines.some(l => l.lineId === b.lineId))
+      .map(b => toRow(b, 'removed')))
+    return { sizes, lines: [...current, ...removed] }
+  }))
+}
+
+export const getOrderItemSpecDetails = query({
+  args: { itemId: v.id('productionOrderItems') },
+  handler: async (ctx, { itemId }) => {
+    const item = await ctx.db.get(itemId)
+    return item ? getSpecDetailGroups(ctx, [{ size: '', item }]) : []
+  },
+})
+
 export const getOrderItemSpecMaterials = query({
   args: { itemId: v.id('productionOrderItems') },
   handler: async (ctx, { itemId }) => {

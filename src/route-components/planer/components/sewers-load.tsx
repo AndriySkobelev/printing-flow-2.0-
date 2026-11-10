@@ -29,7 +29,7 @@ export const SewersLoad = () => {
       const sewerId = String(st.sewerId)
       const day     = msToDay(st.startDateMs)
       const byDay   = map.get(sewerId) ?? new Map<string, number>()
-      byDay.set(day, (byDay.get(day) ?? 0) + taskDurationMinutes(st.quantity, st.extraWorks))
+      byDay.set(day, (byDay.get(day) ?? 0) + taskDurationMinutes(st.quantity, st.extraWorks, st.sewingNorm))
       map.set(sewerId, byDay)
     }
     return map

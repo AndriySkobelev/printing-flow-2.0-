@@ -11,6 +11,14 @@ const DAY_MS = 24 * 60 * 60 * 1000
 // Planner days are stored as UTC midnight of the day in sub-task startDate.
 const utcDayStart = (ms: number) => Math.floor(ms / DAY_MS) * DAY_MS
 
+// Read live, so editing a spec's time updates work that is already planned.
+const getSewingNorm = async (ctx: QueryCtx, itemId: Id<'productionOrderItems'> | undefined) => {
+  const item    = itemId ? await ctx.db.get(itemId) : null
+  const product = item?.productId ? await ctx.db.get(item.productId) : null
+  const spec    = product ? await ctx.db.get(product.parentId) : null
+  return Number(spec?.productionTime) || undefined
+}
+
 // Minutes already planned for the sewer per day (UTC midnight), leaving out
 // the given sub-tasks — the ones being (re)placed.
 const sewerLoadByDay = async (ctx: MutationCtx, sewerId: Id<'users'>, exclude: Set<string>) => {
@@ -22,7 +30,7 @@ const sewerLoadByDay = async (ctx: MutationCtx, sewerId: Id<'users'>, exclude: S
   for (const st of sewerSubTasks) {
     if (exclude.has(st._id) || st.startDate == null) continue
     const day = utcDayStart(st.startDate)
-    loadByDay.set(day, (loadByDay.get(day) ?? 0) + taskDurationMinutes(st.quantity, st.extraWorks))
+    loadByDay.set(day, (loadByDay.get(day) ?? 0) + taskDurationMinutes(st.quantity, st.extraWorks, await getSewingNorm(ctx, st.productionOrderItemId)))
   }
   return loadByDay
 }
@@ -227,6 +235,8 @@ export const getSewingTasksWithCuttingProgress = query({
           isCustomSewing:      st.isCustomSewing      ?? item?.isCustomSewing      ?? false,
           customSewingComment: st.customSewingComment ?? item?.customSewingComment ?? undefined,
           isCustomCut:         item?.isCustomCut ?? false,
+          hasCustomSpec:       !!item?.specMaterials,
+          sewingNorm:          await getSewingNorm(ctx, st.productionOrderItemId),
         }
       }))
 
@@ -356,6 +366,7 @@ export const getPlannerSubTasks = query({
             quantity:        st.quantity,
             size:            st.size       ?? null,
             extraWorks:      st.extraWorks ?? [],
+            sewingNorm:      await getSewingNorm(ctx, st.productionOrderItemId),
             orderNumber:     sewingTask.orderIndex ?? sewingTask.keycrmOrderId,
             specName:        sewingTask.specName,
             color:           colorHex,
@@ -659,7 +670,10 @@ const assignSubTasks = async (ctx: MutationCtx, ids: Id<'sewingSubTasks'>[], ass
 
   const loadByDay = await sewerLoadByDay(ctx, assignedTo, new Set(subs.map(s => s._id)))
   const fromMs    = Math.min(...subs.map(s => s.startDate ?? Date.now()))
-  const tasks     = subs.map(sub => ({ sub, duration: taskDurationMinutes(sub.quantity, sub.extraWorks) }))
+  const tasks     = await Promise.all(subs.map(async sub => ({
+    sub,
+    duration: taskDurationMinutes(sub.quantity, sub.extraWorks, await getSewingNorm(ctx, sub.productionOrderItemId)),
+  })))
 
   for (const [{ sub }, day] of planDays(loadByDay, tasks, fromMs)) {
     await ctx.db.patch(sub._id, { assignedTo, startDate: day, endDate: day })

@@ -44,6 +44,7 @@ type KanbanTask = {
   quantity:        number
   durationMinutes: number
   extraWorks:      { name: string; minutesPerUnit: number }[]
+  sewingNorm?:     number
   status:          'new' | 'in_progress' | 'done' | 'paused'
   isCustom?:       boolean
   isOverrun:       boolean   // cut beyond the order — extra pieces
@@ -226,7 +227,7 @@ const TaskCardBody = ({ task, sewer, actions, onStartSplit }: {
       )}
       <span className="text-muted-foreground truncate">{task.specName}</span>
     </div>
-    <div className="flex items-center gap-2 text-[11px]">
+    <div className="flex flex-wrap items-center gap-x-2 text-[11px]">
       <span className={cn('size-1.5 rounded-full', STATUS_DOT[task.status])} />
       <span className="text-muted-foreground">{STATUS_LABEL[task.status]}</span>
       <span className="ml-auto tabular-nums">{task.quantity} шт</span>
@@ -309,8 +310,8 @@ const SplitInline = ({ task, onConfirm, onCancel }: { task: KanbanTask; onConfir
       </div>
       {isValid && (
         <div className="flex flex-col text-[11px] tabular-nums">
-          <span>{`Відділяємо: ${qty} шт · ${fmtDur(taskDurationMinutes(qty, task.extraWorks))}`}</span>
-          <span className="text-muted-foreground">{`Залишиться: ${task.quantity - qty} шт · ${fmtDur(taskDurationMinutes(task.quantity - qty, task.extraWorks))}`}</span>
+          <span>{`Відділяємо: ${qty} шт · ${fmtDur(taskDurationMinutes(qty, task.extraWorks, task.sewingNorm))}`}</span>
+          <span className="text-muted-foreground">{`Залишиться: ${task.quantity - qty} шт · ${fmtDur(taskDurationMinutes(task.quantity - qty, task.extraWorks, task.sewingNorm))}`}</span>
         </div>
       )}
     </div>
@@ -362,7 +363,7 @@ const DayColumn = ({ date, index, isToday, sewer, sewerTasks, poolTasks, sewers,
   const used = sewerTasks.reduce((sum, t) => sum + t.durationMinutes, 0)
 
   return (
-    <div className={cn('flex flex-col min-w-56 flex-1 min-h-0 rounded-lg border bg-muted/20', isToday && 'border-primary/50 bg-primary/5')}>
+    <div className={cn('flex flex-col min-w-40 flex-1 min-h-0 rounded-lg border bg-muted/20', isToday && 'border-primary/50 bg-primary/5')}>
       {/* Header stays put; only the tasks below scroll. */}
       <div className="shrink-0 flex flex-col gap-2 px-2.5 pt-2 pb-2 border-b">
         <div className="flex items-baseline gap-2">
@@ -459,8 +460,9 @@ export const SewingKanban = ({ toolbarStart }: { toolbarStart?: React.ReactNode 
           labelColor:      st.labelColorHex ?? undefined,
           size:            st.size ?? undefined,
           quantity:        st.quantity,
-          durationMinutes: taskDurationMinutes(st.quantity, st.extraWorks),
+          durationMinutes: taskDurationMinutes(st.quantity, st.extraWorks, st.sewingNorm),
           extraWorks:      st.extraWorks,
+          sewingNorm:      st.sewingNorm,
           status:          st.status,
           isCustom:        st.isCustom,
           isOverrun:       st.isOverrun,
@@ -572,7 +574,7 @@ export const SewingKanban = ({ toolbarStart }: { toolbarStart?: React.ReactNode 
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd} onDragCancel={() => { setDragging(null); markDragged() }}>
       <div className="flex flex-col h-full">
-        <div className="flex items-center gap-2 px-3 py-2 border-b shrink-0">
+        <div className="flex flex-wrap items-center gap-2 px-3 py-2 border-b shrink-0">
           {toolbarStart}
           <div className="flex items-center gap-1 rounded-lg bg-muted p-1">
             {sewers.map(s => (
