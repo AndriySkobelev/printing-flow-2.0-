@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { SewingKanban } from './components/sewing-kanban'
@@ -11,20 +11,24 @@ const Planner = () => {
 
   return (
     <div className="flex h-full border rounded-lg bg-background">
-      <div className={cn('w-83 shrink-0 border-r', !isListOpen && 'hidden lg:block')}>
+      <div className={cn('w-83 shrink-0 border-r', !isListOpen && 'max-lg:hidden pointer-coarse:hidden')}>
         <OrdersList selectedId={selectedId} onSelect={setSelectedId} />
       </div>
-      <Button
-        type="button"
-        variant="ghost"
-        title={isListOpen ? 'Сховати список' : 'Показати список'}
-        className="h-full w-7 shrink-0 rounded-none border-r p-0 lg:hidden"
-        onClick={() => setIsListOpen(open => !open)}
-      >
-        {isListOpen ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}
-      </Button>
       <div className="flex-1 min-w-0 overflow-hidden">
-        <SewingKanban />
+        <SewingKanban
+          toolbarStart={
+            <Button
+              type="button"
+              variant="outline"
+              size="icon-sm"
+              title={isListOpen ? 'Сховати список' : 'Показати список'}
+              className="hidden shrink-0 max-lg:inline-flex pointer-coarse:inline-flex"
+              onClick={() => setIsListOpen(open => !open)}
+            >
+              {isListOpen ? <PanelLeftClose size={16} /> : <PanelLeftOpen size={16} />}
+            </Button>
+          }
+        />
       </div>
     </div>
   )
