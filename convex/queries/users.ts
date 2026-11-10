@@ -1,5 +1,6 @@
 import { getAuthUserId } from "@convex-dev/auth/server";
-import { mutation, query } from "../_generated/server";
+import { internalMutation, mutation, query, type MutationCtx } from "../_generated/server";
+import { type Id } from "../_generated/dataModel";
 import { v } from "convex/values";
 
 const roleValidator = v.optional(v.union(
@@ -17,6 +18,35 @@ async function requireAdmin(ctx: any) {
   const user = await ctx.db.get(userId);
   if (user?.role !== 'admin' && user?.role !== 'super_admin') throw new Error('Forbidden');
 }
+
+// A leftover authAccounts row makes every later sign-in with that Google account fail.
+const removeAuthData = async (ctx: MutationCtx, userId: Id<'users'>) => {
+  const accounts = await ctx.db
+    .query('authAccounts')
+    .withIndex('userIdAndProvider', q => q.eq('userId', userId))
+    .collect();
+  for (const account of accounts) {
+    const codes = await ctx.db
+      .query('authVerificationCodes')
+      .withIndex('accountId', q => q.eq('accountId', account._id))
+      .collect();
+    await Promise.all(codes.map(c => ctx.db.delete(c._id)));
+    await ctx.db.delete(account._id);
+  }
+
+  const sessions = await ctx.db
+    .query('authSessions')
+    .withIndex('userId', q => q.eq('userId', userId))
+    .collect();
+  for (const session of sessions) {
+    const tokens = await ctx.db
+      .query('authRefreshTokens')
+      .withIndex('sessionId', q => q.eq('sessionId', session._id))
+      .collect();
+    await Promise.all(tokens.map(t => ctx.db.delete(t._id)));
+    await ctx.db.delete(session._id);
+  }
+};
 
 export const approveUser = mutation({
   args: { id: v.id('users') },
@@ -94,7 +124,17 @@ export const deleteUser = mutation({
   args: { id: v.id('users') },
   handler: async (ctx, { id }) => {
     await requireAdmin(ctx);
+    await removeAuthData(ctx, id);
     await ctx.db.delete(id);
+  },
+});
+
+// For users deleted before deleteUser cleaned up after itself.
+export const purgeDeletedUserAuth = internalMutation({
+  args: { userId: v.id('users') },
+  handler: async (ctx, { userId }) => {
+    if (await ctx.db.get(userId)) throw new Error('User still exists');
+    await removeAuthData(ctx, userId);
   },
 });
 
