@@ -65,10 +65,12 @@ export const getAllPackagingTasks = query({
               status:                subTask.status,
               endDate:               subTask.endDate ?? null,
               isCustomCut:           item?.isCustomCut ?? false,
+              hasCustomSpec:         !!item?.specMaterials,
               isCustomSewing:        subTask.isCustomSewing      ?? item?.isCustomSewing      ?? false,
               customCutComment:      item?.customCutComment      ?? undefined,
               customSewingComment:   subTask.customSewingComment ?? item?.customSewingComment ?? undefined,
               assignedTo: user ? {
+                _id:      user._id,
                 name:     user.name     ?? null,
                 lastName: user.lastName ?? null,
                 image:    user.image    ?? null,

@@ -2,6 +2,7 @@ import { type AttachedFile } from '@/route-components/branding/components/images
 import { type BrandingTypeValue } from '@/route-components/order-details/types'
 
 export type PackagingAssignee = {
+  _id:       string
   name?:     string | null
   lastName?: string | null
   image?:    string | null
@@ -17,6 +18,7 @@ export type PackagingSubTask = {
   status:                 'new' | 'in_progress' | 'done' | 'paused'
   endDate:                number | null
   isCustomCut:            boolean
+  hasCustomSpec:          boolean
   isCustomSewing:         boolean
   customCutComment?:      string
   customSewingComment?:   string

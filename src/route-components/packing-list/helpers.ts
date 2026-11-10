@@ -16,6 +16,13 @@ export const SUBCONTRACTOR_TYPE_LABELS: Record<PackagingSubcontractorTask['type'
   other:       'Інше',
 }
 
+// Due dates are saved at local midnight (22:00 UTC the day before), so they
+// have to be read in local time to land on the day people see.
+export const localDayMs = (ts: number) => {
+  const date = new Date(ts)
+  return Date.UTC(date.getFullYear(), date.getMonth(), date.getDate())
+}
+
 export const formatDate = (ts: number) =>
   new Date(ts).toLocaleDateString('uk-UA', { day: '2-digit', month: '2-digit', year: '2-digit' })
 
@@ -27,9 +34,6 @@ export const formatDateTime = (ts: number) =>
     hour:   '2-digit',
     minute: '2-digit',
   })
-
-export const initials = (assignee: PackagingSubTask['assignedTo']) =>
-  [assignee?.name, assignee?.lastName].filter(Boolean).map(w => w![0]).join('').toUpperCase() || '?'
 
 export const completedByItem = (task: PackagingTask, itemId: string) =>
   task.logs.filter(l => l.productionOrderItemId === itemId && l.type === 'completed').reduce((s, l) => s + l.quantity, 0)

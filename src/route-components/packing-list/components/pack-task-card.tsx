@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ChevronDown, ChevronRight, Truck, Factory } from 'lucide-react'
+import { ChevronDown, ChevronRight, Truck, Factory, Sparkles } from 'lucide-react'
 import { ProgressBar } from '@/components/progress-bar'
 import { BRANDING_LABELS } from '@/route-components/order-details/types'
 import { PackSubTaskRow } from './pack-subtask-row'
@@ -11,6 +11,7 @@ export const PackTaskCard = ({ task }: { task: PackagingTask }) => {
   const [expanded, setExpanded] = useState(false)
 
   const { totalQty, totalDone } = taskTotals(task)
+  const hasCustom = task.subTasks.some(st => st.isCustomCut || st.isCustomSewing || st.hasCustomSpec)
 
   return (
     <div className="border rounded-lg px-4 py-3 flex flex-col gap-3 bg-background">
@@ -20,7 +21,10 @@ export const PackTaskCard = ({ task }: { task: PackagingTask }) => {
         className="flex items-start justify-between gap-2 text-left"
       >
         <div className="flex flex-col gap-0.5 min-w-0">
-          <span className="text-sm font-semibold truncate">#{task.keycrmOrderId}</span>
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className="text-sm font-semibold truncate">#{task.keycrmOrderId}</span>
+            {hasCustom && <Sparkles size={14} className="shrink-0 text-violet-500" />}
+          </div>
           {task.keycrmManager && (
             <span className="text-xs text-muted-foreground truncate">{task.keycrmManager}</span>
           )}

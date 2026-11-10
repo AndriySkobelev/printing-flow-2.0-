@@ -4,6 +4,9 @@ import { convexQuery } from '@convex-dev/react-query'
 import { type FunctionReturnType } from 'convex/server'
 import { api } from 'convex/_generated/api'
 import { type Id } from 'convex/_generated/dataModel'
+import { FilePen } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { MyPopover } from '@/components/my-popover'
 
 type SpecGroups = FunctionReturnType<typeof api.queries.orderItemSpec.getOrderItemSpecDetails>
 
@@ -79,3 +82,20 @@ export const OrderItemSpecDetails = ({ itemId, ...display }: DisplayProps & { it
   const { data, isLoading } = useQuery(convexQuery(api.queries.orderItemSpec.getOrderItemSpecDetails, { itemId }))
   return <SpecDetailsView groups={data} isLoading={isLoading} {...display} />
 }
+
+export const SpecChangesPopover = ({ itemId, productName, color }: {
+  itemId:       Id<'productionOrderItems'>
+  productName?: string
+  color?:       string
+}) => (
+  <MyPopover
+    align="start"
+    withArrow
+    trigger={
+      <Button type="button" variant="ghost" title="Специфікацію змінено" className="h-auto shrink-0 p-0 has-[>svg]:px-0 text-violet-500 hover:bg-transparent hover:text-violet-700">
+        <FilePen size={13} />
+      </Button>
+    }
+    content={<OrderItemSpecDetails itemId={itemId} productName={productName} color={color} className="min-w-60 max-w-90" />}
+  />
+)

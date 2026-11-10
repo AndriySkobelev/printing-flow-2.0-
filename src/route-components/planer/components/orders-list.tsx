@@ -5,7 +5,7 @@ import { useQuery, keepPreviousData } from '@tanstack/react-query'
 import { convexQuery } from '@convex-dev/react-query'
 import { api } from 'convex/_generated/api'
 import { type FunctionReturnType } from 'convex/server'
-import { Search, Plus, PackagePlus, Minus, Undo2, SplitSquareHorizontal, UserPlus, Sparkles, CalendarDays, FilePen } from 'lucide-react'
+import { Search, Plus, PackagePlus, Minus, Undo2, SplitSquareHorizontal, UserPlus, Sparkles, CalendarDays } from 'lucide-react'
 import { format } from 'date-fns'
 import { uk } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
@@ -20,9 +20,9 @@ import { Calendar } from '@/components/ui/calendar'
 import { Checkbox } from '@/components/ui/check-box'
 import { DialogContext } from '@/contexts/dialog'
 import { BRANDING_TYPES, BRANDING_LABELS } from '@/route-components/order-details/types'
-import { OrderItemSpecDetails } from '@/components/spec-details'
+import { SpecChangesPopover } from '@/components/spec-details'
+import { SewerAvatar } from '@/components/sewer-avatar'
 import { usePlannerStore } from '../store'
-import { SEWER_COLORS } from '../constants'
 import { taskDurationMinutes, fmtDur, endDateColor } from '../helpers'
 import { useUpdateSewingSubTaskAssignee, useSplitSewingSubTask, useUpdateSewingTaskStatus, useToggleSewingSubTaskExtraWork, useMergeSewingSubTaskIntoParent, useSetSewingSubTaskDay, useBulkAssignSewingSubTasks, useBulkSetSewingSubTaskDay, useBulkSetSewingSubTaskExtraWork } from '../queries'
 import { OrderInfoPanel } from './order-info-panel'
@@ -240,7 +240,6 @@ const SubTaskItem = ({
 
   const isAssigned = sub.userName && sub.userName !== '—'
   const hasDay     = sub.startDate != null
-  const sewerIndex = Math.max(0, sewerUsers.findIndex((user) => user._id === sub.assignedTo))
   const splitQtyNum = parseInt(splitQty, 10)
 
   return (
@@ -268,38 +267,14 @@ const SubTaskItem = ({
           </span>
         )}
         {sub.hasCustomSpec && sub.productionOrderItemId && (
-          <MyPopover
-            align="start"
-            withArrow
-            trigger={
-              <Button type="button" variant="ghost" title="Специфікацію змінено" className="h-auto shrink-0 p-0 has-[>svg]:px-0 text-violet-500 hover:bg-transparent hover:text-violet-700">
-                <FilePen size={13} />
-              </Button>
-            }
-            content={
-              <OrderItemSpecDetails
-                itemId={sub.productionOrderItemId}
-                productName={taskMeta.specName}
-                color={taskMeta.colorName}
-                className="min-w-60 max-w-90"
-              />
-            }
-          />
+          <SpecChangesPopover itemId={sub.productionOrderItemId} productName={taskMeta.specName} color={taskMeta.colorName} />
         )}
         {sub.size && (
           <span className="shrink-0 text-[12px] font-semibold px-1.5 py-0.5 rounded bg-muted border border-border/60 leading-none">
             {sub.size}
           </span>
         )}
-        {isAssigned && (
-          <span
-            title={sub.userName}
-            className="flex size-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white"
-            style={{ background: SEWER_COLORS[sewerIndex % SEWER_COLORS.length] }}
-          >
-            {sub.userName[0]}
-          </span>
-        )}
+        {isAssigned && <SewerAvatar sewerId={sub.assignedTo} name={sub.userName} />}
         <span className="font-medium truncate flex-1 text-muted-foreground italic">
           {!isAssigned && 'Не призначено'}
         </span>
