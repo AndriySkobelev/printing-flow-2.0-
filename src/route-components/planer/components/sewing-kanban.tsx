@@ -420,7 +420,7 @@ const TaskStrip = ({ title, className, children }: { title: string; className?: 
 const byOrder = (a: KanbanTask, b: KanbanTask) =>
   a.orderNumber.localeCompare(b.orderNumber, 'uk', { numeric: true }) || (a.size ?? '').localeCompare(b.size ?? '', 'uk', { numeric: true })
 
-export const SewingKanban = () => {
+export const SewingKanban = ({ toolbarStart }: { toolbarStart?: React.ReactNode }) => {
   const [anchor, setAnchor]       = useState(() => new UTCDate())
   const [activeSewerId, setSewer] = useState<string | null>(null)
   const [draggingId, setDragging] = useState<string | null>(null)
@@ -573,6 +573,7 @@ export const SewingKanban = () => {
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd} onDragCancel={() => { setDragging(null); markDragged() }}>
       <div className="flex flex-col h-full">
         <div className="flex items-center gap-2 px-3 py-2 border-b shrink-0">
+          {toolbarStart}
           <div className="flex items-center gap-1 rounded-lg bg-muted p-1">
             {sewers.map(s => (
               <Button
