@@ -5,7 +5,7 @@ import { api } from 'convex/_generated/api'
 import { type Id } from 'convex/_generated/dataModel'
 import { UTCDate } from '@date-fns/utc'
 import { addDays, format } from 'date-fns'
-import { ChevronLeft, ChevronRight, UserPlus, CalendarDays, UserMinus, Undo2, Sparkles, Scissors, Plus, Minus, SplitSquareHorizontal, Wrench } from 'lucide-react'
+import { ChevronLeft, ChevronRight, UserPlus, CalendarDays, UserMinus, Undo2, Sparkles, Scissors, Plus, Minus, SplitSquareHorizontal, Wrench, CalendarOff } from 'lucide-react'
 import {
   DndContext,
   DragOverlay,
@@ -23,8 +23,9 @@ import { cn } from '@/lib/utils'
 import { DialogContext } from '@/contexts/dialog'
 import { sewingTaskDialog, OverrunIcon } from './orders-list'
 import { SEWER_COLORS, DAY_NAMES } from '../constants'
-import { fmtDur, taskDurationMinutes, endDateColor, dayKey, weekDays, msToDay, SEWER_DAY_CAPACITY as DAY_CAPACITY } from '../helpers'
-import { useUpdateSewingSubTaskAssignee, useSetSewingSubTaskDay, useSplitSewingSubTask } from '../queries'
+import { fmtDur, taskDurationMinutes, endDateColor, dayKey, dayToMs, weekDays, msToDay, SEWER_DAY_CAPACITY as DAY_CAPACITY } from '../helpers'
+import { useUpdateSewingSubTaskAssignee, useSetSewingSubTaskDay, useSplitSewingSubTask, useDaysOffByDay, type DayOff } from '../queries'
+import { SewerDaysOff } from './sewer-days-off'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -57,14 +58,6 @@ type KanbanTask = {
 
 // A drop target: a day column of the active sewer, or a day's "no sewer" zone.
 type Zone = { day: string; kind: 'sewer' | 'pool' }
-
-// ─── Date helpers ────────────────────────────────────────────────────────────
-
-// yyyy-MM-dd ⇄ UTC-midnight ms, as stored in sub-task startDate.
-const dayToMs = (key: string) => {
-  const [y, m, d] = key.split('-').map(Number)
-  return Date.UTC(y, m - 1, d)
-}
 
 const STATUS_DOT: Record<KanbanTask['status'], string> = {
   new:         'bg-blue-400',
@@ -349,10 +342,11 @@ const DropZone = ({ zone, className, children }: { zone: Zone; className?: strin
   )
 }
 
-const DayColumn = ({ date, index, isToday, sewer, sewerTasks, poolTasks, sewers, actions }: {
+const DayColumn = ({ date, index, isToday, dayOff, sewer, sewerTasks, poolTasks, sewers, actions }: {
   date:       Date
   index:      number
   isToday:    boolean
+  dayOff?:    DayOff
   sewer:      Sewer
   sewerTasks: KanbanTask[]
   poolTasks:  KanbanTask[]
@@ -363,14 +357,32 @@ const DayColumn = ({ date, index, isToday, sewer, sewerTasks, poolTasks, sewers,
   const used = sewerTasks.reduce((sum, t) => sum + t.durationMinutes, 0)
 
   return (
-    <div className={cn('flex flex-col min-w-56 lg:pointer-fine:min-w-40 flex-1 min-h-0 rounded-lg border bg-muted/20', isToday && 'border-primary/50 bg-primary/5')}>
+    <div className={cn(
+      'flex flex-col min-w-56 lg:pointer-fine:min-w-40 flex-1 min-h-0 rounded-lg border bg-muted/20',
+      isToday && 'border-primary/50 bg-primary/5',
+      dayOff && 'bg-muted/60',
+      dayOff && used > 0 && 'border-red-400',
+    )}>
       {/* Header stays put; only the tasks below scroll. */}
       <div className="shrink-0 flex flex-col gap-2 px-2.5 pt-2 pb-2 border-b">
         <div className="flex items-baseline gap-2">
           <span className={cn('text-sm font-semibold', isToday && 'text-primary')}>{DAY_NAMES[index]}</span>
           <span className="text-xs text-muted-foreground">{format(date, 'dd.MM')}</span>
+          {dayOff && (
+            <span className="ml-auto flex items-center gap-1 self-center rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] font-medium text-red-700">
+              <CalendarOff size={10} />
+              Вихідний
+            </span>
+          )}
         </div>
-        <LoadBar used={used} />
+        {dayOff ? (
+          <div className="flex items-center justify-between gap-2 text-[11px] min-h-[21px]">
+            <span className="truncate text-muted-foreground">{dayOff.note}</span>
+            {used > 0 && <span className="shrink-0 font-semibold tabular-nums text-red-500">{`заплановано ${fmtDur(used)}`}</span>}
+          </div>
+        ) : (
+          <LoadBar used={used} />
+        )}
       </div>
 
       <div className="flex-1 min-h-0 flex flex-col overflow-y-auto">
@@ -398,7 +410,7 @@ const DayColumn = ({ date, index, isToday, sewer, sewerTasks, poolTasks, sewers,
             />
           ))}
           {sewerTasks.length === 0 && (
-            <span className="m-auto text-[11px] text-muted-foreground">{`Немає задач для ${sewer.name.split(' ')[0]}`}</span>
+            <span className="m-auto text-[11px] text-muted-foreground">{dayOff ? `${sewer.name.split(' ')[0]} не працює` : `Немає задач для ${sewer.name.split(' ')[0]}`}</span>
           )}
         </DropZone>
       </div>
@@ -489,9 +501,12 @@ export const SewingKanban = ({ toolbarStart }: { toolbarStart?: React.ReactNode 
   const weekLoad = (id: string) =>
     tasks.filter(t => t.sewerId === id && t.day && weekKeys.has(t.day)).reduce((s, t) => s + t.durationMinutes, 0)
 
+  const daysOff      = useDaysOffByDay(days)
+  const weekCapacity = (id: string) => DAY_CAPACITY * (days.length - (daysOff.get(id)?.size ?? 0))
+
   // Whole team for the shown week; work on a day without a sewer is shown apart.
   const teamUsed     = sewers.reduce((sum, s) => sum + weekLoad(s.id), 0)
-  const teamCapacity = sewers.length * DAY_CAPACITY * 5
+  const teamCapacity = sewers.reduce((sum, s) => sum + weekCapacity(s.id), 0)
   const teamPct      = teamCapacity ? Math.round((teamUsed / teamCapacity) * 100) : 0
   const poolWeek     = tasks.filter(t => !t.sewerId && t.day && weekKeys.has(t.day)).reduce((s, t) => s + t.durationMinutes, 0)
 
@@ -528,6 +543,11 @@ export const SewingKanban = ({ toolbarStart }: { toolbarStart?: React.ReactNode 
     splitSubTask({ sewingSubTaskId: taskId as Id<'sewingSubTasks'>, splitQty: qty })
 
   const { openDialog } = useContext(DialogContext)
+
+  const openDaysOff = () => {
+    if (!sewer) return
+    openDialog({ title: `Вихідні · ${sewer.name}`, className: 'sm:max-w-2xl', content: <SewerDaysOff sewerId={sewer.id} /> })
+  }
   // A drop can fire a click on the dragged card — skip opening the order right after a drag.
   const justDragged = useRef(false)
   const handleOpen = (task: KanbanTask) => {
@@ -594,11 +614,17 @@ export const SewingKanban = ({ toolbarStart }: { toolbarStart?: React.ReactNode 
                 </span>
                 <span className="text-xs font-medium">{s.name}</span>
                 <span className="text-[10px] text-muted-foreground tabular-nums">
-                  {Math.round((weekLoad(s.id) / (DAY_CAPACITY * 5)) * 100)}%
+                  {weekCapacity(s.id) > 0 ? `${Math.round((weekLoad(s.id) / weekCapacity(s.id)) * 100)}%` : '—'}
                 </span>
+                {(daysOff.get(s.id)?.size ?? 0) > 0 && <CalendarOff size={12} className="text-red-500" />}
               </Button>
             ))}
           </div>
+
+          <Button type="button" variant="outline" size="sm" className="h-8" onClick={openDaysOff}>
+            <CalendarOff size={14} />
+            Вихідні
+          </Button>
 
           <div className="ml-auto flex flex-col items-end gap-0.5 text-xs" title={`${fmtDur(teamUsed)} з ${fmtDur(teamCapacity)}`}>
             <div className="flex items-center gap-2">
@@ -662,6 +688,7 @@ export const SewingKanban = ({ toolbarStart }: { toolbarStart?: React.ReactNode 
                   date={d}
                   index={i}
                   isToday={key === today}
+                  dayOff={daysOff.get(sewer.id)?.get(key)}
                   sewer={sewer}
                   sewerTasks={tasks.filter(t => t.day === key && t.sewerId === sewer.id)}
                   poolTasks={tasks.filter(t => t.day === key && !t.sewerId)}

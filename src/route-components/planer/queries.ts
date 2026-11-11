@@ -1,5 +1,7 @@
+import { useMemo } from 'react'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { convexQuery, useConvexMutation } from '@convex-dev/react-query'
+import { dayKey, dayToMs } from './helpers'
 import { api } from 'convex/_generated/api'
 import { toast } from 'sonner'
 
@@ -90,3 +92,26 @@ export const useBulkSetSewingSubTaskExtraWork = () =>
     mutationFn: useConvexMutation(api.queries.sewing.bulkSetSewingSubTaskExtraWork),
     onError: (e: Error) => toast.error(e.message),
   })
+
+export type DayOff = { note?: string }
+
+// sewerId → yyyy-MM-dd → day off, for the given days.
+export const useDaysOffByDay = (days: Date[]) => {
+  const keys = useMemo(() => days.map(dayKey), [days])
+  const { data: periods = [] } = useQuery(convexQuery(api.queries.sewerDaysOff.getSewerDaysOff, {
+    from: dayToMs(keys[0]),
+    to:   dayToMs(keys[keys.length - 1]),
+  }))
+  return useMemo(() => {
+    const map = new Map<string, Map<string, DayOff>>()
+    for (const p of periods) {
+      const byDay = map.get(p.userId) ?? new Map<string, DayOff>()
+      for (const key of keys) {
+        const ms = dayToMs(key)
+        if (ms >= p.from && ms <= p.to) byDay.set(key, { note: p.note })
+      }
+      map.set(p.userId, byDay)
+    }
+    return map
+  }, [periods, keys])
+}

@@ -28,6 +28,7 @@ import type * as queries_packaging from "../queries/packaging.js";
 import type * as queries_planner from "../queries/planner.js";
 import type * as queries_products from "../queries/products.js";
 import type * as queries_settings from "../queries/settings.js";
+import type * as queries_sewerDaysOff from "../queries/sewerDaysOff.js";
 import type * as queries_sewing from "../queries/sewing.js";
 import type * as queries_specifications from "../queries/specifications.js";
 import type * as queries_suppliers from "../queries/suppliers.js";
@@ -64,6 +65,7 @@ declare const fullApi: ApiFromModules<{
   "queries/planner": typeof queries_planner;
   "queries/products": typeof queries_products;
   "queries/settings": typeof queries_settings;
+  "queries/sewerDaysOff": typeof queries_sewerDaysOff;
   "queries/sewing": typeof queries_sewing;
   "queries/specifications": typeof queries_specifications;
   "queries/suppliers": typeof queries_suppliers;

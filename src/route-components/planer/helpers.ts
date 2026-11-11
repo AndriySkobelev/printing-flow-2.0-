@@ -66,6 +66,14 @@ export const weekDays = (anchor: Date) => {
 // UTC-midnight ms, as stored in sub-task startDate → yyyy-MM-dd.
 export const msToDay = (ms: number) => dayKey(new UTCDate(ms))
 
+// yyyy-MM-dd → UTC-midnight ms.
+export const dayToMs = (key: string) => {
+  const [y, m, d] = key.split('-').map(Number)
+  return Date.UTC(y, m - 1, d)
+}
+
+export const DAY_MS = 24 * 60 * 60 * 1000
+
 // Load colour by percent of capacity: red over 100, amber over 80.
 export const loadTone = (pct: number) => ({
   text: pct > 100 ? 'text-red-500' : pct > 80 ? 'text-amber-500' : 'text-emerald-600',

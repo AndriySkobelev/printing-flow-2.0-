@@ -112,6 +112,19 @@ const plannerEventsTable = defineTable(plannerEventsSchema)
   .index('by_date', ['date'])
   .index('by_sewer_date', ['sewerId', 'date'])
 
+// A sewer's days off, `from`–`to` inclusive, both UTC midnight like sub-task days.
+export const sewerDaysOffSchema = {
+  userId:    v.id('users'),
+  from:      v.number(),
+  to:        v.number(),
+  note:      v.optional(v.string()),
+  createdBy: v.id('users'),
+}
+
+const sewerDaysOffTable = defineTable(sewerDaysOffSchema)
+  .index('by_userId_to', ['userId', 'to'])
+  .index('by_to', ['to'])
+
 // Singleton row (there should only ever be one document in this table) holding
 // system-wide toggles — see convex/queries/settings.ts.
 export const systemSettingsSchema = {
@@ -198,6 +211,7 @@ export default defineSchema({
   storeMovements: icomingMaterialsTable
     .index('by_materialId', ['materialId']),
   plannerEvents: plannerEventsTable,
+  sewerDaysOff: sewerDaysOffTable,
   reservations: reservationsTable
     .index('by_productionOrderItemId', ['productionOrderItemId'])
     .index('by_materialId', ['materialId'])

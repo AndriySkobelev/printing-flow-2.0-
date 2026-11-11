@@ -3,12 +3,13 @@ import { useQuery } from '@tanstack/react-query'
 import { convexQuery } from '@convex-dev/react-query'
 import { UTCDate } from '@date-fns/utc'
 import { addDays, format } from 'date-fns'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight, CalendarOff } from 'lucide-react'
 import { api } from 'convex/_generated/api'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { SEWER_COLORS, DAY_NAMES } from '../constants'
 import { fmtDur, taskDurationMinutes, dayKey, weekDays, msToDay, loadTone, SEWER_DAY_CAPACITY } from '../helpers'
+import { useDaysOffByDay } from '../queries'
 
 // Every sewer's planned load for today and each day of the current week —
 // same numbers as the kanban (minutes of sub-tasks put on the sewer's day).
@@ -20,6 +21,7 @@ export const SewersLoad = () => {
   const days        = useMemo(() => weekDays(anchor), [anchor])
   const today       = dayKey(new UTCDate())
   const isThisWeek  = dayKey(days[0]) === dayKey(weekDays(new UTCDate())[0])
+  const daysOff     = useDaysOffByDay(days)
 
   // sewerId → day → minutes
   const load = useMemo(() => {
@@ -69,6 +71,7 @@ export const SewersLoad = () => {
         const usedOn   = (key: string) => byDay?.get(key) ?? 0
         const todayUse = usedOn(today)
         const todayPct = Math.round((todayUse / SEWER_DAY_CAPACITY) * 100)
+        const offDays  = daysOff.get(String(u._id))
 
         return (
           <div key={u._id} className="flex flex-col gap-1.5 border rounded-md px-2.5 py-2">
@@ -82,11 +85,15 @@ export const SewersLoad = () => {
               <span className="text-xs font-medium truncate flex-1">{name}</span>
               <span className="text-[11px] tabular-nums shrink-0">
                 <span className="text-muted-foreground">Сьогодні </span>
-                <span className={cn('font-semibold', loadTone(todayPct).text)}>
-                  {todayUse > SEWER_DAY_CAPACITY
-                    ? `+${fmtDur(todayUse - SEWER_DAY_CAPACITY)}`
-                    : `вільно ${fmtDur(SEWER_DAY_CAPACITY - todayUse)}`}
-                </span>
+                {offDays?.has(today) ? (
+                  <span className="font-semibold text-red-500">вихідний</span>
+                ) : (
+                  <span className={cn('font-semibold', loadTone(todayPct).text)}>
+                    {todayUse > SEWER_DAY_CAPACITY
+                      ? `+${fmtDur(todayUse - SEWER_DAY_CAPACITY)}`
+                      : `вільно ${fmtDur(SEWER_DAY_CAPACITY - todayUse)}`}
+                  </span>
+                )}
               </span>
             </div>
 
@@ -96,21 +103,27 @@ export const SewersLoad = () => {
                 const used = usedOn(key)
                 const pct  = Math.round((used / SEWER_DAY_CAPACITY) * 100)
                 const tone = loadTone(pct)
+                const off  = offDays?.get(key)
                 return (
                   <div
                     key={key}
-                    title={`${DAY_NAMES[di]} ${format(d, 'dd.MM')}: ${fmtDur(used)} з ${fmtDur(SEWER_DAY_CAPACITY)}`}
+                    title={off
+                      ? `${DAY_NAMES[di]} ${format(d, 'dd.MM')}: вихідний${off.note ? ` (${off.note})` : ''}${used > 0 ? `, заплановано ${fmtDur(used)}` : ''}`
+                      : `${DAY_NAMES[di]} ${format(d, 'dd.MM')}: ${fmtDur(used)} з ${fmtDur(SEWER_DAY_CAPACITY)}`}
                     className={cn(
                       'flex flex-col gap-0.5 rounded px-1 py-0.5',
                       key === today ? 'bg-primary/10 ring-1 ring-primary/40' : key < today && 'opacity-50',
+                      off && 'bg-muted',
                     )}
                   >
                     <div className="flex items-baseline justify-between text-[10px] tabular-nums leading-none">
                       <span className="text-muted-foreground">{DAY_NAMES[di]}</span>
-                      <span className={cn('font-semibold', used > 0 ? tone.text : 'text-muted-foreground')}>{`${pct}%`}</span>
+                      {off
+                        ? <CalendarOff size={10} className={used > 0 ? 'text-red-500' : 'text-muted-foreground'} />
+                        : <span className={cn('font-semibold', used > 0 ? tone.text : 'text-muted-foreground')}>{`${pct}%`}</span>}
                     </div>
                     <div className="h-1 rounded-full bg-muted overflow-hidden">
-                      <div className={cn('h-full rounded-full', tone.bar)} style={{ width: `${Math.min(100, pct)}%` }} />
+                      <div className={cn('h-full rounded-full', off ? 'bg-red-500' : tone.bar)} style={{ width: `${off ? (used > 0 ? 100 : 0) : Math.min(100, pct)}%` }} />
                     </div>
                   </div>
                 )

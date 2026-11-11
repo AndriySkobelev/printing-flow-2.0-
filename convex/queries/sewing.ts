@@ -4,7 +4,9 @@ import type { Id } from '../_generated/dataModel'
 import type { MutationCtx, QueryCtx } from '../_generated/server'
 import type { Doc } from '../_generated/dataModel'
 import { getAuthUserId } from '@convex-dev/auth/server'
+import { UTCDate } from '@date-fns/utc'
 import { taskDurationMinutes, SEWER_DAY_CAPACITY } from '../lib/sewingDuration'
+import { getSewerDaysOffSet } from './sewerDaysOff'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
@@ -61,11 +63,11 @@ const bestFillIndexes = (durations: number[], capacity: number) => {
   return picked
 }
 
-// Fills days one after another, earliest first: each day (from `fromMs`, today
-// at the earliest) gets the combination of the remaining tasks that fills it
+// Fills days one after another, earliest first, skipping weekends and the
+// sewer's days off: each day (from `fromMs`, today at the earliest) gets the combination of the remaining tasks that fills it
 // closest to full. Tasks longer than a whole day can't fit anywhere — each then
 // takes the next empty day of its own, overloaded.
-const planDays = <T extends { duration: number }>(loadByDay: Map<number, number>, tasks: T[], fromMs: number) => {
+const planDays = <T extends { duration: number }>(loadByDay: Map<number, number>, tasks: T[], fromMs: number, daysOff: Set<number>) => {
   const placed = new Map<T, number>()
   const start  = Math.max(utcDayStart(fromMs), utcDayStart(Date.now()))
   let rest     = tasks.filter(t => t.duration <= SEWER_DAY_CAPACITY)
@@ -73,7 +75,7 @@ const planDays = <T extends { duration: number }>(loadByDay: Map<number, number>
 
   for (let i = 0; i < 365 && (rest.length > 0 || oversize.length > 0); i++) {
     const day = start + i * DAY_MS
-    if (!isWorkday(day)) continue
+    if (!isWorkday(day) || daysOff.has(day)) continue
     const used = loadByDay.get(day) ?? 0
 
     if (rest.length > 0) {
@@ -670,12 +672,13 @@ const assignSubTasks = async (ctx: MutationCtx, ids: Id<'sewingSubTasks'>[], ass
 
   const loadByDay = await sewerLoadByDay(ctx, assignedTo, new Set(subs.map(s => s._id)))
   const fromMs    = Math.min(...subs.map(s => s.startDate ?? Date.now()))
+  const daysOff   = await getSewerDaysOffSet(ctx, assignedTo, Math.min(fromMs, new UTCDate().valueOf()))
   const tasks     = await Promise.all(subs.map(async sub => ({
     sub,
     duration: taskDurationMinutes(sub.quantity, sub.extraWorks, await getSewingNorm(ctx, sub.productionOrderItemId)),
   })))
 
-  for (const [{ sub }, day] of planDays(loadByDay, tasks, fromMs)) {
+  for (const [{ sub }, day] of planDays(loadByDay, tasks, fromMs, daysOff)) {
     await ctx.db.patch(sub._id, { assignedTo, startDate: day, endDate: day })
   }
   await syncSewingTaskDistributed(ctx, subs.map(s => s.sewingTaskId))
