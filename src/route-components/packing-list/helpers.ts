@@ -52,3 +52,5 @@ export const isPackagingTaskDone = (task: PackagingTask) => {
   const { totalQty, totalDone } = taskTotals(task)
   return totalQty > 0 && totalDone >= totalQty
 }
+
+export const isStandardPackaging = (packaging: string) => packaging.trim().toLowerCase() === 'стандарт'

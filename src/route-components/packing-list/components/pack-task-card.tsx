@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import { ChevronDown, ChevronRight, Truck, Factory, Sparkles } from 'lucide-react'
+import { ChevronDown, ChevronRight, Truck, Factory, Sparkles, Package, Tag } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { ProgressBar } from '@/components/progress-bar'
 import { BRANDING_LABELS } from '@/route-components/order-details/types'
 import { PackSubTaskRow } from './pack-subtask-row'
 import { PackImages } from './pack-images'
-import { completedByItem, defectByItem, taskTotals, formatDate, SUBCONTRACTOR_TYPE_LABELS } from '../helpers'
+import { completedByItem, defectByItem, taskTotals, formatDate, isStandardPackaging, SUBCONTRACTOR_TYPE_LABELS } from '../helpers'
 import { type PackagingTask } from '../types'
 
 export const PackTaskCard = ({ task }: { task: PackagingTask }) => {
@@ -24,6 +25,27 @@ export const PackTaskCard = ({ task }: { task: PackagingTask }) => {
           <div className="flex items-center gap-1.5 min-w-0">
             <span className="text-sm font-semibold truncate">#{task.keycrmOrderId}</span>
             {hasCustom && <Sparkles size={14} className="shrink-0 text-violet-500" />}
+            {task.identifier && (
+              <span
+                title="Ідентифікатор"
+                className="flex items-center gap-1 min-w-0 px-1.5 py-0.5 rounded-full border text-[10px] font-medium"
+              >
+                <Tag size={11} className="shrink-0" />
+                <span className="truncate">{task.identifier}</span>
+              </span>
+            )}
+            {task.packaging && (
+              <span
+                title="Пакування"
+                className={cn(
+                  'flex items-center gap-1 min-w-0 px-1.5 py-0.5 rounded-full text-[10px] font-medium',
+                  isStandardPackaging(task.packaging) ? 'bg-muted text-muted-foreground' : 'bg-amber-100 text-amber-700',
+                )}
+              >
+                <Package size={11} className="shrink-0" />
+                <span className="truncate">{task.packaging}</span>
+              </span>
+            )}
           </div>
           {task.keycrmManager && (
             <span className="text-xs text-muted-foreground truncate">{task.keycrmManager}</span>

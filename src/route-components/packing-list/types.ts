@@ -52,6 +52,8 @@ export type PackagingTask = {
   keycrmOrderId:    string
   keycrmManager:    string | null
   plannedShipDate:  number | null
+  packaging:        string | null
+  identifier:       string | null
   startDate:        number
   endDate:          number
   status:           'new' | 'in_progress' | 'done' | 'paused' | 'waiting'

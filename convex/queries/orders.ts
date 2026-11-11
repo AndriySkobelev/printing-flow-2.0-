@@ -6,7 +6,7 @@ import { api } from '../_generated/api'
 import { getAuthUserId } from '@convex-dev/auth/server'
 import { omit } from 'ramda'
 import { createOrderMaterialReservations } from './movements'
-import { KEYCRM_CUSTOM_FIELD_UUIDS, productionOrderStatusV, resolveBrandingTypesFromCustomFields } from '../schemas/constants'
+import { KEYCRM_CUSTOM_FIELD_UUIDS, productionOrderStatusV, resolveBrandingTypesFromCustomFields, resolveOrderText } from '../schemas/constants'
 
 // Only these branding types are actually done by the branding department —
 // items with no type, or only types handled elsewhere (embroidery,
@@ -469,9 +469,9 @@ export const getProductionOrderDetails = query({
       packingDone,  packingTotal,
       attachedFiles: order.attachedFiles ?? [],
       additionalInfo: {
-        packaging:            order.packaging            ?? (keycrmField(KEYCRM_CUSTOM_FIELD_UUIDS.packaging)            as string  | undefined) ?? null,
-        printComment:         order.printComment         ?? (keycrmField(KEYCRM_CUSTOM_FIELD_UUIDS.printComment)         as string  | undefined) ?? null,
-        identifier:           order.identifier           ?? (keycrmField(KEYCRM_CUSTOM_FIELD_UUIDS.identifier)           as string  | undefined) ?? null,
+        packaging:            resolveOrderText(order, 'packaging'),
+        printComment:         resolveOrderText(order, 'printComment'),
+        identifier:           resolveOrderText(order, 'identifier'),
         isCuttingPrint:       order.isCuttingPrint       ?? (keycrmField(KEYCRM_CUSTOM_FIELD_UUIDS.isCuttingPrint)       as boolean | undefined) ?? null,
         isCuttingEmbroidery:  order.isCuttingEmbroidery  ?? (keycrmField(KEYCRM_CUSTOM_FIELD_UUIDS.isCuttingEmbroidery)  as boolean | undefined) ?? null,
       },

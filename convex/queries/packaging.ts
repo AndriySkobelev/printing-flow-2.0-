@@ -3,6 +3,7 @@ import { query, mutation } from '../_generated/server'
 import { type Id } from '../_generated/dataModel'
 import { getAuthUserId } from '@convex-dev/auth/server'
 import { advanceOrderToInProgress } from './orders'
+import { resolveOrderText } from '../schemas/constants'
 
 // ─── QUERIES ────────────────────────────────────────────────────────────────
 
@@ -88,6 +89,8 @@ export const getAllPackagingTasks = query({
           ...task,
           keycrmManager:   productionOrder?.keycrmManager   ?? null,
           plannedShipDate: productionOrder?.plannedShipDate ?? null,
+          packaging:       resolveOrderText(productionOrder, 'packaging'),
+          identifier:      resolveOrderText(productionOrder, 'identifier'),
           attachedFiles:   productionOrder?.attachedFiles   ?? [],
           brandingTypes,
           subcontractorTasks,

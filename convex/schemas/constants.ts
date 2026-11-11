@@ -32,12 +32,31 @@ export const productionOrderStatusV = asUnion(PRODUCTION_ORDER_STATUSES)
 // uuids of KeyCRM custom fields (order.keycrmData.custom_fields) used to default
 // productionOrders' editable "Додаткова інформація" fields. TODO: fill in real uuids.
 export const KEYCRM_CUSTOM_FIELD_UUIDS = {
-  packaging:            'OR_1011',
+  packaging:            'OR_1013',
   printComment:         'OR_1003',
   identifier:           'OR_1010',
   isCuttingPrint:       'OR_1006',
   isCuttingEmbroidery:  'OR_1007',
 } as const
+
+// Select fields arrive as an array of chosen options, e.g. ["Стандарт"].
+export const customFieldText = (value: unknown): string | undefined => {
+  if (typeof value === 'string') return value || undefined
+  if (Array.isArray(value)) return value.filter(v => typeof v === 'string').join(', ') || undefined
+  return undefined
+}
+
+type OrderTextField = 'packaging' | 'printComment' | 'identifier'
+
+// The order's own value wins; an empty one falls back to KeyCRM.
+export const resolveOrderText = (
+  order: Partial<Record<OrderTextField, string>> & { keycrmData?: { custom_fields?: Array<{ uuid: string; value: unknown }> } } | null,
+  key: OrderTextField,
+): string | null => {
+  if (!order) return null
+  const field = order.keycrmData?.custom_fields?.find(f => f.uuid === KEYCRM_CUSTOM_FIELD_UUIDS[key])
+  return order[key] || customFieldText(field?.value) || null
+}
 
 // KeyCRM select custom fields whose selected option encodes a productionOrderItem
 // SKU prefix in brackets, e.g. "Свідшот (без начосу) [ВСПБ]" -> skuPrefix "ВСПБ".
