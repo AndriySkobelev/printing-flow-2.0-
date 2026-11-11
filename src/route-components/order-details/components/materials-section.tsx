@@ -39,8 +39,8 @@ export const MaterialsSection = ({ productionOrderId, materialsReserved }: Props
             </span>
           )}
         </div>
-        <Button onClick={() => setExpanded(prev => !prev)} size="sm" variant="outline" className="h-6">
-          {expanded ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
+        <Button onClick={() => setExpanded(prev => !prev)} size="icon-sm" variant="outline" className="size-7">
+          {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
         </Button>
       </div>
 

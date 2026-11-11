@@ -116,7 +116,7 @@ export const ProductGroup = memo(({ items, productionOrderId, readOnly }: { item
               type="button"
               variant="outline"
               onClick={handleConfigureSelected}
-              className="h-6 text-[11px] px-2 border-primary/30 text-primary hover:bg-primary/10"
+              className="h-7 text-xs border-primary/30 text-primary hover:bg-primary/10"
             >
               {`Налаштувати вибрані (${selectedIds.size})`}
             </Button>
@@ -126,12 +126,12 @@ export const ProductGroup = memo(({ items, productionOrderId, readOnly }: { item
               type="button"
               onClick={handleSendSelected}
               disabled={sendableIds.length === 0 || isSending}
-              className="h-6 text-[11px] px-2"
+              className="h-7 text-xs"
             >
               {isSending
-                ? <Loader2 size={10} className="mr-1 animate-spin" />
-                : <Factory size={10} className="mr-1" />}
-              {`На виробництво (${sendableIds.length})`}
+                ? <Loader2 size={14} className="animate-spin" />
+                : <Factory size={14} />}
+              <span>{`На виробництво (${sendableIds.length})`}</span>
             </Button>
           </div>
         )}

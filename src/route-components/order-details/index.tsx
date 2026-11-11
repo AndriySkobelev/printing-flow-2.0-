@@ -107,14 +107,15 @@ const ProductsSection = ({ items, productionOrderId, readOnly }: { items: OrderI
             Товари ({items.length})
           </p>
           {!readOnly && (
-            <Button size="sm" variant="secondary" className="h-6 text-[11px] px-2" onClick={handleAddProduct}>
-              <Plus size={10} className="mr-1" /> Додати товари
+            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={handleAddProduct}>
+              <Plus size={14} />
+              Додати товари
             </Button>
           )}
         </div>
         {!readOnly && (
           <div className='flex items-center gap-2'>
-            <Button size="sm" variant="outline" className="h-6 text-[11px] px-2" onClick={handleConfigureAll}>
+            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={handleConfigureAll}>
               Налаштувати всі
             </Button>
           </div>
@@ -192,7 +193,7 @@ const OrderDetailsContent = ({ productionOrderId, onBack, readOnly }: { producti
                 {STATUS_CONFIG[order.status].label}
               </span>
             )}
-            <Button variant='outline' onClick={handleOpenLogs} className="text-[10px] h-6 px-2 py-2 leading-none">
+            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={handleOpenLogs}>
               Журнал змін
             </Button>
           </div>
