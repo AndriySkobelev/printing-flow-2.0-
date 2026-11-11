@@ -399,6 +399,7 @@ const withSewerDetails = async (ctx: QueryCtx, st: Doc<'sewingSubTasks'>) => {
     color:         task?.color         ?? null,
     taskEndDate:   task?.endDate       ?? null,
     images:        [...(productionOrder?.attachedFiles ?? []), ...(spec?.attachedFiles ?? [])],
+    hasCustomSpec: !!item?.specMaterials,
     // Fall back to the linked productionOrderItem's custom flag — older
     // sub-tasks don't copy it themselves (see getSewingTasksWithCuttingProgress).
     isCustomSewing:      st.isCustomSewing      ?? item?.isCustomSewing      ?? false,

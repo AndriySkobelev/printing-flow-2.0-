@@ -14,6 +14,8 @@ export type SubTask = {
   color:         string | null
   taskEndDate:   number | null
   images:        AttachedFile[]
+  productionOrderItemId?: string
+  hasCustomSpec:          boolean
   isCustomSewing?:      boolean
   customSewingComment?: string | null
   extraWorks?:          { workId: string; name: string; minutesPerUnit: number }[]
