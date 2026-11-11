@@ -204,6 +204,15 @@ const groupHeaders: HeaderObject[] = [
     headerRenderer: renderHeader,
     cellRenderer: ({ row }: any) => <span className="text-sm">{MATERIAL_TYPE_LABELS[row.materialType as Group['materialType']]}</span>,
   },
+  {
+    accessor: 'supplierName',
+    label: 'Постачальник',
+    width: 180,
+    isSortable: true,
+    type: 'string',
+    headerRenderer: renderHeader,
+    cellRenderer: textCell('text-sm truncate'),
+  },
   ...groupQuantityHeaders,
   {
     accessor: 'itemSearch',
@@ -289,7 +298,7 @@ const StockBalance = () => {
         <Input
           value={input}
           onChange={e => setInput(e.target.value)}
-          placeholder="Пошук: матеріал, колір, розмір, SKU"
+          placeholder="Пошук: матеріал, колір, розмір, SKU, постачальник"
           className="h-9 pl-8 text-sm"
         />
       </div>

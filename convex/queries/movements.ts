@@ -201,9 +201,13 @@ export const getStockBalanceGroups = query({
     })));
     const rows = resolved.filter((row): row is BalanceWithMaterial => row.material !== null);
 
+    const suppliers = new Map((await ctx.db.query('suppliers').collect()).map(s => [s._id as string, s.name]));
+    const supplierName = (material: BalanceWithMaterial['material']) =>
+      'supplierId' in material && material.supplierId ? suppliers.get(material.supplierId) ?? null : null;
+
     const tokens = search?.toLowerCase().split(/\s+/).filter(Boolean) ?? [];
     const matches = ({ material }: BalanceWithMaterial) => {
-      const text = [material.name, material.color, 'size' in material ? material.size : null, material.sku]
+      const text = [material.name, material.color, 'size' in material ? material.size : null, material.sku, supplierName(material)]
         .filter(Boolean).join(' ').toLowerCase();
       return tokens.every(token => text.includes(token));
     };
@@ -224,6 +228,7 @@ export const getStockBalanceGroups = query({
         parentId: group[0].material._id,
         materialType: group[0].materialType,
         name: group[0].material.name,
+        supplierName: supplierName(group[0].material),
         units: group[0].material.units as string,
         variantsCount: group.length,
         inStock,
