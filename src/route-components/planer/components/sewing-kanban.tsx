@@ -491,6 +491,7 @@ export const SewingKanban = ({ toolbarStart }: { toolbarStart?: React.ReactNode 
 
   const days    = useMemo(() => weekDays(anchor), [anchor])
   const today   = dayKey(new UTCDate())
+  const isThisWeek = dayKey(days[0]) === dayKey(weekDays(new UTCDate())[0])
   const sewer   = sewers.find(s => s.id === activeSewerId) ?? sewers[0]
   // No sewer and no day — shared by every tab.
   const backlog = tasks.filter(t => !t.day && !t.sewerId)
@@ -621,8 +622,8 @@ export const SewingKanban = ({ toolbarStart }: { toolbarStart?: React.ReactNode 
             ))}
           </div>
 
-          <Button type="button" variant="outline" size="sm" className="h-8" onClick={openDaysOff}>
-            <CalendarOff size={14} />
+          <Button type="button" variant="outline" size="sm" className="h-8 text-[13px]" onClick={openDaysOff}>
+            <CalendarOff className="size-3.5" />
             Вихідні
           </Button>
 
@@ -645,13 +646,18 @@ export const SewingKanban = ({ toolbarStart }: { toolbarStart?: React.ReactNode 
           </div>
 
           <Button variant="ghost" size="icon-sm" onClick={() => setAnchor(d => addDays(d, -7))}><ChevronLeft size={16} /></Button>
-          <span className="text-sm font-medium min-w-[180px] text-center">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            disabled={isThisWeek}
+            title={isThisWeek ? undefined : 'Повернутись до поточного тижня'}
+            onClick={() => setAnchor(new UTCDate())}
+            className={cn('min-w-36 px-1 text-sm font-medium tabular-nums disabled:opacity-100', !isThisWeek && 'text-primary font-semibold')}
+          >
             {`${format(days[0], 'dd.MM')} – ${format(days[4], 'dd.MM.yyyy')}`}
-          </span>
-          <Button variant="ghost" size="icon-sm" onClick={() => setAnchor(d => addDays(d, 7))}><ChevronRight size={16} /></Button>
-          <Button variant="outline" size="sm" onClick={() => setAnchor(new UTCDate())} className="ml-1">
-            Сьогодні
           </Button>
+          <Button variant="ghost" size="icon-sm" onClick={() => setAnchor(d => addDays(d, 7))}><ChevronRight size={16} /></Button>
         </div>
 
         {(backlog.length > 0 || noDay.length > 0) && (
