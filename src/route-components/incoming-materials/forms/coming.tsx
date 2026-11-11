@@ -13,6 +13,7 @@ const comingFormSchema = z.object({
   variantId: z.object({ value: z.string(), label: z.string() }).optional(),
   materialType: z.enum(['fabrics', 'materials']),
   quantity: z.string().min(0.1, { message: 'Quantity must be at least 0.1' }),
+  description: z.string().optional(),
 });
 
 export type IncomingFormData = z.infer<typeof comingFormSchema>;
@@ -81,6 +82,7 @@ const ComingMaterialForm: FunctionComponent<ComingMaterialFormProps> = ({
         materialId: value.variantId?.value,
         quantity: Number(value.quantity),
         type,
+        description: value.description?.trim() || undefined,
       }
 
       return actionSubmit(submitData as any);
@@ -170,6 +172,15 @@ const ComingMaterialForm: FunctionComponent<ComingMaterialFormProps> = ({
               type="number"
               label='Кількість'
               placeholder={''} />
+          }
+        />
+        <form.AppField
+          name="description"
+          children={(field) =>
+            <div className="flex flex-col gap-1">
+              <label className="text-sm ml-2 text-[#bbbfc7]">Коментар</label>
+              <field.TextAreaField />
+            </div>
           }
         />
       </form>
