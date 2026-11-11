@@ -389,9 +389,9 @@ const DayColumn = ({ date, index, isToday, dayOff, sewer, sewerTasks, poolTasks,
         {/* Tasks planned for the day but not given to anyone yet — shared by all sewer tabs. */}
         <DropZone
           zone={{ day, kind: 'pool' }}
-          className="flex flex-col gap-1.5 m-1.5 p-1.5 rounded-md border border-dashed border-amber-400/70 bg-amber-50/60 min-h-10"
+          className="flex shrink-0 flex-col gap-1.5 m-1.5 px-1.5 pb-1.5 rounded-md border border-dashed border-amber-400/70 bg-amber-50 min-h-10 max-h-[45%] overflow-y-auto"
         >
-          <span className="text-[10px] font-semibold uppercase tracking-wide text-amber-700">
+          <span className="sticky top-0 z-10 -mx-1.5 px-1.5 pt-1.5 pb-0.5 bg-amber-50 text-[10px] font-semibold uppercase tracking-wide text-amber-700">
             Не призначено{poolTasks.length > 0 && ` · ${fmtDur(poolTasks.reduce((s, t) => s + t.durationMinutes, 0))}`}
           </span>
           {poolTasks.map(task => (
