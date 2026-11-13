@@ -51,6 +51,7 @@ export default function MyDialog({
   setOpen,
   withForm,
   className,
+  noAutoFocus,
   description,
   actionSubmit,
   isLoading = false,
@@ -60,6 +61,7 @@ export default function MyDialog({
   formId?: string,
   withForm?: boolean,
   className?: string,
+  noAutoFocus?: boolean,
   isLoading?: boolean,
   outerClose?: boolean,
   title?: React.ReactNode,
@@ -82,6 +84,7 @@ export default function MyDialog({
         }
         <DialogContent
           className={clsx('max-w-none', className)}
+          onOpenAutoFocus={noAutoFocus ? (event) => event.preventDefault() : undefined}
           onInteractOutside={(event) => {
             if (!outerClose || isInLightbox(event.target)) return event.preventDefault()
           }}

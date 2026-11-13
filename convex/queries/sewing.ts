@@ -298,9 +298,13 @@ export const getSewingTasksWithCuttingProgress = query({
 
       logs.sort((a, b) => b.timestamp - a.timestamp)
 
+      const cutDates = (cuttingTasksForProgress as any[]).map(ct => ct.planedEndDate).filter((d): d is number => d != null)
+
       return {
         ...task,
         colorName,
+        cuttingTaskIds: (cuttingTasksForProgress as any[]).map(ct => ct._id as Id<'cuttingTasks'>),
+        cutIssueDate:   cutDates.length ? Math.min(...cutDates) : null,
         subTasks: enrichedSubTasks,
         fabricColorHex,
         labelColorHex,

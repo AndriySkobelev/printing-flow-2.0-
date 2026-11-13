@@ -296,6 +296,16 @@ export const updateCuttingTaskPlanedEndDate = mutation({
   },
 })
 
+export const setCuttingTasksPlanedEndDate = mutation({
+  args: {
+    cuttingTaskIds: v.array(v.id('cuttingTasks')),
+    planedEndDate:  v.optional(v.number()),
+  },
+  handler: async (ctx, { cuttingTaskIds, planedEndDate }) => {
+    for (const id of cuttingTaskIds) await ctx.db.patch(id, { planedEndDate })
+  },
+})
+
 export const updateCuttingTaskStatus = mutation({
   args: {
     cuttingTaskId: v.id('cuttingTasks'),

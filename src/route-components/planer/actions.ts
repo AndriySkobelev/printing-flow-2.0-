@@ -14,3 +14,9 @@ export const useDeleteSewerDayOff = () =>
     mutationFn: useConvexMutation(api.queries.sewerDaysOff.deleteSewerDayOff),
     onError: (e: Error) => toast.error(e.message),
   })
+
+export const useSetCuttingTasksPlanedEndDate = () =>
+  useMutation({
+    mutationFn: useConvexMutation(api.queries.cutting.setCuttingTasksPlanedEndDate),
+    onError: (e: Error) => toast.error(e.message),
+  })

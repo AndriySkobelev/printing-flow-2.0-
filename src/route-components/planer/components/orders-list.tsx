@@ -5,6 +5,7 @@ import { useQuery, keepPreviousData } from '@tanstack/react-query'
 import { convexQuery } from '@convex-dev/react-query'
 import { api } from 'convex/_generated/api'
 import { type FunctionReturnType } from 'convex/server'
+import { type Id } from 'convex/_generated/dataModel'
 import { Search, Plus, PackagePlus, Minus, Undo2, SplitSquareHorizontal, UserPlus, Sparkles, CalendarDays } from 'lucide-react'
 import { format } from 'date-fns'
 import { uk } from 'date-fns/locale'
@@ -26,6 +27,7 @@ import { usePlannerStore } from '../store'
 import { taskDurationMinutes, fmtDur, endDateColor } from '../helpers'
 import { useUpdateSewingSubTaskAssignee, useSplitSewingSubTask, useUpdateSewingTaskStatus, useToggleSewingSubTaskExtraWork, useMergeSewingSubTaskIntoParent, useSetSewingSubTaskDay, useBulkAssignSewingSubTasks, useBulkSetSewingSubTaskDay, useBulkSetSewingSubTaskExtraWork } from '../queries'
 import { OrderInfoPanel } from './order-info-panel'
+import { useSetCuttingTasksPlanedEndDate } from '../actions'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -594,6 +596,48 @@ const SewingTaskSubTasks = ({ taskId }: { taskId: string }) => {
 
 type SewingTaskDialogProps = { taskId: string; productionOrderId: string; itemIds: string[] }
 
+// When the cut is handed over — the cutting task's planned end date, the same
+// field as the "Видача крою" column of the cutting table and, like it, a UTC day:
+// UTCDate months make the calendar hand back UTC-midnight days.
+const CutIssueDate = ({ cuttingTaskIds, value }: { cuttingTaskIds: Id<'cuttingTasks'>[]; value: number | null }) => {
+  const [open, setOpen] = useState(false)
+  const { mutate: setDate } = useSetCuttingTasksPlanedEndDate()
+
+  const save = (date?: Date) => {
+    setDate({ cuttingTaskIds, planedEndDate: date ? new UTCDate(date).valueOf() : undefined })
+    setOpen(false)
+  }
+
+  return (
+    <MyPopover
+      open={open}
+      onOpenChange={setOpen}
+      align="end"
+      trigger={
+        <Button type="button" variant="outline" size="sm" className={cn('h-7 shrink-0 text-xs', !value && 'text-muted-foreground')}>
+          <CalendarDays size={14} />
+          <span>{value ? `Видача крою ${format(new UTCDate(value), 'dd.MM')}` : 'Видача крою'}</span>
+        </Button>
+      }
+      content={
+        <div className="flex flex-col gap-1">
+          <Calendar
+            mode="single"
+            selected={value ? new UTCDate(value) : undefined}
+            defaultMonth={value ? new UTCDate(value) : new UTCDate()}
+            onSelect={save}
+          />
+          {value && (
+            <Button type="button" variant="ghost" size="sm" className="text-xs" onClick={() => save(undefined)}>
+              Прибрати дату
+            </Button>
+          )}
+        </div>
+      }
+    />
+  )
+}
+
 // Cutting progress of the task with its log entries, newest first.
 const CuttingHistory = ({ taskId }: { taskId: string }) => {
   const { data: tasks = [] } = useQuery(convexQuery(api.queries.sewing.getSewingTasksWithCuttingProgress, {}))
@@ -602,10 +646,13 @@ const CuttingHistory = ({ taskId }: { taskId: string }) => {
 
   const { totalQty, completedQty, logs } = task.cuttingProgress
   return (
-    <ExpandableSection title={`Розкрій · ${completedQty}/${totalQty} шт`} className="mb-3 pb-3 border-b">
-      <ProgressBar done={completedQty} total={totalQty} size="md" hex={task.fabricColorHex ?? '#6b7280'} />
-      <CuttingLogsPanel logs={logs} />
-    </ExpandableSection>
+    <div className="flex items-start gap-2 mb-3 pb-3 border-b">
+      <ExpandableSection title={`Розкрій · ${completedQty}/${totalQty} шт`} className="flex-1 min-w-0">
+        <ProgressBar done={completedQty} total={totalQty} size="md" hex={task.fabricColorHex ?? '#6b7280'} />
+        <CuttingLogsPanel logs={logs} />
+      </ExpandableSection>
+      {task.cuttingTaskIds.length > 0 && <CutIssueDate cuttingTaskIds={task.cuttingTaskIds} value={task.cutIssueDate} />}
+    </div>
   )
 }
 
@@ -636,6 +683,7 @@ export const sewingTaskDialog = ({ taskId, productionOrderId, itemIds, orderNumb
     </span>
   ),
   className: cn('sm:w-240 sm:max-w-240', isCustom && 'border-2 border-violet-400'),
+  noAutoFocus: true,
   content:   <SewingTaskDialog taskId={taskId} productionOrderId={productionOrderId} itemIds={itemIds} />,
 })
 
