@@ -5,7 +5,7 @@ import { api } from 'convex/_generated/api'
 import { type Id } from 'convex/_generated/dataModel'
 import { UTCDate } from '@date-fns/utc'
 import { addDays, format } from 'date-fns'
-import { ChevronLeft, ChevronRight, UserPlus, CalendarDays, UserMinus, Undo2, Sparkles, Scissors, Plus, Minus, SplitSquareHorizontal, Wrench, CalendarOff } from 'lucide-react'
+import { ChevronLeft, ChevronRight, UserPlus, CalendarDays, UserMinus, Undo2, Sparkles, Scissors, Plus, Minus, SplitSquareHorizontal, Wrench, CalendarOff, Gauge } from 'lucide-react'
 import {
   DndContext,
   DragOverlay,
@@ -26,10 +26,11 @@ import { SEWER_COLORS, DAY_NAMES } from '../constants'
 import { fmtDur, taskDurationMinutes, endDateColor, dayKey, dayToMs, weekDays, msToDay, SEWER_DAY_CAPACITY as DAY_CAPACITY } from '../helpers'
 import { useUpdateSewingSubTaskAssignee, useSetSewingSubTaskDay, useSplitSewingSubTask, useDaysOffByDay, type DayOff } from '../queries'
 import { SewerDaysOff } from './sewer-days-off'
+import { SewerCoefficient } from './sewer-coefficient'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-type Sewer = { id: string; name: string; color: string }
+type Sewer = { id: string; name: string; color: string; coefficient: number }
 
 type KanbanTask = {
   id:                string
@@ -46,6 +47,7 @@ type KanbanTask = {
   durationMinutes: number
   extraWorks:      { name: string; minutesPerUnit: number }[]
   sewingNorm?:     number
+  coefficient:     number   // of the task's sewer, 1 without one
   status:          'new' | 'in_progress' | 'done' | 'paused'
   isCustom?:       boolean
   isOverrun:       boolean   // cut beyond the order — extra pieces
@@ -303,8 +305,8 @@ const SplitInline = ({ task, onConfirm, onCancel }: { task: KanbanTask; onConfir
       </div>
       {isValid && (
         <div className="flex flex-col text-[11px] tabular-nums">
-          <span>{`Відділяємо: ${qty} шт · ${fmtDur(taskDurationMinutes(qty, task.extraWorks, task.sewingNorm))}`}</span>
-          <span className="text-muted-foreground">{`Залишиться: ${task.quantity - qty} шт · ${fmtDur(taskDurationMinutes(task.quantity - qty, task.extraWorks, task.sewingNorm))}`}</span>
+          <span>{`Відділяємо: ${qty} шт · ${fmtDur(taskDurationMinutes(qty, task.extraWorks, task.sewingNorm, task.coefficient))}`}</span>
+          <span className="text-muted-foreground">{`Залишиться: ${task.quantity - qty} шт · ${fmtDur(taskDurationMinutes(task.quantity - qty, task.extraWorks, task.sewingNorm, task.coefficient))}`}</span>
         </div>
       )}
     </div>
@@ -451,6 +453,7 @@ export const SewingKanban = ({ toolbarStart }: { toolbarStart?: React.ReactNode 
       id:    u._id,
       name:  `${u.name} ${u.lastName}`.trim() || '—',
       color: SEWER_COLORS[i % SEWER_COLORS.length],
+      coefficient: u.coefficient,
     })),
     [sewerData],
   )
@@ -458,8 +461,10 @@ export const SewingKanban = ({ toolbarStart }: { toolbarStart?: React.ReactNode 
   const tasks = useMemo<KanbanTask[]>(
     () => subTasks
       .map((st) => {
-        const id   = String(st.sewingSubTaskId)
-        const over = pending[id]
+        const id      = String(st.sewingSubTaskId)
+        const over    = pending[id]
+        const sewerId = over ? over.sewerId : st.sewerId ? String(st.sewerId) : null
+        const coefficient = sewers.find(s => s.id === sewerId)?.coefficient ?? 1
         return {
           id,
           sewingTaskId:      String(st.sewingTaskId),
@@ -472,21 +477,22 @@ export const SewingKanban = ({ toolbarStart }: { toolbarStart?: React.ReactNode 
           labelColor:      st.labelColorHex ?? undefined,
           size:            st.size ?? undefined,
           quantity:        st.quantity,
-          durationMinutes: taskDurationMinutes(st.quantity, st.extraWorks, st.sewingNorm),
+          durationMinutes: taskDurationMinutes(st.quantity, st.extraWorks, st.sewingNorm, coefficient),
           extraWorks:      st.extraWorks,
           sewingNorm:      st.sewingNorm,
+          coefficient,
           status:          st.status,
           isCustom:        st.isCustom,
           isOverrun:       st.isOverrun,
           cutDone:         st.cutDone,
           cutTotal:        st.cutTotal,
-          sewerId:         over ? over.sewerId : st.sewerId ? String(st.sewerId) : null,
+          sewerId,
           day:             over ? over.day : st.startDateMs != null ? msToDay(st.startDateMs) : null,
           deadline:        st.deadlineMs,
         }
       })
       .sort(byOrder),
-    [subTasks, pending],
+    [subTasks, pending, sewers],
   )
 
   const days    = useMemo(() => weekDays(anchor), [anchor])
@@ -549,6 +555,11 @@ export const SewingKanban = ({ toolbarStart }: { toolbarStart?: React.ReactNode 
     if (!sewer) return
     openDialog({ title: `Вихідні · ${sewer.name}`, className: 'sm:max-w-2xl', hideCloseButton: true, content: <SewerDaysOff sewerId={sewer.id} /> })
   }
+
+  const openCoefficient = () => {
+    if (!sewer) return
+    openDialog({ title: `Коефіцієнт · ${sewer.name}`, className: 'sm:max-w-md', hideCloseButton: true, content: <SewerCoefficient sewerId={sewer.id} coefficient={sewer.coefficient} /> })
+  }
   // A drop can fire a click on the dragged card — skip opening the order right after a drag.
   const justDragged = useRef(false)
   const handleOpen = (task: KanbanTask) => {
@@ -604,8 +615,9 @@ export const SewingKanban = ({ toolbarStart }: { toolbarStart?: React.ReactNode 
                 type="button"
                 size="sm"
                 variant="ghost"
-                onClick={() => setSewer(s.id)}
-                className={cn('h-8 gap-2 px-2.5', s.id === sewer.id && 'bg-background shadow-xs hover:bg-background')}
+                onClick={() => s.id === sewer.id ? openCoefficient() : setSewer(s.id)}
+                title={s.id === sewer.id ? 'Змінити коефіцієнт' : undefined}
+                className={cn('h-auto gap-2 px-2.5 py-1', s.id === sewer.id && 'bg-background shadow-xs hover:bg-background')}
               >
                 <span
                   className="size-5 rounded-full flex items-center justify-center text-white text-[10px] font-bold"
@@ -613,11 +625,19 @@ export const SewingKanban = ({ toolbarStart }: { toolbarStart?: React.ReactNode 
                 >
                   {s.name[0]}
                 </span>
-                <span className="text-xs font-medium">{s.name}</span>
-                <span className="text-[10px] text-muted-foreground tabular-nums">
-                  {weekCapacity(s.id) > 0 ? `${Math.round((weekLoad(s.id) / weekCapacity(s.id)) * 100)}%` : '—'}
+                <span className="flex flex-col items-start leading-tight">
+                  <span className="flex items-center gap-1 text-xs font-medium">
+                    <span>{s.name}</span>
+                    {(daysOff.get(s.id)?.size ?? 0) > 0 && <CalendarOff size={12} className="text-red-500" />}
+                  </span>
+                  <span className="flex items-center gap-1.5 text-[10px] text-muted-foreground tabular-nums">
+                    <span>{weekCapacity(s.id) > 0 ? `${Math.round((weekLoad(s.id) / weekCapacity(s.id)) * 100)}%` : '—'}</span>
+                    <span className={cn('flex items-center gap-0.5', s.coefficient !== 1 && 'font-semibold text-foreground')}>
+                      <Gauge size={10} />
+                      <span>{`×${s.coefficient}`}</span>
+                    </span>
+                  </span>
                 </span>
-                {(daysOff.get(s.id)?.size ?? 0) > 0 && <CalendarOff size={12} className="text-red-500" />}
               </Button>
             ))}
           </div>

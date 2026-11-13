@@ -7,7 +7,7 @@ const DAY_MS = 24 * 60 * 60 * 1000
 const utcDayStart = (ms: number) => Math.floor(ms / DAY_MS) * DAY_MS
 const PLANNER_ROLES = ['super_admin', 'admin', 'manager']
 
-const requirePlanner = async (ctx: QueryCtx) => {
+export const requirePlanner = async (ctx: QueryCtx) => {
   const userId = await getAuthUserId(ctx)
   const me     = userId ? await ctx.db.get(userId) : null
   if (!me || !PLANNER_ROLES.includes(me.role ?? '')) throw new Error('Forbidden')

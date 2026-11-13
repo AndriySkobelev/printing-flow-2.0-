@@ -173,7 +173,7 @@ export const OverrunIcon = ({ orderNumber, size = 12 }: { orderNumber: string | 
   </span>
 )
 
-type SewerUser = { _id: string; name: string; lastName: string }
+type SewerUser = { _id: string; name: string; lastName: string; coefficient: number }
 
 type ExtraWork = FunctionReturnType<typeof api.queries.extraWorks.getExtraWorks>[number]
 
@@ -204,7 +204,8 @@ const SubTaskItem = ({
   const { assign, unassign, setDuration } = usePlannerStore.getState()
 
   const subExtraWorks = sub.extraWorks ?? []
-  const durationMins  = taskDurationMinutes(sub.quantity, subExtraWorks, sub.sewingNorm)
+  const coefficient   = sewerUsers.find(u => u._id === sub.assignedTo)?.coefficient
+  const durationMins  = taskDurationMinutes(sub.quantity, subExtraWorks, sub.sewingNorm, coefficient)
 
   // Keep an already-planned bar's length in step with the sub-task's time
   // (extra work added/removed) — driven by live data, so rapid toggles settle right.
@@ -373,7 +374,7 @@ const SubTaskItem = ({
           </Button>
           {splitQtyNum > 0 && splitQtyNum < sub.quantity && (
             <span className="ml-1 text-[11px] text-muted-foreground tabular-nums">
-              {`відділяємо ${splitQtyNum} шт · ${fmtDur(taskDurationMinutes(splitQtyNum, subExtraWorks, sub.sewingNorm))}, залишиться ${sub.quantity - splitQtyNum} шт · ${fmtDur(taskDurationMinutes(sub.quantity - splitQtyNum, subExtraWorks, sub.sewingNorm))}`}
+              {`відділяємо ${splitQtyNum} шт · ${fmtDur(taskDurationMinutes(splitQtyNum, subExtraWorks, sub.sewingNorm, coefficient))}, залишиться ${sub.quantity - splitQtyNum} шт · ${fmtDur(taskDurationMinutes(sub.quantity - splitQtyNum, subExtraWorks, sub.sewingNorm, coefficient))}`}
             </span>
           )}
         </div>

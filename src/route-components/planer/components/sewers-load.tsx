@@ -25,17 +25,18 @@ export const SewersLoad = () => {
 
   // sewerId → day → minutes
   const load = useMemo(() => {
+    const coefficients = new Map(sewerData.map(u => [String(u._id), u.coefficient]))
     const map = new Map<string, Map<string, number>>()
     for (const st of subTasks) {
       if (!st.sewerId || st.startDateMs == null) continue
       const sewerId = String(st.sewerId)
       const day     = msToDay(st.startDateMs)
       const byDay   = map.get(sewerId) ?? new Map<string, number>()
-      byDay.set(day, (byDay.get(day) ?? 0) + taskDurationMinutes(st.quantity, st.extraWorks, st.sewingNorm))
+      byDay.set(day, (byDay.get(day) ?? 0) + taskDurationMinutes(st.quantity, st.extraWorks, st.sewingNorm, coefficients.get(sewerId)))
       map.set(sewerId, byDay)
     }
     return map
-  }, [subTasks])
+  }, [subTasks, sewerData])
 
   return (
     <div className="flex flex-col gap-2 px-3 py-3">

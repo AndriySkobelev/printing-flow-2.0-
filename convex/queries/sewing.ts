@@ -6,7 +6,7 @@ import type { Doc } from '../_generated/dataModel'
 import { getAuthUserId } from '@convex-dev/auth/server'
 import { UTCDate } from '@date-fns/utc'
 import { taskDurationMinutes, SEWER_DAY_CAPACITY } from '../lib/sewingDuration'
-import { getSewerDaysOffSet } from './sewerDaysOff'
+import { getSewerDaysOffSet, requirePlanner } from './sewerDaysOff'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
@@ -23,7 +23,7 @@ const getSewingNorm = async (ctx: QueryCtx, itemId: Id<'productionOrderItems'> |
 
 // Minutes already planned for the sewer per day (UTC midnight), leaving out
 // the given sub-tasks — the ones being (re)placed.
-const sewerLoadByDay = async (ctx: MutationCtx, sewerId: Id<'users'>, exclude: Set<string>) => {
+const sewerLoadByDay = async (ctx: MutationCtx, sewerId: Id<'users'>, exclude: Set<string>, coefficient: number | undefined) => {
   const loadByDay = new Map<number, number>()
   const sewerSubTasks = await ctx.db
     .query('sewingSubTasks')
@@ -32,7 +32,7 @@ const sewerLoadByDay = async (ctx: MutationCtx, sewerId: Id<'users'>, exclude: S
   for (const st of sewerSubTasks) {
     if (exclude.has(st._id) || st.startDate == null) continue
     const day = utcDayStart(st.startDate)
-    loadByDay.set(day, (loadByDay.get(day) ?? 0) + taskDurationMinutes(st.quantity, st.extraWorks, await getSewingNorm(ctx, st.productionOrderItemId)))
+    loadByDay.set(day, (loadByDay.get(day) ?? 0) + taskDurationMinutes(st.quantity, st.extraWorks, await getSewingNorm(ctx, st.productionOrderItemId), coefficient))
   }
   return loadByDay
 }
@@ -454,10 +454,23 @@ export const getSewerUsers = query({
     return users
       .filter((u) => u.role === 'seamstress' || u.role === 'tailor')
       .map((u) => ({
-        _id:      u._id,
-        name:     u.name     ?? '',
-        lastName: u.lastName ?? '',
+        _id:         u._id,
+        name:        u.name     ?? '',
+        lastName:    u.lastName ?? '',
+        coefficient: u.sewingCoefficient ?? 1,
       }))
+  },
+})
+
+export const setSewerCoefficient = mutation({
+  args: {
+    userId:      v.id('users'),
+    coefficient: v.number(),
+  },
+  handler: async (ctx, { userId, coefficient }) => {
+    await requirePlanner(ctx)
+    if (!(coefficient > 0 && coefficient <= 5)) throw new Error('Коефіцієнт має бути від 0 до 5')
+    await ctx.db.patch(userId, { sewingCoefficient: Math.round(coefficient * 100) / 100 })
   },
 })
 
@@ -674,12 +687,13 @@ const assignSubTasks = async (ctx: MutationCtx, ids: Id<'sewingSubTasks'>[], ass
     return
   }
 
-  const loadByDay = await sewerLoadByDay(ctx, assignedTo, new Set(subs.map(s => s._id)))
+  const coefficient = (await ctx.db.get(assignedTo))?.sewingCoefficient
+  const loadByDay = await sewerLoadByDay(ctx, assignedTo, new Set(subs.map(s => s._id)), coefficient)
   const fromMs    = Math.min(...subs.map(s => s.startDate ?? Date.now()))
   const daysOff   = await getSewerDaysOffSet(ctx, assignedTo, Math.min(fromMs, new UTCDate().valueOf()))
   const tasks     = await Promise.all(subs.map(async sub => ({
     sub,
-    duration: taskDurationMinutes(sub.quantity, sub.extraWorks, await getSewingNorm(ctx, sub.productionOrderItemId)),
+    duration: taskDurationMinutes(sub.quantity, sub.extraWorks, await getSewingNorm(ctx, sub.productionOrderItemId), coefficient),
   })))
 
   for (const [{ sub }, day] of planDays(loadByDay, tasks, fromMs, daysOff)) {

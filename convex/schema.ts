@@ -45,6 +45,8 @@ export const users = {
   isAnonymous: v.optional(v.boolean()),
   birthday: v.optional(v.string()),
   workHours: v.optional(v.number()),
+  // Multiplies a sewer's planned sewing time: 1.2 = 20% slower. Missing = 1.
+  sewingCoefficient: v.optional(v.number()),
   startDate: v.optional(v.string()),
   // false for users who signed up themselves and wait for a super_admin to let
   // them in; missing on accounts that existed before approval was introduced.

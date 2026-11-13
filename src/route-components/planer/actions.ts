@@ -20,3 +20,9 @@ export const useSetCuttingTasksPlanedEndDate = () =>
     mutationFn: useConvexMutation(api.queries.cutting.setCuttingTasksPlanedEndDate),
     onError: (e: Error) => toast.error(e.message),
   })
+
+export const useSetSewerCoefficient = () =>
+  useMutation({
+    mutationFn: useConvexMutation(api.queries.sewing.setSewerCoefficient),
+    onError: (e: Error) => toast.error(e.message),
+  })
