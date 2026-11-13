@@ -15,7 +15,7 @@ export const InputDate = ({ label, className }: FormTextFieldProps) => {
   const isValid = useMemo(() => field.state.meta.isValid as boolean | undefined, [field.state.meta.isValid]);
 
   return (
-    <div className={clsx("flex flex-col justify-start gap-1 w-full", className)}>
+    <div className={clsx("flex flex-col justify-start gap-1 w-full min-w-0", className)}>
       <label className="text-sm ml-2 text-[#bbbfc7]">{label}</label>
       <DatePicker value={field.state.value as number | null | undefined} onChange={(v) => fieldOnChange(v ?? undefined)} />
       {!isValid && <div className="text-sm text-red-500 ml-2">{errors?.[0]?.message}</div>}
