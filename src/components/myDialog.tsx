@@ -52,6 +52,7 @@ export default function MyDialog({
   withForm,
   className,
   noAutoFocus,
+  hideCloseButton,
   description,
   actionSubmit,
   isLoading = false,
@@ -62,6 +63,7 @@ export default function MyDialog({
   withForm?: boolean,
   className?: string,
   noAutoFocus?: boolean,
+  hideCloseButton?: boolean,
   isLoading?: boolean,
   outerClose?: boolean,
   title?: React.ReactNode,
@@ -112,7 +114,7 @@ export default function MyDialog({
                 isLoading={isLoading} 
                 actionSubmit={actionSubmit}/>
             )
-            : (
+            : !hideCloseButton && (
               <DialogClose asChild>
                 <Button id="dialog-cancel" type="button" variant="outline" className=" w-full md:w-auto flex-1">Закрити</Button>
               </DialogClose>

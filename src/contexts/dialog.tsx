@@ -12,6 +12,7 @@ type DialogOptions = {
   outerClose?: boolean
   className?: string
   noAutoFocus?: boolean
+  hideCloseButton?: boolean
   actionSubmit?: (data: any) => void
   onDismiss?: () => void
 }
@@ -59,6 +60,7 @@ export const ContextDialogComponent = ({ children }: { children: React.ReactNode
           setIsLoading={setIsLoading}
           className={dialog.className}
           noAutoFocus={dialog.noAutoFocus}
+          hideCloseButton={dialog.hideCloseButton}
           outerClose={dialog.outerClose}
           description={dialog.description}
           actionSubmit={dialog.actionSubmit}

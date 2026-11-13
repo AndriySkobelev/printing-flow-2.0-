@@ -684,6 +684,7 @@ export const sewingTaskDialog = ({ taskId, productionOrderId, itemIds, orderNumb
   ),
   className: cn('sm:w-240 sm:max-w-240', isCustom && 'border-2 border-violet-400'),
   noAutoFocus: true,
+  hideCloseButton: true,
   content:   <SewingTaskDialog taskId={taskId} productionOrderId={productionOrderId} itemIds={itemIds} />,
 })
 

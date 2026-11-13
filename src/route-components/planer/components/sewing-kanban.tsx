@@ -547,7 +547,7 @@ export const SewingKanban = ({ toolbarStart }: { toolbarStart?: React.ReactNode 
 
   const openDaysOff = () => {
     if (!sewer) return
-    openDialog({ title: `Вихідні · ${sewer.name}`, className: 'sm:max-w-2xl', content: <SewerDaysOff sewerId={sewer.id} /> })
+    openDialog({ title: `Вихідні · ${sewer.name}`, className: 'sm:max-w-2xl', hideCloseButton: true, content: <SewerDaysOff sewerId={sewer.id} /> })
   }
   // A drop can fire a click on the dragged card — skip opening the order right after a drag.
   const justDragged = useRef(false)
