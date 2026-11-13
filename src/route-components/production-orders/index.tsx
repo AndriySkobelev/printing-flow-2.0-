@@ -11,6 +11,7 @@ import { useNavigate } from '@tanstack/react-router'
 import { Search, Plus, Trash2, RefreshCw, Loader2, ChevronDown } from 'lucide-react'
 import { useCreateProductionOrder, useDeleteProductionOrder, useDeleteProductionOrders, useSyncKeyCrmOrders, useUpdateProductionOrderStatus } from './actions'
 import { Button } from '@/components/ui/button'
+import { useCan } from '@/hooks/use-can'
 import { Input } from '@/components/ui/input'
 import Divider from '@/components/ui/divider'
 import { DialogContext } from '@/contexts/dialog'
@@ -92,8 +93,9 @@ const StatusCell = ({ row }: { row: Record<string, unknown> }) => {
   const status = row.status as string
   const [open, setOpen] = useState(false)
   const { mutate: updateStatus, isPending } = useUpdateProductionOrderStatus()
+  const can = useCan()
 
-  if (!orderId) return <StatusBadge status={status} />
+  if (!orderId || !can('/app/production-orders', 'edit')) return <StatusBadge status={status} />
 
   return (
     <div onClick={e => e.stopPropagation()}>
@@ -165,6 +167,8 @@ const OrderProgressCell = ({ row }: { row: Record<string, unknown> }) => {
 
 const ActionsCell = ({ orderId }: { orderId: string }) => {
   const { mutate: deleteOrder, isPending } = useDeleteProductionOrder()
+  const can = useCan()
+  if (!can('/app/production-orders', 'delete')) return null
 
   return (
     <div onClick={e => e.stopPropagation()}>
@@ -332,6 +336,8 @@ const ProductionOrdersPage = () => {
     setSelectedIds(new Set(realIds))
   }, [])
 
+  const can = useCan()
+
   const handleMassDelete = () => {
     const productionOrderIds = [...selectedIds]
     openDialog({
@@ -401,9 +407,11 @@ const ProductionOrdersPage = () => {
             <RefreshCw size={14} className={cn(isSyncing ? 'animate-spin' : '')}/>
             KeyCRM
           </Button>
-          <Button size="sm" className="h-7 px-2" onClick={handleOpenCreate}>
-            <Plus size={14} /> Додати замовлення
-          </Button>
+          {can('/app/production-orders', 'create') && (
+            <Button size="sm" className="h-7 px-2" onClick={handleOpenCreate}>
+              <Plus size={14} /> Додати замовлення
+            </Button>
+          )}
         </div>
       </div>
 
@@ -445,6 +453,7 @@ const ProductionOrdersPage = () => {
       <div
         className={cn(
           'flex items-center gap-2 px-2.5 py-1.5 shrink-0 opacity-30 transition-opacity',
+          !can('/app/production-orders', 'delete') && 'hidden',
           selectedIds.size > 0 && 'opacity-100'
         )}
       >

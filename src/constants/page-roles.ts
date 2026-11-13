@@ -1,6 +1,6 @@
-import { SUPER_ADMIN, ROLE_LABELS, ALL_PAGES, PAGE_ROLES, getDefaultRolePages, type UserRole } from 'convex/lib/roles'
+import { ROLE_LABELS, ALL_PAGES, PAGE_ROLES, getDefaultRolePages, getUserPages, type AccessUser } from 'convex/lib/roles'
 
-export { PAGE_ROLES, ALL_PAGES }
+export { PAGE_ROLES, ALL_PAGES, getUserPages }
 
 export const PAGE_LABELS: Record<string, string> = {
   '/app/production-orders':   'Замовлення',
@@ -25,26 +25,11 @@ export const PAGE_LABELS: Record<string, string> = {
   '/app/production-calendar': 'Виробничий календар',
 }
 
-// `rolePages`/`roleName` come resolved from Convex (see convex/queries/roles.ts)
-// — the role's pages as set in settings.
-export type PageAccessUser = {
-  role?: UserRole
-  allowedPages?: string[]
-  rolePages?: string[]
-  roleName?: string
-} | null | undefined
+export type PageAccessUser = AccessUser
 
 /** Pages the user's role gives (when the user has no override of their own). */
 export const getRolePages = (user: PageAccessUser): string[] =>
   user?.rolePages ?? getDefaultRolePages(user?.role)
-
-/** Effective pages for a user: super_admin → all, override → it, else the role's. */
-export const getUserPages = (user: PageAccessUser): string[] => {
-  if (!user) return []
-  if (user.role === SUPER_ADMIN) return ALL_PAGES
-  if (user.allowedPages) return user.allowedPages.filter(p => p in PAGE_ROLES)
-  return getRolePages(user).filter(p => p in PAGE_ROLES)
-}
 
 export const getRoleLabel = (user: PageAccessUser): string | null =>
   user?.roleName ?? (user?.role ? ROLE_LABELS[user.role] : null)

@@ -2,6 +2,7 @@ import { v } from 'convex/values'
 import { query, mutation } from '../_generated/server'
 import type { QueryCtx } from '../_generated/server'
 import type { Doc, Id } from '../_generated/dataModel'
+import { requirePermission } from './roles'
 
 export type SpecLine = {
   lineId: string,
@@ -189,6 +190,7 @@ export const updateOrderItemSpecMaterials = mutation({
     materials: v.array(specLineV),
   },
   handler: async (ctx, { itemId, materials }) => {
+    await requirePermission(ctx, '/app/production-orders', 'edit');
     const item = await getEditableItem(ctx, itemId)
     const base = await getBaseSpecLines(ctx, item)
     if (!base) throw new Error('Специфікацію товару не знайдено')
@@ -207,6 +209,7 @@ export const updateOrderItemSpecMaterials = mutation({
 export const resetOrderItemSpecMaterials = mutation({
   args: { itemId: v.id('productionOrderItems') },
   handler: async (ctx, { itemId }) => {
+    await requirePermission(ctx, '/app/production-orders', 'edit');
     const item = await getEditableItem(ctx, itemId)
     await ctx.db.patch(itemId, {
       specMaterials: undefined,

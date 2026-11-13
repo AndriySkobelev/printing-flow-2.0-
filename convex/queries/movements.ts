@@ -8,6 +8,7 @@ import { getAuthUserId } from "@convex-dev/auth/server";
 import { Doc, Id } from "../_generated/dataModel";
 import { storeMovementsSchema } from  "../schemas/storage";
 import { resolveMaterialParent } from "./specifications";
+import { requirePermission } from './roles'
 
 // Applies a movement's quantity onto the material variant's stock balance —
 // incoming adds, outgoing subtracts — creating the balance row if this variant
@@ -387,6 +388,7 @@ export const getOrderRequiredMaterials = query({
 export const createIncoming = mutation({
   args: omit(['userId'], storeMovementsSchema) as Omit<typeof storeMovementsSchema, 'userId'>,
   handler: async (ctx, args) => {
+    await requirePermission(ctx, '/app/inventory-movement', 'create');
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error('Not authenticated');
 

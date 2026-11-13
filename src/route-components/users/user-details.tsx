@@ -10,6 +10,7 @@ import { AuthContext } from '@/contexts/auth'
 import { DialogContext } from '@/contexts/dialog'
 import { Button } from '@/components/ui/button'
 import { MyPopover } from '@/components/my-popover'
+import { useCan } from '@/hooks/use-can'
 import { Spinner } from '@/components/ui/spinner'
 import { ProfileCard, UserProfile } from '@/components/user-profile'
 import EditUserForm, { type EditUserFormType } from './forms/edit-user-form'
@@ -29,6 +30,9 @@ export const UserDetails = ({ userId }: { userId: Id<'users'> }) => {
   const { data: user, isLoading } = useGetUserById(userId)
   const { mutate: updateUser } = useUpdateUser()
   const confirmDelete = useConfirmDeleteUser()
+  const can           = useCan()
+  const canEdit       = can('/app/users', 'edit')
+  const canDelete     = can('/app/users', 'delete')
   const { data: roles = [] } = useQuery(convexQuery(api.queries.roles.getRoles, {}))
 
   const goBack = () => navigate({ to: '/app/users' })
@@ -98,20 +102,24 @@ export const UserDetails = ({ userId }: { userId: Id<'users'> }) => {
       badges={<ApprovalBadge user={user} canApprove={me?.role === SUPER_ADMIN} />}
       actions={
         <>
-          <Button className="flex-1" size="sm" onClick={handleEdit}>
-            <Pencil size={14} /> Редагувати
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="text-red-500 hover:bg-red-50 hover:text-red-500"
-            onClick={handleDelete}
-          >
-            <Trash2 size={14} />
-          </Button>
+          {canEdit && (
+            <Button className="flex-1" size="sm" onClick={handleEdit}>
+              <Pencil size={14} /> Редагувати
+            </Button>
+          )}
+          {canDelete && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-red-500 hover:bg-red-50 hover:text-red-500"
+              onClick={handleDelete}
+            >
+              <Trash2 size={14} />
+            </Button>
+          )}
         </>
       }
-      pageAccessAction={
+      pageAccessAction={canEdit &&
         <MyPopover
           trigger={
             <Button variant="ghost" size="icon" className="size-7">
@@ -125,11 +133,11 @@ export const UserDetails = ({ userId }: { userId: Id<'users'> }) => {
       {user.role === 'seamstress' && (
         <ProfileCard
           title="Час виготовлення специфікацій"
-          action={
+          action={canEdit && (
             <Button size="sm" className="h-7 text-xs" type="submit" form={SEAMSTRESS_FORM_ID}>
               <Save size={12} /> Зберегти
             </Button>
-          }
+          )}
         >
           <SeamstressForm
             formId={SEAMSTRESS_FORM_ID}

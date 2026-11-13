@@ -16,10 +16,12 @@ import MaterialForm, { type MaterialFormType } from './forms/material-form';
 import MaterialEditForm, { type MaterialEditFormType } from './forms/material-edit-form';
 import { MaterialDetail } from './components/material-detail';
 import AppTable from '@/components/ui/app-table';
+import { useCan } from '@/hooks/use-can';
 
 const headers = (
   onEdit: (row: any) => void,
   onDelete: (id: Id<'materials'>) => void,
+  can: ReturnType<typeof useCan>,
 ): Array<HeaderObject> => [
   { accessor: 'name',     label: 'Назва',    width: 80,  type: 'string', minWidth: 180 },
   { accessor: 'category', label: 'Категорія',width: 150, isSortable: true, type: 'string' },
@@ -34,8 +36,8 @@ const headers = (
     pinned: 'right',
     cellRenderer: ({ row }) => (
       <ActionsMenu items={[
-        { label: 'Редагувати', icon: <SquarePen className="size-3" />, onClick: () => onEdit(row) },
-        { label: 'Видалити',   icon: <Trash2 className="size-3" />, destructive: true, onClick: () => onDelete((row as any)._id) },
+        { label: 'Редагувати', icon: <SquarePen className="size-3" />, onClick: () => onEdit(row), hidden: !can('/app/materials', 'edit') },
+        { label: 'Видалити',   icon: <Trash2 className="size-3" />, destructive: true, onClick: () => onDelete((row as any)._id), hidden: !can('/app/materials', 'delete') },
       ]} />
     ),
   },
@@ -48,6 +50,7 @@ const Materials: FunctionComponent = () => {
   const { mutate: createMaterials } = useCreateMaterials();
   const { mutate: updateMaterial } = useUpdateMaterial();
   const { mutate: deleteMaterial } = useDeleteMaterial();
+  const can = useCan();
   const { openDialog, closeDialog } = useContext(DialogContext);
 
   const form = useAppForm({ defaultValues: { search: '' } });
@@ -103,7 +106,7 @@ const Materials: FunctionComponent = () => {
   return (
     <div className="flex flex-col gap-4 p-4">
       <div className="flex items-start justify-end w-fit gap-2">
-        <Button type="button" onClick={handleOpenCreate}>Додати матеріал</Button>
+        {can('/app/materials', 'create') && <Button type="button" onClick={handleOpenCreate}>Додати матеріал</Button>}
         <form onSubmit={(e) => { e.preventDefault(); handleSearch(); }}>
           <form.AppField
             name="search"
@@ -123,7 +126,7 @@ const Materials: FunctionComponent = () => {
           text: search,
           caseSensitive: false,
         }}
-        defaultHeaders={headers(handleOpenEdit, (id) => deleteMaterial({ id }))}
+        defaultHeaders={headers(handleOpenEdit, (id) => deleteMaterial({ id }), can)}
         getRowId={({ row }) => row._id as string}
         onCellClick={handleRowClick}
       />

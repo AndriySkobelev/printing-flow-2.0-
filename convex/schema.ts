@@ -168,6 +168,8 @@ export const rolesSchema = {
   pages:     v.array(v.string()),
   baseRole:  baseRoleValidator,
   systemKey: v.optional(baseRoleValidator),
+  // Keys from PAGE_ACTIONS (convex/lib/roles.ts); missing = every action on `pages`.
+  permissions: v.optional(v.array(v.string())),
 }
 
 const rolesTable = defineTable(rolesSchema)

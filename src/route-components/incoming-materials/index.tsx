@@ -13,6 +13,7 @@ import type { Fabrics, Materials, StoreMovements } from "convex/schema";
 import { type HeaderObject } from "simple-table-core";
 import { DialogContext } from '@/contexts/dialog'
 import { Button } from '@/components/ui/button';
+import { useCan } from '@/hooks/use-can';
 import { Input } from '@/components/ui/input';
 import AppTable from '@/components/ui/app-table';
 
@@ -164,6 +165,7 @@ const InventoryMovement: FunctionComponent = () => {
     placeholderData: keepPreviousData,
   });
   const { mutate: incomingMutation} = useCreateIncomingMutation();
+  const canCreate = useCan()('/app/inventory-movement', 'create');
 
   const handlePageChange = (page: number) => {
     const needed = (page + 1) * 50
@@ -214,8 +216,8 @@ const InventoryMovement: FunctionComponent = () => {
   return (
     <div className="flex flex-col gap-4 p-4">
       <div className='flex gap-2'>
-        <Button onClick={handleComingMaterial}>+ Прихід</Button>
-        <Button onClick={handleConsumptionMaterial}>- Росхід</Button>
+        {canCreate && <Button onClick={handleComingMaterial}>+ Прихід</Button>}
+        {canCreate && <Button onClick={handleConsumptionMaterial}>- Росхід</Button>}
         {/* <Button onClick={handleUpdate}>Update Data</Button> */}
         <div className="relative w-96">
           <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />

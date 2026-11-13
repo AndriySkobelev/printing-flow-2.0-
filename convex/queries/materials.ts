@@ -3,6 +3,7 @@ import { query, mutation, type MutationCtx } from "../_generated/server";
 import { type Id } from "../_generated/dataModel";
 import { materialsSchema } from "../schemas/storage";
 import { v } from "convex/values";
+import { requirePermission } from './roles'
 
 ///////// QUERY //////////
 export const getMaterials = query({
@@ -16,6 +17,7 @@ export const getMaterials = query({
 export const createMaterial = mutation({
   args: materialsSchema,
   handler: async (ctx, args) => {
+    await requirePermission(ctx, '/app/materials', 'create');
     const materials = await ctx.db.insert("materials", args);
     return materials;
   }
@@ -176,6 +178,7 @@ export const createMaterialWithVariants = mutation({
     sizes: v.optional(v.array(v.string())),
   },
   handler: async (ctx, { colors, sizes, ...parentData }) => {
+    await requirePermission(ctx, '/app/materials', 'create');
     const sizeList = sizes && sizes.length > 0 ? sizes : [''];
     const parentId = await ctx.db.insert('materials', {
       ...parentData,
@@ -194,6 +197,7 @@ export const addMaterialColors = mutation({
     colors: v.array(v.string()),
   },
   handler: async (ctx, { id, colors }) => {
+    await requirePermission(ctx, '/app/materials', 'edit');
     const material = await ctx.db.get(id);
     if (!material) throw new Error('Material not found');
     const sizeList = material.sizes && material.sizes.length > 0 ? material.sizes : [''];
@@ -209,6 +213,7 @@ export const addMaterialSizes = mutation({
     sizes: v.array(v.string()),
   },
   handler: async (ctx, { id, sizes }) => {
+    await requirePermission(ctx, '/app/materials', 'edit');
     const material = await ctx.db.get(id);
     if (!material) throw new Error('Material not found');
     const colorList = material.colors ?? [];
@@ -221,6 +226,7 @@ export const addMaterialSizes = mutation({
 export const renameMaterialColor = mutation({
   args: { id: v.id('materials'), oldColor: v.string(), newColor: v.string() },
   handler: async (ctx, { id, oldColor, newColor }) => {
+    await requirePermission(ctx, '/app/materials', 'edit');
     const material = await ctx.db.get(id);
     if (!material) throw new Error('Material not found');
     const newColors = (material.colors ?? []).map(c => c === oldColor ? newColor : c);
@@ -237,6 +243,7 @@ export const renameMaterialColor = mutation({
 export const renameMaterialSize = mutation({
   args: { id: v.id('materials'), oldSize: v.string(), newSize: v.string() },
   handler: async (ctx, { id, oldSize, newSize }) => {
+    await requirePermission(ctx, '/app/materials', 'edit');
     const material = await ctx.db.get(id);
     if (!material) throw new Error('Material not found');
     const newSizes = (material.sizes ?? []).map(s => s === oldSize ? newSize : s);
@@ -264,6 +271,7 @@ export const updateMaterial = mutation({
     }),
   },
   handler: async (ctx, args) => {
+    await requirePermission(ctx, '/app/materials', 'edit');
     await ctx.db.patch(args.id, args.data);
   },
 })
@@ -271,6 +279,7 @@ export const updateMaterial = mutation({
 export const deleteMaterial = mutation({
   args: { id: v.id('materials') },
   handler: async (ctx, args) => {
+    await requirePermission(ctx, '/app/materials', 'delete');
     await ctx.db.delete(args.id);
   },
 })

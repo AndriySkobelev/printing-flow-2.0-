@@ -20,6 +20,8 @@ export type ActionItem = {
   disabled?: boolean
   onClick?: () => void
   destructive?: boolean
+  // Left out of the menu, e.g. when the role may not do it.
+  hidden?: boolean
   className?: string
   // Leave the menu open after clicking (for toggles picked several at a time).
   keepOpen?: boolean
@@ -87,9 +89,16 @@ const renderItem = (item: ActionItem, i: number) => {
   )
 }
 
-export const ActionsMenu = ({ items = [], groups, trigger, align = 'end' }: ActionsMenuProps) => {
+// Renders nothing when every item is hidden.
+export const ActionsMenu = ({ items: allItems = [], groups: allGroups, trigger, align = 'end' }: ActionsMenuProps) => {
+  const items       = allItems.filter(i => !i.hidden)
+  const groups      = allGroups
+    ?.map(g => ({ ...g, items: g.items.filter(i => !i.hidden) }))
+    .filter(g => g.items.length > 0)
   const regular     = items.filter(i => !i.destructive)
   const destructive = items.filter(i =>  i.destructive)
+
+  if (items.length === 0 && !groups?.length) return null
 
   return (
     <DropdownMenu>
@@ -110,9 +119,9 @@ export const ActionsMenu = ({ items = [], groups, trigger, align = 'end' }: Acti
             {group.items.map(renderItem)}
           </div>
         ))}
-        {groups && regular.length > 0 && <DropdownMenuSeparator />}
+        {!!groups?.length && regular.length > 0 && <DropdownMenuSeparator />}
         {regular.map(renderItem)}
-        {destructive.length > 0 && (regular.length > 0 || groups) && <DropdownMenuSeparator />}
+        {destructive.length > 0 && (regular.length > 0 || !!groups?.length) && <DropdownMenuSeparator />}
         {destructive.map(renderItem)}
       </DropdownMenuContent>
     </DropdownMenu>

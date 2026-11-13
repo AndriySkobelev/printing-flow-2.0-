@@ -7,16 +7,18 @@ import { ROLE_LABELS } from '@/constants/roles'
 import { ALL_PAGES } from '@/constants/page-roles'
 import { DialogContext } from '@/contexts/dialog'
 import { Button } from '@/components/ui/button'
+import { useCan } from '@/hooks/use-can'
 import { RoleForm, type RoleItem } from './role-form'
 
 export const RolesSection = () => {
   const { openDialog } = useContext(DialogContext)
   const { data: roles = [] } = useQuery(convexQuery(api.queries.roles.getRoles, {}))
+  const canEdit = useCan()('/app/settings', 'edit')
 
   const openRole = (role?: RoleItem) =>
     openDialog({
       title:           role ? `Роль · ${role.name}` : 'Нова роль',
-      className:       'sm:max-w-xl',
+      className:       'sm:max-w-2xl',
       hideCloseButton: true,
       noAutoFocus:     !!role,
       content:         <RoleForm role={role} />,
@@ -26,10 +28,10 @@ export const RolesSection = () => {
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between">
         <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Ролі</span>
-        <Button type="button" size="sm" variant="outline" className="h-7 text-xs" onClick={() => openRole()}>
+        {canEdit && <Button type="button" size="sm" variant="outline" className="h-7 text-xs" onClick={() => openRole()}>
           <Plus size={14} />
           <span>Додати роль</span>
-        </Button>
+        </Button>}
       </div>
       <div className="flex flex-col divide-y rounded-md border border-primary/10 bg-primary/5">
         {roles.map(role => (
@@ -38,6 +40,7 @@ export const RolesSection = () => {
             type="button"
             variant="ghost"
             className="h-auto justify-between gap-3 rounded-none px-4 py-2.5 text-left first:rounded-t-md last:rounded-b-md"
+            disabled={!canEdit}
             onClick={() => openRole(role)}
           >
             <span className="flex min-w-0 flex-col items-start gap-0.5">

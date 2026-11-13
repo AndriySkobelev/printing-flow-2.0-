@@ -9,6 +9,7 @@ import { AuthContext } from '@/contexts/auth'
 import { Button } from '@/components/ui/button'
 import { MyPopover } from '@/components/my-popover'
 import { ActionsMenu } from '@/components/actions-menu'
+import { useCan } from '@/hooks/use-can'
 import AppTable from '@/components/ui/app-table'
 import UserAvatar from '@/components/UserAvatar'
 import { useGetAllUsers } from './queries'
@@ -35,11 +36,12 @@ const NAVIGATE_ACCESSORS = ['name', 'email', 'phone', 'role']
 
 const ActionsCell = ({ row, onOpen }: { row: UserRow; onOpen: (row: UserRow) => void }) => {
   const confirmDelete = useConfirmDeleteUser()
+  const can = useCan()
   return (
     <ActionsMenu
       items={[
         { label: 'Відкрити', icon: <SquarePen className="size-3" />, onClick: () => onOpen(row) },
-        { label: 'Видалити', icon: <Trash2    className="size-3" />, onClick: () => confirmDelete(row), destructive: true },
+        { label: 'Видалити', icon: <Trash2    className="size-3" />, onClick: () => confirmDelete(row), destructive: true, hidden: !can('/app/users', 'delete') },
       ]}
     />
   )
@@ -50,6 +52,7 @@ const UsersTable = () => {
   const { user } = useContext(AuthContext)
   const navigate = useNavigate()
   const isSuperAdmin = user?.role === SUPER_ADMIN
+  const canEdit = useCan()('/app/users', 'edit')
 
   const openUser = (row: UserRow) =>
     navigate({ to: '/app/users/$userId', params: { userId: row._id } })
@@ -91,7 +94,7 @@ const UsersTable = () => {
       label: 'Сторінки',
       width: 220,
       type: 'other',
-      cellRenderer: ({ row }: any) => (
+      cellRenderer: ({ row }: any) => !canEdit ? <PageAccessSummary user={row} /> : (
         <MyPopover
           align="start"
           trigger={

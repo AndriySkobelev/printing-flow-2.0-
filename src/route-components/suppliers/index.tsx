@@ -8,6 +8,7 @@ import { SquarePen, Trash2 } from 'lucide-react'
 import { DialogContext } from '@/contexts/dialog'
 import { Button } from '@/components/ui/button'
 import { ActionsMenu } from '@/components/actions-menu'
+import { useCan } from '@/hooks/use-can'
 import AppTable from '@/components/ui/app-table'
 import { SupplierForm, type SupplierFormValues } from './forms/supplier-form'
 import { useCreateSupplier, useDeleteSupplier, useUpdateSupplier } from './actions'
@@ -22,6 +23,7 @@ const Suppliers = () => {
   const { mutate: createSupplier } = useCreateSupplier()
   const { mutate: updateSupplier } = useUpdateSupplier()
   const { mutate: deleteSupplier } = useDeleteSupplier()
+  const can = useCan()
   const { openDialog, closeDialog } = useContext(DialogContext)
 
   const handleCreate = () => {
@@ -110,8 +112,8 @@ const Suppliers = () => {
         const supplier = row as unknown as Doc<'suppliers'>
         return (
           <ActionsMenu items={[
-            { label: 'Редагувати', icon: <SquarePen className="size-3" />, onClick: () => handleEdit(supplier) },
-            { label: 'Видалити', icon: <Trash2 className="size-3" />, destructive: true, onClick: () => handleDelete(supplier) },
+            { label: 'Редагувати', icon: <SquarePen className="size-3" />, onClick: () => handleEdit(supplier), hidden: !can('/app/suppliers', 'edit') },
+            { label: 'Видалити', icon: <Trash2 className="size-3" />, destructive: true, onClick: () => handleDelete(supplier), hidden: !can('/app/suppliers', 'delete') },
           ]} />
         )
       },
@@ -121,7 +123,7 @@ const Suppliers = () => {
   return (
     <div className="flex h-full flex-col gap-2 p-4">
       <div className="flex justify-end">
-        <Button type="button" onClick={handleCreate}>Додати постачальника</Button>
+        {can('/app/suppliers', 'create') && <Button type="button" onClick={handleCreate}>Додати постачальника</Button>}
       </div>
       <div className="min-h-0 flex-1">
         <AppTable

@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { query, mutation } from "../_generated/server";
 import { suppliersSchema } from "../schemas/storage";
+import { requirePermission } from './roles'
 
 export const getSuppliers = query({
   handler: async (ctx) => ctx.db.query("suppliers").withIndex("by_name").collect(),
@@ -8,17 +9,24 @@ export const getSuppliers = query({
 
 export const createSupplier = mutation({
   args: suppliersSchema,
-  handler: async (ctx, args) => ctx.db.insert("suppliers", args),
+  handler: async (ctx, args) => {
+    await requirePermission(ctx, '/app/suppliers', 'create');
+    return ctx.db.insert("suppliers", args);
+  },
 })
 
 export const updateSupplier = mutation({
   args: { id: v.id("suppliers"), ...suppliersSchema },
-  handler: async (ctx, { id, ...data }) => ctx.db.patch(id, data),
+  handler: async (ctx, { id, ...data }) => {
+    await requirePermission(ctx, '/app/suppliers', 'edit');
+    await ctx.db.patch(id, data);
+  },
 })
 
 export const deleteSupplier = mutation({
   args: { id: v.id("suppliers") },
   handler: async (ctx, { id }) => {
+    await requirePermission(ctx, '/app/suppliers', 'delete');
     const fabrics = await ctx.db
       .query("fabrics")
       .withIndex("by_supplierId", q => q.eq("supplierId", id))

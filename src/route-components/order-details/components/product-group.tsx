@@ -7,6 +7,7 @@ import { values, pick, omit, groupBy } from 'ramda'
 import AppTable from '@/components/ui/app-table'
 import { DialogContext } from '@/contexts/dialog'
 import { useUpdateSelectedOrderItemsBrandingType, useCreateProductionTasks } from '../actions'
+import { useCan } from '@/hooks/use-can'
 import { type OrderItem } from '../types'
 import { itemHeaders } from './item-cells'
 import { BulkBrandingForm } from '../forms/bulk-branding-form'
@@ -36,6 +37,7 @@ export const ProductGroup = memo(({ items, productionOrderId, readOnly }: { item
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const { mutateAsync: updateSelected } = useUpdateSelectedOrderItemsBrandingType()
   const { mutate: createTasks, isPending: isSending } = useCreateProductionTasks()
+  const canLaunch = useCan()('/app/production-orders', 'launch')
 
   const handleSelectionChange = useCallback(({ selectedRows }: RowSelectionChangeProps) => {
     setSelectedIds(new Set(selectedRows))
@@ -120,7 +122,7 @@ export const ProductGroup = memo(({ items, productionOrderId, readOnly }: { item
             >
               {`Налаштувати вибрані (${selectedIds.size})`}
             </Button>
-            <Button
+            {canLaunch && <Button
               key={`send-${isSending}`}
               size="sm"
               type="button"
@@ -132,7 +134,7 @@ export const ProductGroup = memo(({ items, productionOrderId, readOnly }: { item
                 ? <Loader2 size={14} className="animate-spin" />
                 : <Factory size={14} />}
               <span>{`На виробництво (${sendableIds.length})`}</span>
-            </Button>
+            </Button>}
           </div>
         )}
         <AppTable

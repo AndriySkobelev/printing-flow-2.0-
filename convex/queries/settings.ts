@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "../_generated/server";
+import { requirePermission } from "./roles";
 
 // systemSettings is a singleton table — at most one document ever exists,
 // created lazily on first write. Reads fall back to defaults before that.
@@ -19,6 +20,7 @@ export const updateSystemSettings = mutation({
     allowUnconfiguredProducts: v.boolean(),
   },
   handler: async (ctx, { allowUnconfiguredProducts }) => {
+    await requirePermission(ctx, '/app/settings', 'edit');
     const existing = await ctx.db.query('systemSettings').first();
     if (existing) {
       await ctx.db.patch(existing._id, { allowUnconfiguredProducts });

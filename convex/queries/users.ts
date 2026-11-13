@@ -2,7 +2,7 @@ import { getAuthUserId } from "@convex-dev/auth/server";
 import { internalMutation, mutation, query, type MutationCtx } from "../_generated/server";
 import { type Id } from "../_generated/dataModel";
 import { v } from "convex/values";
-import { withRole } from "./roles";
+import { requirePage, requirePermission, withRole } from "./roles";
 
 const roleValidator = v.optional(v.union(
   v.literal('super_admin'),
@@ -13,12 +13,12 @@ const roleValidator = v.optional(v.union(
   v.literal('brander'),
 ))
 
-async function requireAdmin(ctx: any) {
-  const userId = await getAuthUserId(ctx);
-  if (!userId) throw new Error('Not authenticated');
-  const user = await ctx.db.get(userId);
-  if (user?.role !== 'admin' && user?.role !== 'super_admin') throw new Error('Forbidden');
-}
+// Only a super admin may touch another super admin or hand the role out.
+const guardSuperAdmin = async (ctx: MutationCtx, me: { role?: string }, targetId: Id<'users'>, nextRole?: string) => {
+  if (me.role === 'super_admin') return;
+  const target = await ctx.db.get(targetId);
+  if (target?.role === 'super_admin' || nextRole === 'super_admin') throw new Error('Недостатньо прав для цієї дії');
+};
 
 // A leftover authAccounts row makes every later sign-in with that Google account fail.
 const removeAuthData = async (ctx: MutationCtx, userId: Id<'users'>) => {
@@ -77,7 +77,7 @@ export const updateCurrentUser = mutation({
 
 export const getAllUsers = query({
   handler: async (ctx) => {
-    await requireAdmin(ctx);
+    await requirePage(ctx, '/app/users');
     const users = await ctx.db.query('users').collect();
     return Promise.all(users.map(u => withRole(ctx, u)));
   },
@@ -86,7 +86,7 @@ export const getAllUsers = query({
 export const getUserById = query({
   args: { id: v.id('users') },
   handler: async (ctx, { id }) => {
-    await requireAdmin(ctx);
+    await requirePage(ctx, '/app/users');
     const user = await ctx.db.get(id);
     return user ? withRole(ctx, user) : null;
   },
@@ -99,7 +99,8 @@ export const updateUserPages = mutation({
     allowedPages: v.optional(v.array(v.string())),
   },
   handler: async (ctx, { id, allowedPages }) => {
-    await requireAdmin(ctx);
+    const me = await requirePermission(ctx, '/app/users', 'edit');
+    await guardSuperAdmin(ctx, me, id);
     await ctx.db.patch(id, { allowedPages });
   },
 });
@@ -120,7 +121,8 @@ export const updateUser = mutation({
   },
   // Picking a role replaces the custom one; a custom role sets its base role.
   handler: async (ctx, { id, data }) => {
-    await requireAdmin(ctx);
+    const me = await requirePermission(ctx, '/app/users', 'edit');
+    await guardSuperAdmin(ctx, me, id, data.role);
     if (data.roleId) {
       const custom = await ctx.db.get(data.roleId);
       if (!custom || custom.systemKey) throw new Error('Роль не знайдено');
@@ -136,7 +138,9 @@ export const updateUser = mutation({
 export const deleteUser = mutation({
   args: { id: v.id('users') },
   handler: async (ctx, { id }) => {
-    await requireAdmin(ctx);
+    const me = await requirePermission(ctx, '/app/users', 'delete');
+    if (me._id === id) throw new Error('Не можна видалити самого себе');
+    await guardSuperAdmin(ctx, me, id);
     await removeAuthData(ctx, id);
     await ctx.db.delete(id);
   },
@@ -160,7 +164,7 @@ export const updateSeamstressData = mutation({
     })),
   },
   handler: async (ctx, { id, developingSpecification }) => {
-    await requireAdmin(ctx);
+    await requirePermission(ctx, '/app/users', 'edit');
     await ctx.db.patch(id, { developingSpecification });
   },
 });

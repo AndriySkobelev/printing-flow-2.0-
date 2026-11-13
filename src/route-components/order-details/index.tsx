@@ -6,6 +6,7 @@ import { type Id } from 'convex/_generated/dataModel'
 import { useUpdateAllOrderItemsBrandingType, useAddProductionOrderItems } from './actions'
 import { ArrowLeft, Truck, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { useCan } from '@/hooks/use-can'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { OrderImages } from './components/order-images'
 import { DialogContext } from '@/contexts/dialog'
@@ -243,7 +244,9 @@ const OrderDetailsContent = ({ productionOrderId, onBack, readOnly }: { producti
 
 // ─── OrderDetails ─────────────────────────────────────────────────────────────
 
-export const OrderDetails = ({ productionOrderId, onBack, readOnly }: Props) => {
+export const OrderDetails = ({ productionOrderId, onBack, readOnly: forceReadOnly }: Props) => {
+  const can      = useCan()
+  const readOnly = forceReadOnly || !can('/app/production-orders', 'edit')
   if (!productionOrderId) {
     return (
       <div className="flex h-full shadow-[0px_0px_3px_#021b333d] rounded-lg bg-background items-center justify-center">
