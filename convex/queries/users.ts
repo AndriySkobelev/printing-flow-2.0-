@@ -2,6 +2,7 @@ import { getAuthUserId } from "@convex-dev/auth/server";
 import { internalMutation, mutation, query, type MutationCtx } from "../_generated/server";
 import { type Id } from "../_generated/dataModel";
 import { v } from "convex/values";
+import { withRole } from "./roles";
 
 const roleValidator = v.optional(v.union(
   v.literal('super_admin'),
@@ -77,7 +78,8 @@ export const updateCurrentUser = mutation({
 export const getAllUsers = query({
   handler: async (ctx) => {
     await requireAdmin(ctx);
-    return ctx.db.query('users').collect();
+    const users = await ctx.db.query('users').collect();
+    return Promise.all(users.map(u => withRole(ctx, u)));
   },
 });
 
@@ -85,7 +87,8 @@ export const getUserById = query({
   args: { id: v.id('users') },
   handler: async (ctx, { id }) => {
     await requireAdmin(ctx);
-    return ctx.db.get(id);
+    const user = await ctx.db.get(id);
+    return user ? withRole(ctx, user) : null;
   },
 });
 
@@ -112,11 +115,21 @@ export const updateUser = mutation({
       workHours: v.optional(v.number()),
       startDate: v.optional(v.string()),
       role:      roleValidator,
+      roleId:    v.optional(v.id('roles')),
     }),
   },
+  // Picking a role replaces the custom one; a custom role sets its base role.
   handler: async (ctx, { id, data }) => {
     await requireAdmin(ctx);
-    await ctx.db.patch(id, data);
+    if (data.roleId) {
+      const custom = await ctx.db.get(data.roleId);
+      if (!custom || custom.systemKey) throw new Error('Роль не знайдено');
+      await ctx.db.patch(id, { ...data, role: custom.baseRole });
+    } else if (data.role) {
+      await ctx.db.patch(id, { ...data, roleId: undefined });
+    } else {
+      await ctx.db.patch(id, data);
+    }
   },
 });
 

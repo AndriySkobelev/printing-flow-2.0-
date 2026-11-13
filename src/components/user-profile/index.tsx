@@ -3,8 +3,7 @@ import {
   TrendingUp, Banknote, History, KeyRound,
 } from 'lucide-react'
 import { type Doc } from 'convex/_generated/dataModel'
-import { ROLE_LABELS } from '@/constants/roles'
-import { PAGE_LABELS, getUserPages } from '@/constants/page-roles'
+import { PAGE_LABELS, getRoleLabel, getUserPages } from '@/constants/page-roles'
 import UserAvatar from '@/components/UserAvatar'
 import { cn } from '@/lib/utils'
 
@@ -60,7 +59,7 @@ const InfoRow = ({ icon, label, value }: { icon: React.ReactNode; label: string;
 )
 
 type Props = {
-  user: Doc<'users'>
+  user: Doc<'users'> & { roleName?: string; rolePages?: string[] }
   topBar?: React.ReactNode
   badges?: React.ReactNode
   actions?: React.ReactNode
@@ -90,7 +89,7 @@ export const UserProfile = ({ user, topBar, badges, actions, pageAccessAction, c
             <div className="flex flex-wrap items-center justify-center gap-2">
               {user.role ? (
                 <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
-                  {ROLE_LABELS[user.role]}
+                  {getRoleLabel(user)}
                 </span>
               ) : (
                 <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800">

@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { convexQuery } from '@convex-dev/react-query'
 import { api } from 'convex/_generated/api'
 import { useUpdateSystemSettings } from './actions'
+import { RolesSection } from './components/roles-section'
 
 const SettingsPage = () => {
   const { data } = useQuery(convexQuery(api.queries.settings.getSystemSettings, {}))
@@ -39,6 +40,7 @@ const SettingsPage = () => {
         </div>
       </div>
 
+      <RolesSection />
     </div>
   )
 }

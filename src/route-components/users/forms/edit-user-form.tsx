@@ -1,7 +1,6 @@
 import z from 'zod'
 import { revalidateLogic } from '@tanstack/react-form'
 import { useAppForm } from '@/components/main-form'
-import { ROLE_LABELS, USER_ROLES } from '@/constants/roles'
 
 const schema = z.object({
   name:      z.string().min(1, "Введіть ім'я"),
@@ -15,15 +14,14 @@ const schema = z.object({
 
 export type EditUserFormType = z.infer<typeof schema>
 
-const roleOptions = USER_ROLES.map(r => ({ value: r, label: ROLE_LABELS[r] }))
-
 interface Props {
   formId: string
+  roleOptions: { value: string; label: string }[]
   defaultValues?: Partial<EditUserFormType>
   onSubmit: (values: EditUserFormType) => void
 }
 
-const EditUserForm = ({ formId, defaultValues, onSubmit }: Props) => {
+const EditUserForm = ({ formId, roleOptions, defaultValues, onSubmit }: Props) => {
   const form = useAppForm({
     validationLogic: revalidateLogic(),
     validators: { onDynamic: schema },

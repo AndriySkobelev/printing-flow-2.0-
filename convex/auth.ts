@@ -2,6 +2,7 @@ import { convexAuth, getAuthUserId } from "@convex-dev/auth/server";
 import Google from "@auth/core/providers/google";
 import { mutation, internalMutation, query } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
+import { withRole } from "./queries/roles";
 
 export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
   providers: [Google],
@@ -89,8 +90,8 @@ export const getUser = query({
     if (!userId) {
       return;
     }
-    const userData = ctx.db.get(userId)
-    return userData;
+    const user = await ctx.db.get(userId)
+    return user ? withRole(ctx, user) : null;
   }
 })
 

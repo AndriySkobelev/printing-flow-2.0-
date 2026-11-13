@@ -1,8 +1,11 @@
 import { useContext } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { convexQuery } from '@convex-dev/react-query'
+import { api } from 'convex/_generated/api'
 import { useNavigate } from '@tanstack/react-router'
 import { ArrowLeft, Trash2, Pencil, Save } from 'lucide-react'
 import { type Id } from 'convex/_generated/dataModel'
-import { SUPER_ADMIN, type UserRole } from '@/constants/roles'
+import { ROLE_LABELS, SUPER_ADMIN, USER_ROLES, type UserRole } from '@/constants/roles'
 import { AuthContext } from '@/contexts/auth'
 import { DialogContext } from '@/contexts/dialog'
 import { Button } from '@/components/ui/button'
@@ -14,7 +17,7 @@ import SeamstressForm from './forms/seamstress-form'
 import { PageAccessEditor } from './components/page-access-editor'
 import { ApprovalBadge } from './components/approval-badge'
 import { useGetUserById } from './queries'
-import { useDeleteUser, useUpdateUser } from './actions'
+import { useConfirmDeleteUser, useUpdateUser } from './actions'
 
 const EDIT_FORM_ID = 'user-details-edit-form'
 const SEAMSTRESS_FORM_ID = 'user-details-seamstress-form'
@@ -25,7 +28,8 @@ export const UserDetails = ({ userId }: { userId: Id<'users'> }) => {
   const { openDialog, closeDialog } = useContext(DialogContext)
   const { data: user, isLoading } = useGetUserById(userId)
   const { mutate: updateUser } = useUpdateUser()
-  const { mutate: deleteUser, isPending: isDeleting } = useDeleteUser()
+  const confirmDelete = useConfirmDeleteUser()
+  const { data: roles = [] } = useQuery(convexQuery(api.queries.roles.getRoles, {}))
 
   const goBack = () => navigate({ to: '/app/users' })
 
@@ -42,6 +46,16 @@ export const UserDetails = ({ userId }: { userId: Id<'users'> }) => {
     )
   }
 
+  // Built-in roles go by their key, custom ones by id.
+  const roleOptions = [
+    { value: SUPER_ADMIN as string, label: ROLE_LABELS[SUPER_ADMIN] },
+    ...roles.map(r => ({ value: r.key, label: r.name })),
+  ]
+  const toRoleData = (key?: string) =>
+    !key ? {}
+    : USER_ROLES.includes(key as UserRole) ? { role: key as UserRole }
+    : { roleId: key as Id<'roles'> }
+
   const handleEdit = () => {
     const id = openDialog({
       title: 'Редагувати користувача',
@@ -50,6 +64,7 @@ export const UserDetails = ({ userId }: { userId: Id<'users'> }) => {
       content: (
         <EditUserForm
           formId={EDIT_FORM_ID}
+          roleOptions={roleOptions}
           defaultValues={{
             name:      user.name      ?? '',
             lastName:  user.lastName  ?? '',
@@ -57,11 +72,11 @@ export const UserDetails = ({ userId }: { userId: Id<'users'> }) => {
             birthday:  user.birthday  ?? '',
             workHours: user.workHours,
             startDate: user.startDate ?? '',
-            role:      user.role,
+            role:      user.roleId ?? user.role,
           }}
           onSubmit={(values: EditUserFormType) =>
             updateUser(
-              { id: user._id, data: { ...values, role: values.role as UserRole | undefined } },
+              { id: user._id, data: { ...values, role: undefined, ...toRoleData(values.role) } },
               { onSuccess: () => closeDialog(id) },
             )
           }
@@ -70,7 +85,7 @@ export const UserDetails = ({ userId }: { userId: Id<'users'> }) => {
     })
   }
 
-  const handleDelete = () => deleteUser({ id: user._id }, { onSuccess: goBack })
+  const handleDelete = () => confirmDelete(user, goBack)
 
   return (
     <UserProfile
@@ -90,7 +105,6 @@ export const UserDetails = ({ userId }: { userId: Id<'users'> }) => {
             variant="outline"
             size="sm"
             className="text-red-500 hover:bg-red-50 hover:text-red-500"
-            disabled={isDeleting}
             onClick={handleDelete}
           >
             <Trash2 size={14} />

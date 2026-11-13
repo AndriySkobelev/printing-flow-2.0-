@@ -1,39 +1,6 @@
-import { SUPER_ADMIN, type UserRole } from '@/constants/roles'
+import { SUPER_ADMIN, ROLE_LABELS, ALL_PAGES, PAGE_ROLES, getDefaultRolePages, type UserRole } from 'convex/lib/roles'
 
-// Single source of truth for "who can see this page" by default.
-// Keyed by the page's route path (as it appears in the URL, e.g. '/app/users').
-// Nested/detail routes (e.g. '/app/production-orders/<id>') inherit their
-// parent's access automatically — see `canAccessPage`.
-//
-// `super_admin` is intentionally listed everywhere so it never has to be
-// special-cased when reading this file.
-//
-// A user's `allowedPages` (set on the users page) overrides these role
-// defaults for that user.
-export const PAGE_ROLES: Record<string, UserRole[]> = {
-  '/app/production-orders':   [SUPER_ADMIN, 'admin', 'manager'],
-  '/app/inventory-movement':  [SUPER_ADMIN, 'admin', 'manager'],
-  '/app/stock-balance':       [SUPER_ADMIN, 'admin', 'manager'],
-  '/app/suppliers':           [SUPER_ADMIN, 'admin', 'manager'],
-  '/app/order-processing':    [SUPER_ADMIN, 'admin', 'manager'],
-  '/app/workload':            [SUPER_ADMIN, 'admin', 'manager'],
-  '/app/planner':             [SUPER_ADMIN, 'admin', 'manager'],
-  '/app/production-cut':      [SUPER_ADMIN, 'admin', 'manager', 'tailor'],
-  '/app/branding':            [SUPER_ADMIN, 'admin', 'manager', 'brander'],
-  '/app/packing-list':        [SUPER_ADMIN, 'admin', 'manager'],
-  '/app/sewing-tasks':        [SUPER_ADMIN, 'admin', 'seamstress'],
-  '/app/materials':           [SUPER_ADMIN, 'admin'],
-  '/app/fabrics':             [SUPER_ADMIN, 'admin'],
-  '/app/specifications':      [SUPER_ADMIN, 'admin'],
-  '/app/extra-works':         [SUPER_ADMIN, 'admin'],
-  '/app/users':                [SUPER_ADMIN, 'admin'],
-  '/app/settings':             [SUPER_ADMIN, 'admin'],
-  '/app/products':             [SUPER_ADMIN, 'admin'],
-  '/app/store':                 [SUPER_ADMIN, 'admin'],
-  '/app/production-calendar':  [SUPER_ADMIN, 'admin', 'manager'],
-  // profile is always reachable, including by users without any role yet —
-  // handled as a special case in `canAccessPage` rather than listed here.
-}
+export { PAGE_ROLES, ALL_PAGES }
 
 export const PAGE_LABELS: Record<string, string> = {
   '/app/production-orders':   'Замовлення',
@@ -58,24 +25,29 @@ export const PAGE_LABELS: Record<string, string> = {
   '/app/production-calendar': 'Виробничий календар',
 }
 
-export const ALL_PAGES = Object.keys(PAGE_ROLES)
-
+// `rolePages`/`roleName` come resolved from Convex (see convex/queries/roles.ts)
+// — the role's pages as set in settings.
 export type PageAccessUser = {
   role?: UserRole
   allowedPages?: string[]
+  rolePages?: string[]
+  roleName?: string
 } | null | undefined
 
-/** Pages a role gets by default (when the user has no override). */
-export const getRolePages = (role: UserRole | undefined): string[] =>
-  role ? ALL_PAGES.filter(p => PAGE_ROLES[p].includes(role)) : []
+/** Pages the user's role gives (when the user has no override of their own). */
+export const getRolePages = (user: PageAccessUser): string[] =>
+  user?.rolePages ?? getDefaultRolePages(user?.role)
 
-/** Effective pages for a user: super_admin → all, override → it, else role defaults. */
+/** Effective pages for a user: super_admin → all, override → it, else the role's. */
 export const getUserPages = (user: PageAccessUser): string[] => {
   if (!user) return []
   if (user.role === SUPER_ADMIN) return ALL_PAGES
   if (user.allowedPages) return user.allowedPages.filter(p => p in PAGE_ROLES)
-  return getRolePages(user.role)
+  return getRolePages(user).filter(p => p in PAGE_ROLES)
 }
+
+export const getRoleLabel = (user: PageAccessUser): string | null =>
+  user?.roleName ?? (user?.role ? ROLE_LABELS[user.role] : null)
 
 /**
  * Whether `user` may access `pathname`.

@@ -54,6 +54,8 @@ export const users = {
   // Per-user page access override (route paths from PAGE_ROLES). When missing,
   // access falls back to the role defaults.
   allowedPages: v.optional(v.array(v.string())),
+  // A custom role from `roles`; `role` then holds its base role.
+  roleId: v.optional(v.id('roles')),
   developingSpecification: v.optional(v.array(v.object({
     specificationId: v.id('specifications'),
     developingTime:  v.number(),
@@ -149,6 +151,27 @@ export const extraWorksSchema = {
 
 const extraWorksTable = defineTable(extraWorksSchema)
 
+const baseRoleValidator = v.union(
+  v.literal('admin'),
+  v.literal('manager'),
+  v.literal('seamstress'),
+  v.literal('tailor'),
+  v.literal('brander'),
+)
+
+// Roles set up in settings. `systemKey` marks the saved name/pages of a built-in
+// role (missing → the defaults in convex/lib/roles.ts). Without it the role is
+// custom: its users get `baseRole` as their `role`, so they keep that role's
+// server-side permissions, and see `pages`.
+export const rolesSchema = {
+  name:      v.string(),
+  pages:     v.array(v.string()),
+  baseRole:  baseRoleValidator,
+  systemKey: v.optional(baseRoleValidator),
+}
+
+const rolesTable = defineTable(rolesSchema)
+
 export type Materials = Doc<'materials'>;
 export type MaterialVariants = Doc<'materialVariants'>;
 export type Users = Doc<'users'>;
@@ -178,7 +201,8 @@ export default defineSchema({
   packagingLogs: packagingLogsTable,
   subcontractorTasks: subcontractorTasksTable,
   productionOrderLogs: productionOrderLogsTable,
-  users: usersTable.index("email", ["email"]),
+  users: usersTable.index("email", ["email"]).index('by_roleId', ['roleId']),
+  roles: rolesTable.index('by_systemKey', ['systemKey']),
   orders: ordersTable.index("orderId", ["orderId"]),
   suppliers: suppliersTable.index('by_name', ['name']),
   fabrics: fabricsTable

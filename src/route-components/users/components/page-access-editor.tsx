@@ -11,6 +11,7 @@ export type PageAccessUser = {
   _id: Id<'users'>
   role?: UserRole
   allowedPages?: string[]
+  rolePages?: string[]
 }
 
 type Props = {
@@ -24,7 +25,7 @@ export const PageAccessEditor = ({ user, className, listClassName }: Props) => {
   const isSuperAdmin = user.role === SUPER_ADMIN
   const isCustom = !!user.allowedPages && !isSuperAdmin
   const pages = getUserPages(user)
-  const rolePages = getRolePages(user.role)
+  const rolePages = getRolePages(user)
 
   const disabled = isSuperAdmin || isPending
   const allSelected = pages.length === ALL_PAGES.length

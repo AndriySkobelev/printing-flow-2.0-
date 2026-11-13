@@ -1,16 +1,18 @@
 import { useContext } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { type CellClickProps, type HeaderObject } from 'simple-table-core'
-import { Ellipsis, Trash2, SquarePen, ChevronDown } from 'lucide-react'
+import { Trash2, SquarePen, ChevronDown } from 'lucide-react'
 import { type Id } from 'convex/_generated/dataModel'
-import { ROLE_LABELS, SUPER_ADMIN, type UserRole } from '@/constants/roles'
+import { SUPER_ADMIN, type UserRole } from '@/constants/roles'
+import { getRoleLabel } from '@/constants/page-roles'
 import { AuthContext } from '@/contexts/auth'
 import { Button } from '@/components/ui/button'
 import { MyPopover } from '@/components/my-popover'
+import { ActionsMenu } from '@/components/actions-menu'
 import AppTable from '@/components/ui/app-table'
 import UserAvatar from '@/components/UserAvatar'
 import { useGetAllUsers } from './queries'
-import { useDeleteUser } from './actions'
+import { useConfirmDeleteUser } from './actions'
 import { ApprovalBadge } from './components/approval-badge'
 import { PageAccessEditor, PageAccessSummary } from './components/page-access-editor'
 
@@ -24,27 +26,22 @@ type UserRow = {
   image?: string
   isApproved?: boolean
   allowedPages?: string[]
+  rolePages?: string[]
+  roleName?: string
 }
 
 // Clicking these columns opens the user page; the others hold their own controls.
 const NAVIGATE_ACCESSORS = ['name', 'email', 'phone', 'role']
 
 const ActionsCell = ({ row, onOpen }: { row: UserRow; onOpen: (row: UserRow) => void }) => {
-  const { mutate: deleteUser } = useDeleteUser()
+  const confirmDelete = useConfirmDeleteUser()
   return (
-    <div className="flex flex-col">
-      <Button variant="ghost" size="sm" className="justify-start" onClick={() => onOpen(row)}>
-        <SquarePen size={12} /> Відкрити
-      </Button>
-      <Button
-        variant="ghost"
-        size="sm"
-        className="justify-start text-red-500 hover:bg-red-50 hover:text-red-500"
-        onClick={() => deleteUser({ id: row._id })}
-      >
-        <Trash2 size={12} /> Видалити
-      </Button>
-    </div>
+    <ActionsMenu
+      items={[
+        { label: 'Відкрити', icon: <SquarePen className="size-3" />, onClick: () => onOpen(row) },
+        { label: 'Видалити', icon: <Trash2    className="size-3" />, onClick: () => confirmDelete(row), destructive: true },
+      ]}
+    />
   )
 }
 
@@ -79,7 +76,7 @@ const UsersTable = () => {
       width: 130,
       type: 'other',
       cellRenderer: ({ row }: any) => (
-        <span>{row.role ? (ROLE_LABELS[row.role as UserRole] ?? row.role) : '—'}</span>
+        <span>{getRoleLabel(row) ?? '—'}</span>
       ),
     },
     {
@@ -114,10 +111,7 @@ const UsersTable = () => {
       type: 'other',
       pinned: 'right',
       cellRenderer: ({ row }: { row: any }) => (
-        <MyPopover
-          trigger={<Ellipsis className="cursor-pointer" size={14} />}
-          content={<ActionsCell row={row} onOpen={openUser} />}
-        />
+        <ActionsCell row={row} onOpen={openUser} />
       ),
     },
   ]

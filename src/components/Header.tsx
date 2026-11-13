@@ -397,7 +397,7 @@ const MobileMenu = ({ open, onClose, canSee, user }: {
                 size="sm"
                 nameColor='white'
                 name={user.name}
-                role={user.role}
+                role={user.roleName ?? user.role}
                 image={user.image}
                 lastName={user.lastName}
               />
@@ -446,7 +446,7 @@ const Header = () => {
             to={'/app/profile' as any}
             className="hidden md:flex items-center gap-2.5 px-2 py-1 rounded-md hover:bg-white/10 transition-colors shrink-0"
           >
-            <UserAvatar name={user.name} role={user.role} lastName={user.lastName} image={user.image} size="sm" showName showRole />
+            <UserAvatar name={user.name} role={user.roleName ?? user.role} lastName={user.lastName} image={user.image} size="sm" showName showRole />
           </Link>
         )}
 
