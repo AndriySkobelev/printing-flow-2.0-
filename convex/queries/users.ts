@@ -11,6 +11,7 @@ const roleValidator = v.optional(v.union(
   v.literal('seamstress'),
   v.literal('tailor'),
   v.literal('brander'),
+  v.literal('packer'),
 ))
 
 // Only a super admin may touch another super admin or hand the role out.

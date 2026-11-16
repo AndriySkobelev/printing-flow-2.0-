@@ -1,13 +1,16 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { convexQuery } from '@convex-dev/react-query'
+import { useState } from 'react'
 import { useStore } from '@tanstack/react-form'
+import { UTCDate } from '@date-fns/utc'
+import { format } from 'date-fns'
 import { useDebounce } from 'use-debounce'
 import { Plus, Trash2 } from 'lucide-react'
 import { api } from 'convex/_generated/api'
 import { type Doc, type Id } from 'convex/_generated/dataModel'
 import { useAppForm } from '@/components/main-form'
 import { Button } from '@/components/ui/button'
-import { WorkloadCalendar } from '@/components/workload-calendar'
+import { WorkloadCalendar, type WorkloadDay } from '@/components/workload-calendar'
 import { MaterialRequirementRow, isMaterialSufficient } from '@/components/material-requirement-row'
 import { cn } from '@/lib/utils'
 
@@ -48,6 +51,11 @@ const getLineMinutes = (spec: Doc<'specifications'>, line: Line): StageMinutes =
   }
 }
 
+const WORKDAY_MINUTES = 9 * 60
+
+const formatWorkdays = (minutes: number) =>
+  `${Number((minutes / WORKDAY_MINUTES).toFixed(1)).toLocaleString('uk-UA')} роб. дн.`
+
 const formatHours = (minutes: number) =>
   `${Number((minutes / 60).toFixed(1)).toLocaleString('uk-UA')} год`
 
@@ -73,14 +81,60 @@ const ColorField = ({ form, index, specificationId }: {
   )
 }
 
-const StageTile = ({ label, minutes, accent }: { label: string; minutes: number; accent?: boolean }) => (
+const StageTile = ({ label, minutes, accent, showWorkdays }: { label: string; minutes: number; accent?: boolean; showWorkdays?: boolean }) => (
   <div className={cn('flex flex-col gap-1 rounded-lg p-3', accent ? 'bg-primary text-primary-foreground' : 'bg-muted/50')}>
     <span className={cn('text-[11px]', accent ? 'text-primary-foreground/80' : 'text-muted-foreground')}>{label}</span>
     <span className="text-lg font-semibold tabular-nums leading-none">{formatHours(minutes)}</span>
+    {showWorkdays && (
+      <span className={cn('text-[11px] tabular-nums', accent ? 'text-primary-foreground/80' : 'text-muted-foreground')}>
+        {formatWorkdays(minutes)}
+      </span>
+    )}
   </div>
 )
 
+type DayLoad = { day: number; minutes: number; capacity: number; carried?: number; overDue?: number }
+
+const loadPercent = ({ minutes, capacity }: DayLoad) =>
+  capacity > 0 ? Math.round((minutes / capacity) * 100) : minutes > 0 ? 100 : 0
+
+// Sewing and packing load of the days the calendar shows.
+const useWorkload = () => {
+  const [range, setRange] = useState<{ from: string; to: string } | null>(null)
+  const args = range ? { from: new UTCDate(range.from).valueOf(), to: new UTCDate(range.to).valueOf() } : 'skip'
+  const { data: sewing = [] } = useQuery({
+    ...convexQuery(api.queries.sewing.getSewingLoadByDay, args),
+    placeholderData: keepPreviousData,
+  })
+  const { data: packing = [] } = useQuery({
+    ...convexQuery(api.queries.packaging.getPackingLoadByDay, args),
+    placeholderData: keepPreviousData,
+  })
+
+  const byDay = new Map<number, Partial<Record<'sewing' | 'packaging', DayLoad>>>()
+  for (const d of sewing)  byDay.set(d.day, { ...byDay.get(d.day), sewing: d })
+  for (const d of packing) byDay.set(d.day, { ...byDay.get(d.day), packaging: d })
+
+  const days: WorkloadDay[] = [...byDay].flatMap(([day, loads]) => {
+    const active = Object.entries(loads).filter(([, d]) => d.minutes > 0 || d.capacity > 0)
+    if (!active.length) return []
+    return [{
+      date: format(new UTCDate(day), 'yyyy-MM-dd'),
+      load: Object.fromEntries(active.map(([key, d]) => [key, loadPercent(d)])),
+      hint: Object.fromEntries(active.map(([key, d]) => [key, [
+        `${formatHours(d.minutes)} з ${formatHours(d.capacity)}`,
+        !!d.carried && `перенесено з попередніх днів ${formatHours(d.carried)}`,
+        !!d.overDue && `не можна перенести через дату відвантаження ${formatHours(d.overDue)}`,
+      ].filter(Boolean).join(', ')])),
+      time: Object.fromEntries(active.map(([key, d]) => [key, { minutes: d.minutes, capacity: d.capacity }])),
+    }]
+  })
+  const onRangeChange = (from: string, to: string) => setRange({ from, to })
+  return { days, onRangeChange }
+}
+
 const OrderProcessing = () => {
+  const workload = useWorkload()
   const { data: specs = [] } = useQuery(convexQuery(api.queries.specifications.getSpecifications, {}))
   const form = useAppForm({ defaultValues: { lines: [EMPTY_LINE] } })
   const lines = useStore(form.store, state => state.values.lines)
@@ -175,7 +229,7 @@ const OrderProcessing = () => {
           <h2 className="text-sm font-semibold">Час виконання</h2>
           <div className="grid grid-cols-2 gap-2 xl:grid-cols-5">
             {STAGES.map(({ key, label }) => <StageTile key={key} label={label} minutes={totals[key]} />)}
-            <StageTile label="Загалом" minutes={totalMinutes} accent />
+            <StageTile label="Загалом" minutes={totalMinutes} accent showWorkdays />
           </div>
         </section>
 
@@ -198,7 +252,7 @@ const OrderProcessing = () => {
       </div>
 
       <div className={cn(CARD, 'min-w-0 flex-1 lg:my-1 lg:mr-1')}>
-        <WorkloadCalendar />
+        <WorkloadCalendar depts={['sewing', 'packaging']} data={workload.days} onRangeChange={workload.onRangeChange} />
       </div>
     </div>
   )

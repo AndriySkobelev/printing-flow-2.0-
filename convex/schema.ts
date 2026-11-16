@@ -67,6 +67,7 @@ export const users = {
     v.literal('seamstress'),
     v.literal('tailor'),
     v.literal('brander'),
+    v.literal('packer'),
   ))
 }
 
@@ -157,6 +158,7 @@ const baseRoleValidator = v.union(
   v.literal('seamstress'),
   v.literal('tailor'),
   v.literal('brander'),
+  v.literal('packer'),
 )
 
 // Roles set up in settings. `systemKey` marks the saved name/pages of a built-in

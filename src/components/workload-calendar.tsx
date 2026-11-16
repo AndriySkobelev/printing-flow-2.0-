@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react'
+import { useEffect, useState, useMemo } from 'react'
+import { format } from 'date-fns'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -9,7 +10,10 @@ export type DeptKey = 'cutting' | 'sewing' | 'branding' | 'packaging' | 'subcont
 
 export type WorkloadDay = {
   date: string          // yyyy-mm-dd
-  load: Record<DeptKey, number>   // 0–100
+  load: Partial<Record<DeptKey, number>>   // %, can exceed 100
+  hint?: Partial<Record<DeptKey, string>>
+  // Planned minutes against the day's capacity — summed up for the week.
+  time?: Partial<Record<DeptKey, { minutes: number; capacity: number }>>
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -27,7 +31,7 @@ const DAY_NAMES = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд']
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function toDateStr(d: Date) {
-  return d.toISOString().slice(0, 10)
+  return format(d, 'yyyy-MM-dd')
 }
 
 function getMondayOf(d: Date) {
@@ -52,6 +56,9 @@ function loadColor(pct: number) {
   return '#22c55e'
 }
 
+const formatHours = (minutes: number) =>
+  `${Number((minutes / 60).toFixed(1)).toLocaleString('uk-UA')} год`
+
 function loadBg(pct: number) {
   if (pct >= 90) return '#fef2f2'
   if (pct >= 70) return '#fff7ed'
@@ -61,11 +68,12 @@ function loadBg(pct: number) {
 
 // ─── Month View ───────────────────────────────────────────────────────────────
 
-function MonthView({ year, month, data, today }: {
+function MonthView({ year, month, data, today, depts }: {
   year: number
   month: number
   data: Map<string, WorkloadDay>
   today: string
+  depts: typeof DEPTS
 }) {
   const firstDay = new Date(year, month, 1)
   const lastDay  = new Date(year, month + 1, 0)
@@ -122,10 +130,10 @@ function MonthView({ year, month, data, today }: {
                     {day.getDate()}
                   </span>
 
-                  {entry && isCurrentMonth && DEPTS.map(dept => {
+                  {entry && isCurrentMonth && depts.map(dept => {
                     const pct = entry.load[dept.key] ?? 0
                     return (
-                      <div key={dept.key} className="flex items-center gap-1 min-w-0">
+                      <div key={dept.key} className="flex items-center gap-1 min-w-0" title={entry.hint?.[dept.key]}>
                         <span
                           className="text-[10px] shrink-0 w-[38px] truncate"
                           style={{ color: dept.color }}
@@ -135,11 +143,11 @@ function MonthView({ year, month, data, today }: {
                         <div className="flex-1 h-[4px] rounded-full bg-muted/50 overflow-hidden">
                           <div
                             className="h-full rounded-full"
-                            style={{ width: `${pct}%`, background: loadColor(pct) }}
+                            style={{ width: `${Math.min(100, pct)}%`, background: loadColor(pct) }}
                           />
                         </div>
                         <span
-                          className="text-[10px] font-medium shrink-0 w-[22px] text-right tabular-nums"
+                          className="text-[10px] font-medium shrink-0 w-[28px] text-right tabular-nums"
                           style={{ color: pct > 0 ? loadColor(pct) : undefined }}
                         >
                           {pct > 0 ? `${pct}%` : ''}
@@ -159,12 +167,19 @@ function MonthView({ year, month, data, today }: {
 
 // ─── Week View ────────────────────────────────────────────────────────────────
 
-function WeekView({ monday, data, today }: {
+function WeekView({ monday, data, today, depts }: {
   monday: Date
   data: Map<string, WorkloadDay>
   today: string
+  depts: typeof DEPTS
 }) {
-  const days = Array.from({ length: 7 }, (_, i) => addDays(monday, i))
+  const days    = Array.from({ length: 7 }, (_, i) => addDays(monday, i))
+  const entries = days.map(d => data.get(toDateStr(d)))
+  const hasTime = entries.some(e => e?.time)
+  const weekTime = (key: DeptKey) => entries.reduce(
+    (sum, e) => ({ minutes: sum.minutes + (e?.time?.[key]?.minutes ?? 0), capacity: sum.capacity + (e?.time?.[key]?.capacity ?? 0) }),
+    { minutes: 0, capacity: 0 },
+  )
 
   return (
     <div className="flex-1 overflow-auto">
@@ -196,13 +211,26 @@ function WeekView({ monday, data, today }: {
           </tr>
         </thead>
         <tbody>
-          {DEPTS.map(dept => (
+          {depts.map(dept => (
             <tr key={dept.key}>
               <td className="border border-border p-2 bg-muted/10">
-                <div className="flex items-center gap-2">
-                  <span className="size-2.5 rounded-full shrink-0" style={{ background: dept.color }} />
-                  <span className="text-sm font-medium">{dept.label}</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="size-2 rounded-full shrink-0" style={{ background: dept.color }} />
+                  <span className="text-xs font-medium text-muted-foreground">{dept.label}</span>
                 </div>
+                {hasTime && (() => {
+                  const { minutes, capacity } = weekTime(dept.key)
+                  const pct = capacity > 0 ? Math.round((minutes / capacity) * 100) : minutes > 0 ? 100 : 0
+                  return (
+                    <div className="mt-1 flex flex-col tabular-nums">
+                      <span className="text-sm font-semibold">{formatHours(minutes)}</span>
+                      <span className="whitespace-nowrap text-[11px] text-muted-foreground">
+                        {`з ${formatHours(capacity)} · `}
+                        <span style={{ color: pct > 0 ? loadColor(pct) : undefined }}>{`${pct}%`}</span>
+                      </span>
+                    </div>
+                  )
+                })()}
               </td>
               {days.map((d, di) => {
                 const str   = toDateStr(d)
@@ -210,7 +238,7 @@ function WeekView({ monday, data, today }: {
                 const pct   = entry?.load[dept.key] ?? 0
 
                 return (
-                  <td key={di} className="border border-border p-2">
+                  <td key={di} className="border border-border p-2" title={entry?.hint?.[dept.key]}>
                     <div
                       className="rounded-md p-2 flex flex-col gap-1.5"
                       style={{ background: pct > 0 ? loadBg(pct) : undefined }}
@@ -226,7 +254,7 @@ function WeekView({ monday, data, today }: {
                       <div className="h-1.5 rounded-full bg-muted overflow-hidden">
                         <div
                           className="h-full rounded-full transition-all"
-                          style={{ width: `${pct}%`, background: loadColor(pct) }}
+                          style={{ width: `${Math.min(100, pct)}%`, background: loadColor(pct) }}
                         />
                       </div>
                     </div>
@@ -247,15 +275,24 @@ type View = 'month' | 'week'
 
 type Props = {
   data?: WorkloadDay[]
+  depts?: DeptKey[]
+  // First and last visible day, yyyy-mm-dd.
+  onRangeChange?: (from: string, to: string) => void
   className?: string
 }
 
-export function WorkloadCalendar({ data = [], className }: Props) {
+export function WorkloadCalendar({ data = [], depts: deptKeys, onRangeChange, className }: Props) {
   const [view, setView]       = useState<View>('month')
   const [current, setCurrent] = useState(() => new Date())
 
   const today  = toDateStr(new Date())
   const monday = getMondayOf(current)
+  const depts  = deptKeys ? DEPTS.filter(d => deptKeys.includes(d.key)) : DEPTS
+
+  const rangeStart = view === 'month' ? getMondayOf(new Date(current.getFullYear(), current.getMonth(), 1)) : monday
+  const rangeFrom  = toDateStr(rangeStart)
+  const rangeTo    = toDateStr(addDays(rangeStart, view === 'month' ? 41 : 6))
+  useEffect(() => onRangeChange?.(rangeFrom, rangeTo), [rangeFrom, rangeTo])
 
   const dataMap = useMemo(
     () => new Map(data.map(d => [d.date, d])),
@@ -342,12 +379,14 @@ export function WorkloadCalendar({ data = [], className }: Props) {
             month={current.getMonth()}
             data={dataMap}
             today={today}
+            depts={depts}
           />
         ) : (
           <WeekView
             monday={monday}
             data={dataMap}
             today={today}
+            depts={depts}
           />
         )}
       </div>

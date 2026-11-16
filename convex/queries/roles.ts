@@ -13,6 +13,7 @@ const baseRoleValidator = v.union(
   v.literal('seamstress'),
   v.literal('tailor'),
   v.literal('brander'),
+  v.literal('packer'),
 )
 
 type BaseRole = Doc<'roles'>['baseRole']

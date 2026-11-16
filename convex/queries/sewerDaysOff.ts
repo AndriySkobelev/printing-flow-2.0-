@@ -65,3 +65,23 @@ export const deleteSewerDayOff = mutation({
     await ctx.db.delete(id)
   },
 })
+
+const isWorkday = (day: number) => {
+  const weekday = new Date(day).getUTCDay()
+  return weekday !== 0 && weekday !== 6
+}
+
+// Each day (UTC midnight) in `from`–`to` with how many of the users work it:
+// none at weekends, and minus those on a day off.
+export const workingCountByDay = async (ctx: QueryCtx, userIds: Id<'users'>[], from: number, to: number) => {
+  const start   = utcDayStart(from)
+  const end     = utcDayStart(to)
+  const ids     = new Set<string>(userIds)
+  const daysOff = (await overlapping(ctx, start, end)).filter(p => ids.has(p.userId))
+  const days: { day: number; working: number }[] = []
+  for (let day = start; day <= end; day += DAY_MS) {
+    const absent = new Set(daysOff.filter(p => p.from <= day && p.to >= day).map(p => p.userId))
+    days.push({ day, working: isWorkday(day) ? ids.size - absent.size : 0 })
+  }
+  return days
+}

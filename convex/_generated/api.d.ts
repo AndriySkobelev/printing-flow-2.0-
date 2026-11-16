@@ -13,6 +13,7 @@ import type * as http from "../http.js";
 import type * as http_actions_googleSheets from "../http_actions/googleSheets.js";
 import type * as http_actions_orders from "../http_actions/orders.js";
 import type * as http_actions_products from "../http_actions/products.js";
+import type * as lib_packingDuration from "../lib/packingDuration.js";
 import type * as lib_roles from "../lib/roles.js";
 import type * as lib_sewingDuration from "../lib/sewingDuration.js";
 import type * as queries_branding from "../queries/branding.js";
@@ -52,6 +53,7 @@ declare const fullApi: ApiFromModules<{
   "http_actions/googleSheets": typeof http_actions_googleSheets;
   "http_actions/orders": typeof http_actions_orders;
   "http_actions/products": typeof http_actions_products;
+  "lib/packingDuration": typeof lib_packingDuration;
   "lib/roles": typeof lib_roles;
   "lib/sewingDuration": typeof lib_sewingDuration;
   "queries/branding": typeof queries_branding;

@@ -12,6 +12,7 @@ export const USER_ROLES: UserRole[] = [
   'seamstress',
   'tailor',
   'brander',
+  'packer',
 ]
 
 // Roles a custom role can build on — super_admin is never handed out that way.
@@ -24,6 +25,7 @@ export const ROLE_LABELS: Record<UserRole, string> = {
   seamstress:  'Швачка',
   tailor:      'Кравець',
   brander:     'Брендер',
+  packer:      'Пакувальник',
 }
 
 // Default "who can see this page", keyed by route path. A role's pages edited
@@ -39,7 +41,7 @@ export const PAGE_ROLES: Record<string, UserRole[]> = {
   '/app/planner':             [SUPER_ADMIN, 'admin', 'manager'],
   '/app/production-cut':      [SUPER_ADMIN, 'admin', 'manager', 'tailor'],
   '/app/branding':            [SUPER_ADMIN, 'admin', 'manager', 'brander'],
-  '/app/packing-list':        [SUPER_ADMIN, 'admin', 'manager'],
+  '/app/packing-list':        [SUPER_ADMIN, 'admin', 'manager', 'packer'],
   '/app/sewing-tasks':        [SUPER_ADMIN, 'admin', 'seamstress'],
   '/app/materials':           [SUPER_ADMIN, 'admin'],
   '/app/fabrics':             [SUPER_ADMIN, 'admin'],

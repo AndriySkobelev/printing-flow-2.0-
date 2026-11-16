@@ -6,7 +6,8 @@ import type { Doc } from '../_generated/dataModel'
 import { getAuthUserId } from '@convex-dev/auth/server'
 import { UTCDate } from '@date-fns/utc'
 import { taskDurationMinutes, SEWER_DAY_CAPACITY } from '../lib/sewingDuration'
-import { getSewerDaysOffSet, requirePlanner } from './sewerDaysOff'
+import { getSewerDaysOffSet, requirePlanner, workingCountByDay } from './sewerDaysOff'
+import { requirePage } from './roles'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
@@ -459,6 +460,42 @@ export const getSewerUsers = query({
         lastName:    u.lastName ?? '',
         coefficient: u.sewingCoefficient ?? 1,
       }))
+  },
+})
+
+// Planned sewing minutes per day (UTC midnight) in `from`–`to`, against the
+// capacity of the sewers who work that day.
+export const getSewingLoadByDay = query({
+  args: {
+    from: v.number(),
+    to:   v.number(),
+  },
+  handler: async (ctx, { from, to }) => {
+    await requirePage(ctx, '/app/order-processing')
+    const start = utcDayStart(from)
+    const end   = utcDayStart(to)
+
+    const users  = await ctx.db.query('users').collect()
+    const sewers = users.filter(u => u.role === 'seamstress' || u.role === 'tailor')
+    const coefficients = new Map(users.map(u => [String(u._id), u.sewingCoefficient]))
+
+    const subTasks = await ctx.db
+      .query('sewingSubTasks')
+      .withIndex('by_startDate', q => q.gte('startDate', start).lt('startDate', end + DAY_MS))
+      .collect()
+
+    const norms = new Map<string, number | undefined>()
+    const minutesByDay = new Map<number, number>()
+    for (const st of subTasks) {
+      const itemKey = String(st.productionOrderItemId)
+      if (!norms.has(itemKey)) norms.set(itemKey, await getSewingNorm(ctx, st.productionOrderItemId))
+      const day = utcDayStart(st.startDate!)
+      const coefficient = st.assignedTo ? coefficients.get(String(st.assignedTo)) : undefined
+      minutesByDay.set(day, (minutesByDay.get(day) ?? 0) + taskDurationMinutes(st.quantity, st.extraWorks, norms.get(itemKey), coefficient))
+    }
+
+    const days = await workingCountByDay(ctx, sewers.map(s => s._id), start, end)
+    return days.map(({ day, working }) => ({ day, minutes: minutesByDay.get(day) ?? 0, capacity: working * SEWER_DAY_CAPACITY }))
   },
 })
 
