@@ -1,6 +1,6 @@
 import { v } from 'convex/values'
 import { getAuthUserId } from '@convex-dev/auth/server'
-import { mutation, query, type QueryCtx } from '../_generated/server'
+import { internalQuery, mutation, query, type QueryCtx } from '../_generated/server'
 import type { Doc } from '../_generated/dataModel'
 import {
   ALL_PAGES, BASE_ROLES, ROLE_LABELS, allPermissions, can, getDefaultRolePages, getUserPages,
@@ -32,6 +32,12 @@ export const requirePage = async (ctx: QueryCtx, page: string) => {
   if (!getUserPages(me).includes(page)) throw new Error('Forbidden')
   return me
 }
+
+// For actions, which can't read the db themselves.
+export const checkPage = internalQuery({
+  args: { page: v.string() },
+  handler: async (ctx, { page }) => { await requirePage(ctx, page) },
+})
 
 // For mutations: the signed-in user's role must allow the action on the page.
 export const requirePermission = async (ctx: QueryCtx, page: string, action: PageAction) => {

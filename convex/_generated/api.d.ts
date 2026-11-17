@@ -11,6 +11,7 @@
 import type * as auth from "../auth.js";
 import type * as http from "../http.js";
 import type * as http_actions_googleSheets from "../http_actions/googleSheets.js";
+import type * as http_actions_opendatabot from "../http_actions/opendatabot.js";
 import type * as http_actions_orders from "../http_actions/orders.js";
 import type * as http_actions_products from "../http_actions/products.js";
 import type * as lib_packingDuration from "../lib/packingDuration.js";
@@ -51,6 +52,7 @@ declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   http: typeof http;
   "http_actions/googleSheets": typeof http_actions_googleSheets;
+  "http_actions/opendatabot": typeof http_actions_opendatabot;
   "http_actions/orders": typeof http_actions_orders;
   "http_actions/products": typeof http_actions_products;
   "lib/packingDuration": typeof lib_packingDuration;

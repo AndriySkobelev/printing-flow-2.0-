@@ -11,6 +11,8 @@ import { type Doc, type Id } from 'convex/_generated/dataModel'
 import { useAppForm } from '@/components/main-form'
 import { Button } from '@/components/ui/button'
 import { WorkloadCalendar, type WorkloadDay } from '@/components/workload-calendar'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { RegistrationLookup } from './components/registration-lookup'
 import { MaterialRequirementRow, isMaterialSufficient } from '@/components/material-requirement-row'
 import { cn } from '@/lib/utils'
 
@@ -169,92 +171,103 @@ const OrderProcessing = () => {
   const allSufficient = visibleMaterials.every(isMaterialSufficient)
 
   return (
-    <div className="flex h-full flex-col gap-3 overflow-y-auto p-3 lg:flex-row lg:overflow-hidden">
-      <div className="flex min-w-0 flex-1 flex-col gap-3 p-1 lg:overflow-y-auto">
-        <section className={CARD}>
-          <h2 className="text-sm font-semibold">Вироби</h2>
-          <form.Field name="lines" mode="array">
-            {(field) => (
-              <div className="flex flex-col gap-3">
-                {lines.map((line, i) => (
-                  <div key={i} className="flex flex-col gap-1">
-                    <div className="flex items-end gap-2">
-                      <form.AppField
-                        name={`lines[${i}].specificationId`}
-                        children={(f) => (
-                          <f.FormSelect
-                            label="Виріб"
-                            className="flex-3 min-w-0"
-                            options={specOptions}
-                            addOnChange={() => form.setFieldValue(`lines[${i}].color`, null)}
+    <Tabs defaultValue="processing" className="flex h-full flex-col gap-0">
+      <TabsList className="mx-4 mt-3">
+        <TabsTrigger value="processing">Прорахунок</TabsTrigger>
+        <TabsTrigger value="registration">Реєстраційні дані</TabsTrigger>
+      </TabsList>
+      <TabsContent value="registration" className="min-h-0 overflow-y-auto p-3">
+        <RegistrationLookup />
+      </TabsContent>
+      <TabsContent value="processing" className="min-h-0">
+        <div className="flex h-full flex-col gap-3 overflow-y-auto p-3 lg:flex-row lg:overflow-hidden">
+          <div className="flex min-w-0 flex-1 flex-col gap-3 p-1 lg:overflow-y-auto">
+            <section className={CARD}>
+              <h2 className="text-sm font-semibold">Вироби</h2>
+              <form.Field name="lines" mode="array">
+                {(field) => (
+                  <div className="flex flex-col gap-3">
+                    {lines.map((line, i) => (
+                      <div key={i} className="flex flex-col gap-1">
+                        <div className="flex items-end gap-2">
+                          <form.AppField
+                            name={`lines[${i}].specificationId`}
+                            children={(f) => (
+                              <f.FormSelect
+                                label="Виріб"
+                                className="flex-3 min-w-0"
+                                options={specOptions}
+                                addOnChange={() => form.setFieldValue(`lines[${i}].color`, null)}
+                              />
+                            )}
                           />
+                          <ColorField form={form} index={i} specificationId={line.specificationId} />
+                          <form.AppField
+                            name={`lines[${i}].quantity`}
+                            children={(f) => <f.FormTextNumberField type="number" label="Кількість" className="flex-1 min-w-16" />}
+                          />
+                          <form.AppField
+                            name={`lines[${i}].prints`}
+                            children={(f) => <f.FormTextNumberField type="number" label="Друків" className="flex-1 min-w-16" />}
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="size-[38px] shrink-0 text-muted-foreground"
+                            disabled={lines.length === 1}
+                            onClick={() => field.removeValue(i)}
+                          >
+                            <Trash2 size={16} />
+                          </Button>
+                        </div>
+                        {STAGES.some(({ key }) => lineMinutes[i][key] > 0) && (
+                          <p className="ml-2 text-[11px] text-muted-foreground">
+                            {STAGES.map(({ key, label }) => `${label} ${formatHours(lineMinutes[i][key])}`).join(' · ')}
+                          </p>
                         )}
-                      />
-                      <ColorField form={form} index={i} specificationId={line.specificationId} />
-                      <form.AppField
-                        name={`lines[${i}].quantity`}
-                        children={(f) => <f.FormTextNumberField type="number" label="Кількість" className="flex-1 min-w-16" />}
-                      />
-                      <form.AppField
-                        name={`lines[${i}].prints`}
-                        children={(f) => <f.FormTextNumberField type="number" label="Друків" className="flex-1 min-w-16" />}
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="size-[38px] shrink-0 text-muted-foreground"
-                        disabled={lines.length === 1}
-                        onClick={() => field.removeValue(i)}
-                      >
-                        <Trash2 size={16} />
-                      </Button>
-                    </div>
-                    {STAGES.some(({ key }) => lineMinutes[i][key] > 0) && (
-                      <p className="ml-2 text-[11px] text-muted-foreground">
-                        {STAGES.map(({ key, label }) => `${label} ${formatHours(lineMinutes[i][key])}`).join(' · ')}
-                      </p>
-                    )}
+                      </div>
+                    ))}
+                    <Button type="button" variant="secondary" className="self-start" onClick={() => field.pushValue(EMPTY_LINE)}>
+                      <Plus size={14} /> Додати виріб
+                    </Button>
                   </div>
-                ))}
-                <Button type="button" variant="secondary" className="self-start" onClick={() => field.pushValue(EMPTY_LINE)}>
-                  <Plus size={14} /> Додати виріб
-                </Button>
+                )}
+              </form.Field>
+            </section>
+
+            <section className={CARD}>
+              <h2 className="text-sm font-semibold">Час виконання</h2>
+              <div className="grid grid-cols-2 gap-2 xl:grid-cols-5">
+                {STAGES.map(({ key, label }) => <StageTile key={key} label={label} minutes={totals[key]} />)}
+                <StageTile label="Загалом" minutes={totalMinutes} accent showWorkdays />
               </div>
-            )}
-          </form.Field>
-        </section>
+            </section>
 
-        <section className={CARD}>
-          <h2 className="text-sm font-semibold">Час виконання</h2>
-          <div className="grid grid-cols-2 gap-2 xl:grid-cols-5">
-            {STAGES.map(({ key, label }) => <StageTile key={key} label={label} minutes={totals[key]} />)}
-            <StageTile label="Загалом" minutes={totalMinutes} accent showWorkdays />
+            <section className={CARD}>
+              <div className="flex items-center gap-2">
+                <h2 className="text-sm font-semibold">Матеріали</h2>
+                {visibleMaterials.length > 0 && (
+                  <span className={cn(
+                    'rounded-full px-1.5 py-0.5 text-[10px] font-medium',
+                    allSufficient ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700',
+                  )}>
+                    {allSufficient ? 'Достатньо' : 'Недостатньо'}
+                  </span>
+                )}
+              </div>
+              {visibleMaterials.length > 0
+                ? <div className="flex flex-col gap-1.5">{visibleMaterials.map((row, i) => <MaterialRequirementRow key={i} row={row} />)}</div>
+                : <p className="text-xs text-muted-foreground">Виберіть виріб, колір і кількість</p>}
+            </section>
           </div>
-        </section>
 
-        <section className={CARD}>
-          <div className="flex items-center gap-2">
-            <h2 className="text-sm font-semibold">Матеріали</h2>
-            {visibleMaterials.length > 0 && (
-              <span className={cn(
-                'rounded-full px-1.5 py-0.5 text-[10px] font-medium',
-                allSufficient ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700',
-              )}>
-                {allSufficient ? 'Достатньо' : 'Недостатньо'}
-              </span>
-            )}
+          <div className={cn(CARD, 'min-w-0 flex-1 lg:my-1 lg:mr-1')}>
+            <WorkloadCalendar depts={['sewing', 'packaging']} data={workload.days} onRangeChange={workload.onRangeChange} />
           </div>
-          {visibleMaterials.length > 0
-            ? <div className="flex flex-col gap-1.5">{visibleMaterials.map((row, i) => <MaterialRequirementRow key={i} row={row} />)}</div>
-            : <p className="text-xs text-muted-foreground">Виберіть виріб, колір і кількість</p>}
-        </section>
-      </div>
-
-      <div className={cn(CARD, 'min-w-0 flex-1 lg:my-1 lg:mr-1')}>
-        <WorkloadCalendar depts={['sewing', 'packaging']} data={workload.days} onRangeChange={workload.onRangeChange} />
-      </div>
-    </div>
+        </div>
+      </TabsContent>
+    </Tabs>
   )
 }
 
