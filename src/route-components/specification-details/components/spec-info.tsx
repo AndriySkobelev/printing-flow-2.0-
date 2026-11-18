@@ -3,10 +3,11 @@ import { Clock, Scissors, Package, Palette, DollarSign } from 'lucide-react'
 
 type Material = {
   name?: string
+  lineName?: string
   color?: string
   size?: string
   quantity: number | string
-  units: string
+  units?: string
   type?: string
 }
 
@@ -87,7 +88,7 @@ export const SpecInfo = ({ spec }: Props) => (
           {spec.materials.map((m, i) => (
             <div key={i} className="flex flex-col gap-0.5">
               <div className="flex items-center justify-between gap-2">
-                <span className="text-xs font-medium truncate">{m.name ?? '—'}</span>
+                <span className="text-xs font-medium truncate">{m.lineName ? `${m.lineName} · ${m.name ?? '—'}` : (m.name ?? '—')}</span>
                 <span className="text-xs text-muted-foreground shrink-0">{m.quantity} {m.units}</span>
               </div>
               {(m.color || m.size) && (

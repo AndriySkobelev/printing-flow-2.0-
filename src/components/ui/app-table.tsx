@@ -1,5 +1,5 @@
-import { lazy, Suspense, useState } from 'react';
-import { type HeaderObject, type CellClickProps, QuickFilterConfig, RowSelectionChangeProps} from 'simple-table-core';
+import { lazy, Suspense, useState, useId } from 'react';
+import { type HeaderObject, type CellClickProps, type OnRowGroupExpandProps, QuickFilterConfig, RowSelectionChangeProps} from 'simple-table-core';
 import { Search } from 'lucide-react';
 import { Spinner } from '@/components/ui/spinner';
 import { Input } from '@/components/ui/input';
@@ -37,12 +37,37 @@ interface AppTableProps {
   searchPlaceholder?: string;
   // Restricts the search box to these accessors instead of every column.
   columnSearch?: string[];
+  // Rendered before the search box, on the same row (e.g. an "add" button).
+  toolbar?: React.ReactNode;
+  // Highlights the row whose getRowId equals this (e.g. the one picked by a click).
+  selectedRowId?: string | null;
+  rowHeight?: number;
+  onRowGroupExpand?: (props: OnRowGroupExpandProps) => void | Promise<void>;
+  loadingStateRenderer?: React.ReactNode;
+  errorStateRenderer?: React.ReactNode;
+  tableEmptyStateRenderer?: React.ReactNode;
 }
 
-const AppTable = ({ fallback, className, defaultHeaders, height, rows, isLoading, getRowId, withSearch, searchPlaceholder, columnSearch, quickFilter, ...props }: AppTableProps) => {
+const AppTable = ({ fallback, className, defaultHeaders, height, rows, isLoading, getRowId, withSearch, searchPlaceholder, columnSearch, quickFilter, toolbar, selectedRowId, rowHeight = 40, ...props }: AppTableProps) => {
   const [search, setSearch] = useState('');
+  const tableId = useId();
+
+  // simple-table has no row-class API; its cells carry data-row-id = "<index path>-<getRowId>".
+  const selectedStyle = selectedRowId && (
+    <style>{`
+      [data-app-table="${tableId}"] .st-cell[data-row-id$="-${CSS.escape(selectedRowId)}"] {
+        background-color: color-mix(in oklab, var(--primary) 10%, var(--background, #fff));
+        font-weight: 600;
+      }
+      [data-app-table="${tableId}"] .st-cell[data-row-id$="-${CSS.escape(selectedRowId)}"][data-col-index="0"] {
+        box-shadow: inset 3px 0 0 var(--primary);
+      }
+    `}</style>
+  );
 
   const table = (
+    <div data-app-table={tableId} className="contents">
+    {selectedStyle}
     <Suspense fallback={fallback ?? <div className="flex items-center justify-center w-full h-32"><Spinner className="w-5 h-5" /></div>}>
       <SimpleTable
         rows={rows}
@@ -52,24 +77,28 @@ const AppTable = ({ fallback, className, defaultHeaders, height, rows, isLoading
         isLoading={isLoading}
         theme={'modern-light'}
         className={className}
-        customTheme={{ rowHeight: 40, headerHeight: 50 }}
+        customTheme={{ rowHeight, headerHeight: 50 }}
         quickFilter={withSearch ? { mode: 'smart', text: search, caseSensitive: false, columns: columnSearch } : quickFilter}
         {...props}  />
     </Suspense>
+    </div>
   );
 
   if (!withSearch) return table;
 
   return (
     <div className="flex flex-col gap-2 h-full min-h-0">
-      <div className="relative w-64 shrink-0">
-        <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-        <Input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder={searchPlaceholder ?? 'Пошук...'}
-          className="h-8 pl-8 text-sm"
-        />
+      <div className="flex items-center gap-2 shrink-0">
+        {toolbar}
+        <div className="relative w-64">
+          <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={searchPlaceholder ?? 'Пошук...'}
+            className="h-8 pl-8 text-sm"
+          />
+        </div>
       </div>
       <div className="flex-1 min-h-0">
         {table}

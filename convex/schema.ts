@@ -20,6 +20,7 @@ import {
   packagingLogsTable,
 } from './schemas/prdouction';
 import {
+  suppliersTable,
   fabricsTable,
   fabricVariantsTable,
   fabricColorsTable,
@@ -44,7 +45,17 @@ export const users = {
   isAnonymous: v.optional(v.boolean()),
   birthday: v.optional(v.string()),
   workHours: v.optional(v.number()),
+  // Multiplies a sewer's planned sewing time: 1.2 = 20% slower. Missing = 1.
+  sewingCoefficient: v.optional(v.number()),
   startDate: v.optional(v.string()),
+  // false for users who signed up themselves and wait for a super_admin to let
+  // them in; missing on accounts that existed before approval was introduced.
+  isApproved: v.optional(v.boolean()),
+  // Per-user page access override (route paths from PAGE_ROLES). When missing,
+  // access falls back to the role defaults.
+  allowedPages: v.optional(v.array(v.string())),
+  // A custom role from `roles`; `role` then holds its base role.
+  roleId: v.optional(v.id('roles')),
   developingSpecification: v.optional(v.array(v.object({
     specificationId: v.id('specifications'),
     developingTime:  v.number(),
@@ -56,6 +67,7 @@ export const users = {
     v.literal('seamstress'),
     v.literal('tailor'),
     v.literal('brander'),
+    v.literal('packer'),
   ))
 }
 
@@ -105,6 +117,19 @@ const plannerEventsTable = defineTable(plannerEventsSchema)
   .index('by_date', ['date'])
   .index('by_sewer_date', ['sewerId', 'date'])
 
+// A sewer's days off, `from`–`to` inclusive, both UTC midnight like sub-task days.
+export const sewerDaysOffSchema = {
+  userId:    v.id('users'),
+  from:      v.number(),
+  to:        v.number(),
+  note:      v.optional(v.string()),
+  createdBy: v.id('users'),
+}
+
+const sewerDaysOffTable = defineTable(sewerDaysOffSchema)
+  .index('by_userId_to', ['userId', 'to'])
+  .index('by_to', ['to'])
+
 // Singleton row (there should only ever be one document in this table) holding
 // system-wide toggles — see convex/queries/settings.ts.
 export const systemSettingsSchema = {
@@ -116,6 +141,78 @@ export const systemSettingsSchema = {
 }
 
 const systemSettingsTable = defineTable(systemSettingsSchema)
+
+// Catalog of extra work that can be added to a sewing sub-task (planner),
+// e.g. "Пришити бирку". Time is per unit; price is for future payroll.
+export const extraWorksSchema = {
+  name:           v.string(),
+  minutesPerUnit: v.number(),
+  price:          v.optional(v.number()),
+}
+
+const extraWorksTable = defineTable(extraWorksSchema)
+
+const baseRoleValidator = v.union(
+  v.literal('admin'),
+  v.literal('manager'),
+  v.literal('seamstress'),
+  v.literal('tailor'),
+  v.literal('brander'),
+  v.literal('packer'),
+)
+
+// Roles set up in settings. `systemKey` marks the saved name/pages of a built-in
+// role (missing → the defaults in convex/lib/roles.ts). Without it the role is
+// custom: its users get `baseRole` as their `role`, so they keep that role's
+// server-side permissions, and see `pages`.
+export const rolesSchema = {
+  name:      v.string(),
+  pages:     v.array(v.string()),
+  baseRole:  baseRoleValidator,
+  systemKey: v.optional(baseRoleValidator),
+  // Keys from PAGE_ACTIONS (convex/lib/roles.ts); missing = every action on `pages`.
+  permissions: v.optional(v.array(v.string())),
+}
+
+const rolesTable = defineTable(rolesSchema)
+
+const invoicePartyV = v.object({ name: v.string(), code: v.string() })
+
+// Invoices made on the order processing page: the form as filled in, plus the
+// invoice PDF generated from it; its waybills are in `waybills`.
+export const invoicesSchema = {
+  supplierId:    v.string(),
+  // Whether the payer was on the single tax when looked up — limits suppliers.
+  payerTax:      v.optional(v.union(v.literal('singleTax'), v.literal('other'))),
+  payer:         invoicePartyV,
+  recipient:     invoicePartyV,
+  orderNumber:   v.string(),
+  date:          v.number(),
+  contract:      v.string(),
+  lines:         v.array(v.object({ name: v.string(), unit: v.string(), quantity: v.string(), price: v.string() })),
+  total:         v.number(),
+  invoiceFileId: v.optional(v.id('_storage')),
+  searchText:    v.string(),
+  createdBy:     v.id('users'),
+  updatedAt:     v.number(),
+}
+
+const invoicesTable = defineTable(invoicesSchema)
+
+// Waybills made from a saved invoice — one per order number given at the time;
+// generating again with the same number replaces it.
+export const waybillsSchema = {
+  invoiceId:   v.id('invoices'),
+  orderNumber: v.string(),
+  date:        v.number(),
+  lines:       invoicesSchema.lines,
+  total:       v.number(),
+  fileId:      v.id('_storage'),
+  createdBy:   v.id('users'),
+  updatedAt:   v.number(),
+}
+
+const waybillsTable = defineTable(waybillsSchema)
 
 export type Materials = Doc<'materials'>;
 export type MaterialVariants = Doc<'materialVariants'>;
@@ -136,6 +233,7 @@ export default defineSchema({
   cuttingTaskSizes: cuttingTaskSizesTable,
   sewingTasks: sewingTasksTable,
   sewingSubTasks: sewingSubTasksTable,
+  extraWorks: extraWorksTable,
   sewingLogs: sewingLogsTable,
   brandingTasks: brandingTasksTable,
   fabricColors: fabricColorsTable
@@ -145,10 +243,18 @@ export default defineSchema({
   packagingLogs: packagingLogsTable,
   subcontractorTasks: subcontractorTasksTable,
   productionOrderLogs: productionOrderLogsTable,
-  users: usersTable.index("email", ["email"]),
+  users: usersTable.index("email", ["email"]).index('by_roleId', ['roleId']),
+  roles: rolesTable.index('by_systemKey', ['systemKey']),
+  invoices: invoicesTable
+    .index('by_updatedAt', ['updatedAt'])
+    .index('by_orderNumber', ['orderNumber'])
+    .searchIndex('search_text', { searchField: 'searchText' }),
+  waybills: waybillsTable.index('by_invoice_orderNumber', ['invoiceId', 'orderNumber']),
   orders: ordersTable.index("orderId", ["orderId"]),
+  suppliers: suppliersTable.index('by_name', ['name']),
   fabrics: fabricsTable
     .index('by_name', ['name'])
+    .index('by_supplierId', ['supplierId'])
     .searchIndex('search_name', {
       searchField: 'name',
     })
@@ -178,6 +284,7 @@ export default defineSchema({
   storeMovements: icomingMaterialsTable
     .index('by_materialId', ['materialId']),
   plannerEvents: plannerEventsTable,
+  sewerDaysOff: sewerDaysOffTable,
   reservations: reservationsTable
     .index('by_productionOrderItemId', ['productionOrderItemId'])
     .index('by_materialId', ['materialId'])

@@ -4,9 +4,9 @@ import { convexQuery } from '@convex-dev/react-query'
 import { api } from 'convex/_generated/api'
 import { PackageSearch } from 'lucide-react'
 import { ExpandableSection } from '@/components/ui/expandable-section'
-import { DaySwitcher, getTodayDayMs, startOfUTCDay } from '@/components/ui/day-switcher'
+import { DaySwitcher, getTodayDayMs } from '@/components/ui/day-switcher'
 import { PackTaskCard } from './components/pack-task-card'
-import { isPackagingTaskDone } from './helpers'
+import { isPackagingTaskDone, localDayMs } from './helpers'
 import { type PackagingTask } from './types'
 
 const PackingListPage = () => {
@@ -16,7 +16,7 @@ const PackingListPage = () => {
     convexQuery(api.queries.packaging.getAllPackagingTasks, {})
   )
 
-  const dayTasks = tasks.filter(t => startOfUTCDay(t.startDate) === selectedDay)
+  const dayTasks = tasks.filter(t => localDayMs(t.plannedShipDate ?? t.endDate) === selectedDay)
 
   const active = dayTasks.filter(t => !isPackagingTaskDone(t as PackagingTask))
   const done   = dayTasks.filter(t => isPackagingTaskDone(t as PackagingTask))

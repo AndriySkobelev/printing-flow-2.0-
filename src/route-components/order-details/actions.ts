@@ -150,3 +150,17 @@ export const useUploadOrderFile = (productionOrderId: string) => {
     }
   }
 }
+
+export const useUpdateOrderItemSpecMaterials = () =>
+  useMutation({
+    mutationFn: useConvexMutation(api.queries.orderItemSpec.updateOrderItemSpecMaterials),
+    onError: (e: Error) => toast.error(e.message),
+    onSuccess: () => toast.success('Специфікацію збережено'),
+  })
+
+export const useResetOrderItemSpecMaterials = () =>
+  useMutation({
+    mutationFn: useConvexMutation(api.queries.orderItemSpec.resetOrderItemSpecMaterials),
+    onError: (e: Error) => toast.error(e.message),
+    onSuccess: () => toast.success('Специфікацію скинуто до базової'),
+  })

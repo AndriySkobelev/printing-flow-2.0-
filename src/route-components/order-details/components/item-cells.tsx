@@ -1,7 +1,7 @@
 import { useCallback, useContext, useState } from 'react'
 import { type HeaderObject } from 'simple-table-core'
 import { type Id } from 'convex/_generated/dataModel'
-import { MessageSquare, Pencil, Warehouse, Trash2, SquareSplitHorizontal, Save, CheckCheck } from 'lucide-react'
+import { MessageSquare, Pencil, Warehouse, Trash2, SquareSplitHorizontal, Save, CheckCheck, Layers } from 'lucide-react'
 import { ActionsMenu } from '@/components/actions-menu'
 import { MyPopover } from '@/components/my-popover'
 import { Textarea } from '@/components/ui/text-area'
@@ -13,10 +13,13 @@ import {
   useUpdateOrderItemDestination,
   useUpdateOrderItem,
   useDeleteProductionOrderItem,
+  useUpdateOrderItemSpecMaterials,
+  useResetOrderItemSpecMaterials,
 } from '../actions'
 import { type OrderItem, BRANDING_LABELS } from '../types'
 import { SplitItemForm } from '../forms/split-item-form'
 import { EditItemForm } from '../forms/edit-item-form'
+import { ItemSpecForm } from '../forms/item-spec-form'
 
 // ─── Cells ────────────────────────────────────────────────────────────────────
 
@@ -234,6 +237,8 @@ const RowActionsCell = ({ row }: { row: Record<string, unknown> }) => {
   const { mutateAsync: updateDestination } = useUpdateOrderItemDestination()
   const { mutate: updateItem }             = useUpdateOrderItem()
   const { mutate: deleteItem }             = useDeleteProductionOrderItem()
+  const { mutateAsync: updateSpec }        = useUpdateOrderItemSpecMaterials()
+  const { mutateAsync: resetSpec }         = useResetOrderItemSpecMaterials()
 
   const cantSplit   = item.quantity <= 1
   const atWarehouse = item.destination === 'warehouse'
@@ -253,6 +258,30 @@ const RowActionsCell = ({ row }: { row: Record<string, unknown> }) => {
       ),
     })
   }, [item, openDialog, closeDialog, updateItem])
+
+  const handleEditSpec = useCallback(() => {
+    const itemId = item._id as Id<'productionOrderItems'>
+    const id = openDialog({
+      title:     'Специфікація товару',
+      className: 'sm:w-250 sm:max-w-250',
+      withForm:  true,
+      formId:    'item-spec-form',
+      content: (
+        <ItemSpecForm
+          item={item}
+          formId="item-spec-form"
+          onSubmit={async (materials) => {
+            await updateSpec({ itemId, materials })
+            closeDialog(id)
+          }}
+          onReset={async () => {
+            await resetSpec({ itemId })
+            closeDialog(id)
+          }}
+        />
+      ),
+    })
+  }, [item, openDialog, closeDialog, updateSpec, resetSpec])
 
   const handleSplit = useCallback(() => {
     const id = openDialog({
@@ -313,6 +342,7 @@ const RowActionsCell = ({ row }: { row: Record<string, unknown> }) => {
     <ActionsMenu
       items={[
         { label: 'Редагувати',           icon: <Pencil                className="size-3" />, onClick: handleEdit },
+        { label: 'Специфікація',         icon: <Layers                className="size-3" />, onClick: handleEditSpec,       disabled: !item.productId || !!item.inProduction },
         { label: 'Розділити',            icon: <SquareSplitHorizontal className="size-3" />, onClick: handleSplit,          disabled: cantSplit   },
         { label: 'Перемістити на склад', icon: <Warehouse             className="size-3" />, onClick: handleMoveToWarehouse, disabled: atWarehouse },
         { label: 'Видалити',             icon: <Trash2                className="size-3" />, onClick: handleDelete,         destructive: true, disabled: !!item.inProduction },

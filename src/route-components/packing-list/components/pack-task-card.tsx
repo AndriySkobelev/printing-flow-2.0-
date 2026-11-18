@@ -1,16 +1,18 @@
 import { useState } from 'react'
-import { ChevronDown, ChevronRight, Truck, Factory } from 'lucide-react'
+import { ChevronDown, ChevronRight, Truck, Factory, Sparkles, Package, Tag } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { ProgressBar } from '@/components/progress-bar'
 import { BRANDING_LABELS } from '@/route-components/order-details/types'
 import { PackSubTaskRow } from './pack-subtask-row'
 import { PackImages } from './pack-images'
-import { completedByItem, defectByItem, taskTotals, formatDate, SUBCONTRACTOR_TYPE_LABELS } from '../helpers'
+import { completedByItem, defectByItem, taskTotals, formatDate, isStandardPackaging, SUBCONTRACTOR_TYPE_LABELS } from '../helpers'
 import { type PackagingTask } from '../types'
 
 export const PackTaskCard = ({ task }: { task: PackagingTask }) => {
   const [expanded, setExpanded] = useState(false)
 
   const { totalQty, totalDone } = taskTotals(task)
+  const hasCustom = task.subTasks.some(st => st.isCustomCut || st.isCustomSewing || st.hasCustomSpec)
 
   return (
     <div className="border rounded-lg px-4 py-3 flex flex-col gap-3 bg-background">
@@ -20,7 +22,31 @@ export const PackTaskCard = ({ task }: { task: PackagingTask }) => {
         className="flex items-start justify-between gap-2 text-left"
       >
         <div className="flex flex-col gap-0.5 min-w-0">
-          <span className="text-sm font-semibold truncate">#{task.keycrmOrderId}</span>
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className="text-sm font-semibold truncate">#{task.keycrmOrderId}</span>
+            {hasCustom && <Sparkles size={14} className="shrink-0 text-violet-500" />}
+            {task.identifier && (
+              <span
+                title="Ідентифікатор"
+                className="flex items-center gap-1 min-w-0 px-1.5 py-0.5 rounded-full border text-[10px] font-medium"
+              >
+                <Tag size={11} className="shrink-0" />
+                <span className="truncate">{task.identifier}</span>
+              </span>
+            )}
+            {task.packaging && (
+              <span
+                title="Пакування"
+                className={cn(
+                  'flex items-center gap-1 min-w-0 px-1.5 py-0.5 rounded-full text-[10px] font-medium',
+                  isStandardPackaging(task.packaging) ? 'bg-muted text-muted-foreground' : 'bg-amber-100 text-amber-700',
+                )}
+              >
+                <Package size={11} className="shrink-0" />
+                <span className="truncate">{task.packaging}</span>
+              </span>
+            )}
+          </div>
           {task.keycrmManager && (
             <span className="text-xs text-muted-foreground truncate">{task.keycrmManager}</span>
           )}

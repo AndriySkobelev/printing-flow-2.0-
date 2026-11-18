@@ -216,8 +216,9 @@ export const SubcontractorSection = ({ productionOrderId, readOnly }: { producti
           Підрядники ({tasks.length})
         </p>
         {!readOnly && (
-          <Button size="sm" variant="secondary" className="h-6 text-[11px] px-2" onClick={handleAdd}>
-            <Plus size={10} className="mr-1" /> Додати Підряд
+          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={handleAdd}>
+            <Plus size={14} />
+            Додати підряд
           </Button>
         )}
       </div>

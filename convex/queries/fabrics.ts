@@ -3,6 +3,7 @@ import { query, mutation } from "../_generated/server";
 import { fabricsSchema, fabricVariantsSchema } from "../schemas/storage";
 import { v } from "convex/values";
 import fabricsRows from "../../src/custom-data/fabrics_rows";
+import { requirePermission } from './roles'
 
 export const getFabrics = query({
   handler: async (ctx) => {
@@ -101,9 +102,11 @@ export const createFabric = mutation({
     skuPrefix: fabricsSchema.skuPrefix,
     units: fabricsSchema.units,
     processingType: fabricsSchema.processingType,
+    supplierId: fabricsSchema.supplierId,
   },
-  handler: async (ctx, { name, skuPrefix, units, processingType }) => {
-    return ctx.db.insert("fabrics", { name, skuPrefix, units, processingType, lastIndexVariant: 0 });
+  handler: async (ctx, { name, skuPrefix, units, processingType, supplierId }) => {
+    await requirePermission(ctx, '/app/fabrics', 'create');
+    return ctx.db.insert("fabrics", { name, skuPrefix, units, processingType, supplierId, lastIndexVariant: 0 });
   },
 })
 
@@ -114,6 +117,7 @@ export const addFabricVariant = mutation({
     threds: fabricVariantsSchema.threds,
   },
   handler: async (ctx, { parentId, color, threds }) => {
+    await requirePermission(ctx, '/app/fabrics', 'edit');
     const parent = await ctx.db.get(parentId);
     if (!parent) throw new Error("Fabric not found");
 
@@ -138,6 +142,7 @@ export const addFabricVariants = mutation({
     threds: fabricVariantsSchema.threds,
   },
   handler: async (ctx, { parentId, colors, threds }) => {
+    await requirePermission(ctx, '/app/fabrics', 'edit');
     const parent = await ctx.db.get(parentId);
     if (!parent) throw new Error("Fabric not found");
 
@@ -163,8 +168,10 @@ export const updateFabric = mutation({
     skuPrefix: v.optional(fabricsSchema.skuPrefix),
     units: v.optional(fabricsSchema.units),
     processingType: v.optional(v.union(v.string(), v.null())),
+    supplierId: fabricsSchema.supplierId,
   },
   handler: async (ctx, { id, ...data }) => {
+    await requirePermission(ctx, '/app/fabrics', 'edit');
     await ctx.db.patch(id, data);
   },
 })
@@ -176,6 +183,7 @@ export const updateFabricVariant = mutation({
     threds: v.optional(fabricVariantsSchema.threds),
   },
   handler: async (ctx, { id, ...data }) => {
+    await requirePermission(ctx, '/app/fabrics', 'edit');
     await ctx.db.patch(id, data);
   },
 })
@@ -183,6 +191,7 @@ export const updateFabricVariant = mutation({
 export const deleteFabric = mutation({
   args: { id: v.id("fabrics") },
   handler: async (ctx, { id }) => {
+    await requirePermission(ctx, '/app/fabrics', 'delete');
     const variants = await ctx.db
       .query("fabricVariants")
       .withIndex("by_parentId", q => q.eq("parentId", id))
@@ -195,6 +204,7 @@ export const deleteFabric = mutation({
 export const deleteFabricVariant = mutation({
   args: { id: v.id("fabricVariants") },
   handler: async (ctx, { id }) => {
+    await requirePermission(ctx, '/app/fabrics', 'delete');
     await ctx.db.delete(id);
   },
 })

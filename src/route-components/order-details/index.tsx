@@ -6,6 +6,7 @@ import { type Id } from 'convex/_generated/dataModel'
 import { useUpdateAllOrderItemsBrandingType, useAddProductionOrderItems } from './actions'
 import { ArrowLeft, Truck, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { useCan } from '@/hooks/use-can'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { OrderImages } from './components/order-images'
 import { DialogContext } from '@/contexts/dialog'
@@ -47,7 +48,6 @@ const ProductsSection = ({ items, productionOrderId, readOnly }: { items: OrderI
   const { mutate: updateAll } = useUpdateAllOrderItemsBrandingType()
   const { mutate: addItems }  = useAddProductionOrderItems()
   const { openDialog, closeDialog } = useContext(DialogContext)
-  const { openDrawer, closeDrawer } = useContext(DrawerContext)
 
   const handleConfigureAll = useCallback(() => {
     const id = openDialog({
@@ -70,12 +70,11 @@ const ProductsSection = ({ items, productionOrderId, readOnly }: { items: OrderI
   }, [productionOrderId, updateAll, openDialog, closeDialog])
 
   const handleAddProduct = useCallback(() => {
-    openDrawer({
-      direction: 'right',
-      title:   'Додати товар',
-      outerClose: true,
-      className: 'w-150',
-      formId: 'add-product-form',
+    const id = openDialog({
+      title:     'Додати товар',
+      className: 'sm:w-250 sm:max-w-250',
+      withForm:  true,
+      formId:    'add-product-form',
       content: (
         <AddProductForm
           formId="add-product-form"
@@ -93,13 +92,13 @@ const ProductsSection = ({ items, productionOrderId, readOnly }: { items: OrderI
                   shipmentType: p.shipmentType,
                 })),
               },
-              { onSuccess: () => closeDrawer() },
+              { onSuccess: () => closeDialog(id) },
             )
           }}
         />
       ),
     })
-  }, [productionOrderId, openDrawer, closeDrawer])
+  }, [productionOrderId, openDialog, closeDialog])
 
   return (
     <section className="p-3 flex flex-col gap-3">
@@ -109,14 +108,15 @@ const ProductsSection = ({ items, productionOrderId, readOnly }: { items: OrderI
             Товари ({items.length})
           </p>
           {!readOnly && (
-            <Button size="sm" variant="secondary" className="h-6 text-[11px] px-2" onClick={handleAddProduct}>
-              <Plus size={10} className="mr-1" /> Додати товари
+            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={handleAddProduct}>
+              <Plus size={14} />
+              Додати товари
             </Button>
           )}
         </div>
         {!readOnly && (
           <div className='flex items-center gap-2'>
-            <Button size="sm" variant="outline" className="h-6 text-[11px] px-2" onClick={handleConfigureAll}>
+            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={handleConfigureAll}>
               Налаштувати всі
             </Button>
           </div>
@@ -126,7 +126,7 @@ const ProductsSection = ({ items, productionOrderId, readOnly }: { items: OrderI
       {items.length === 0 ? (
         <p className="text-sm text-muted-foreground">Немає товарів</p>
       ) : (
-        <ProductGroup items={items} readOnly={readOnly} />
+        <ProductGroup items={items} productionOrderId={productionOrderId} readOnly={readOnly} />
       )}
     </section>
   )
@@ -188,13 +188,13 @@ const OrderDetailsContent = ({ productionOrderId, onBack, readOnly }: { producti
               <b className="text-foreground">{formatDate(order.plannedShipDate)}</b>
             </span>
           </div>
-          <div className="flex flex-col justify-between items-end gap-1.5 shrink-0 h-[stretch]">
+          <div className="flex flex-col justify-between items-end gap-1.5 shrink-0 self-stretch">
             {STATUS_CONFIG[order.status] && (
               <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${STATUS_CONFIG[order.status].className}`}>
                 {STATUS_CONFIG[order.status].label}
               </span>
             )}
-            <Button variant='outline' onClick={handleOpenLogs} className="text-[10px] h-6 px-2 py-2 leading-none">
+            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={handleOpenLogs}>
               Журнал змін
             </Button>
           </div>
@@ -215,14 +215,11 @@ const OrderDetailsContent = ({ productionOrderId, onBack, readOnly }: { producti
         </div>
         <div className="border-t">
           <ProgressSection
-            productionOrderId={productionOrderId}
             cutDone={order.cutDone}           cutTotal={order.cutTotal}
             sewDone={order.sewDone}           sewTotal={order.sewTotal}
             brandingDone={order.brandingDone} brandingTotal={order.brandingTotal}
             packingDone={order.packingDone}   packingTotal={order.packingTotal}
             inProduction={order?.inProduction}
-            items={items}
-            readOnly={readOnly}
           />
         </div>
 
@@ -247,7 +244,9 @@ const OrderDetailsContent = ({ productionOrderId, onBack, readOnly }: { producti
 
 // ─── OrderDetails ─────────────────────────────────────────────────────────────
 
-export const OrderDetails = ({ productionOrderId, onBack, readOnly }: Props) => {
+export const OrderDetails = ({ productionOrderId, onBack, readOnly: forceReadOnly }: Props) => {
+  const can      = useCan()
+  const readOnly = forceReadOnly || !can('/app/production-orders', 'edit')
   if (!productionOrderId) {
     return (
       <div className="flex h-full shadow-[0px_0px_3px_#021b333d] rounded-lg bg-background items-center justify-center">

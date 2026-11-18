@@ -4,10 +4,12 @@ import { type Id } from 'convex/_generated/dataModel'
 import { Button } from '@/components/ui/button'
 import { ProgressBar } from '@/components/progress-bar'
 import { CustomBadge } from '@/route-components/branding/components/custom-badge'
+import { SpecChangesPopover } from '@/components/spec-details'
+import { SewerAvatar } from '@/components/sewer-avatar'
 import { DialogContext } from '@/contexts/dialog'
 import { useCreatePackagingLog } from '../actions'
 import { PackingLogForm } from '../forms/packing-log-form'
-import { STATUS_CONFIG, formatDateTime, initials } from '../helpers'
+import { STATUS_CONFIG, formatDateTime } from '../helpers'
 import { type PackagingSubTask } from '../types'
 
 type Props = {
@@ -58,6 +60,13 @@ export const PackSubTaskRow = ({ subTask, completedQty, defectQty, packagingTask
               customCutComment={subTask.customCutComment}
               customSewingComment={subTask.customSewingComment}
             />
+            {subTask.hasCustomSpec && subTask.productionOrderItemId && (
+              <SpecChangesPopover
+                itemId={subTask.productionOrderItemId as Id<'productionOrderItems'>}
+                productName={subTask.itemName ?? undefined}
+                color={subTask.color ?? undefined}
+              />
+            )}
           </div>
           <p className="text-[11px] text-muted-foreground">{subTask.color} · {subTask.size}</p>
         </div>
@@ -70,12 +79,10 @@ export const PackSubTaskRow = ({ subTask, completedQty, defectQty, packagingTask
                 </span>
               )}
               {subTask.assignedTo && (
-                <span
-                  className="size-5 rounded-full bg-muted flex items-center justify-center text-[10px] font-bold shrink-0"
-                  title={[subTask.assignedTo.name, subTask.assignedTo.lastName].filter(Boolean).join(' ')}
-                >
-                  {initials(subTask.assignedTo)}
-                </span>
+                <SewerAvatar
+                  sewerId={subTask.assignedTo._id}
+                  name={[subTask.assignedTo.name, subTask.assignedTo.lastName].filter(Boolean).join(' ') || '—'}
+                />
               )}
             </div>
             {subTask.endDate && (

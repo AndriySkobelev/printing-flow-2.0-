@@ -6,7 +6,8 @@ import { api } from '../_generated/api'
 import { getAuthUserId } from '@convex-dev/auth/server'
 import { omit } from 'ramda'
 import { createOrderMaterialReservations } from './movements'
-import { KEYCRM_CUSTOM_FIELD_UUIDS, productionOrderStatusV } from '../schemas/constants'
+import { KEYCRM_CUSTOM_FIELD_UUIDS, productionOrderStatusV, resolveBrandingTypesFromCustomFields, resolveOrderText } from '../schemas/constants'
+import { requirePermission } from './roles'
 
 // Only these branding types are actually done by the branding department —
 // items with no type, or only types handled elsewhere (embroidery,
@@ -93,7 +94,7 @@ type OrderItemEntry = {
 };
 
 async function createCuttingTasks(ctx: MutationCtx, { productionOrderId, plannedShipDate, keycrmOrderId, orderItems }: {
-  productionOrderId: any
+  productionOrderId: Id<'productionOrders'>
   keycrmOrderId: string
   plannedShipDate: number,
   orderItems: OrderItemEntry[]
@@ -109,8 +110,10 @@ async function createCuttingTasks(ctx: MutationCtx, { productionOrderId, planned
     cuttingGroups.get(key)!.push(item)
   }
 
-  const totalTasks = cuttingGroups.size + customItems.length
-  let taskIndex = 1
+  // Continue numbering after tasks from earlier (partial) sends of this order.
+  const existingCount = (await ctx.db.query('cuttingTasks').withIndex('by_productionOrder', q => q.eq('productionOrderId', productionOrderId)).collect()).length
+  const totalTasks = existingCount + cuttingGroups.size + customItems.length
+  let taskIndex = existingCount + 1
   const groupToCuttingTaskId = new Map<string, string>()
 
   for (const [key, items] of cuttingGroups.entries()) {
@@ -174,7 +177,7 @@ async function createCuttingTasks(ctx: MutationCtx, { productionOrderId, planned
 }
 
 async function createSewingTasks(ctx: MutationCtx, { productionOrderId, plannedShipDate, keycrmOrderId, orderItems, cuttingTaskIds }: {
-  productionOrderId: any
+  productionOrderId: Id<'productionOrders'>
   keycrmOrderId: string
   plannedShipDate: number
   orderItems: OrderItemEntry[]
@@ -187,8 +190,9 @@ async function createSewingTasks(ctx: MutationCtx, { productionOrderId, plannedS
     sewingGroups.get(key)!.push(item)
   }
 
-  const totalTasks = sewingGroups.size
-  let taskIndex = 1
+  const existingCount = (await ctx.db.query('sewingTasks').withIndex('by_productionOrder', q => q.eq('productionOrderId', productionOrderId)).collect()).length
+  const totalTasks = existingCount + sewingGroups.size
+  let taskIndex = existingCount + 1
 
   for (const [key, items] of sewingGroups.entries()) {
     const { product, color } = items[0]
@@ -466,9 +470,9 @@ export const getProductionOrderDetails = query({
       packingDone,  packingTotal,
       attachedFiles: order.attachedFiles ?? [],
       additionalInfo: {
-        packaging:            order.packaging            ?? (keycrmField(KEYCRM_CUSTOM_FIELD_UUIDS.packaging)            as string  | undefined) ?? null,
-        printComment:         order.printComment         ?? (keycrmField(KEYCRM_CUSTOM_FIELD_UUIDS.printComment)         as string  | undefined) ?? null,
-        identifier:           order.identifier           ?? (keycrmField(KEYCRM_CUSTOM_FIELD_UUIDS.identifier)           as string  | undefined) ?? null,
+        packaging:            resolveOrderText(order, 'packaging'),
+        printComment:         resolveOrderText(order, 'printComment'),
+        identifier:           resolveOrderText(order, 'identifier'),
         isCuttingPrint:       order.isCuttingPrint       ?? (keycrmField(KEYCRM_CUSTOM_FIELD_UUIDS.isCuttingPrint)       as boolean | undefined) ?? null,
         isCuttingEmbroidery:  order.isCuttingEmbroidery  ?? (keycrmField(KEYCRM_CUSTOM_FIELD_UUIDS.isCuttingEmbroidery)  as boolean | undefined) ?? null,
       },
@@ -492,6 +496,8 @@ export const getProductionOrderDetails = query({
         isCustomSewing:       i.isCustomSewing ?? null,
         customCutComment:     i.customCutComment ?? null,
         customSewingComment:  i.customSewingComment ?? null,
+        productId:            i.productId ?? null,
+        hasCustomSpec:        !!i.specMaterials,
       })),
     }
   },
@@ -507,6 +513,7 @@ export const updateProductionOrderAdditionalInfo = mutation({
     isCuttingEmbroidery: v.optional(v.boolean()),
   },
   handler: async (ctx, { productionOrderId, packaging, printComment, identifier, isCuttingPrint, isCuttingEmbroidery }) => {
+    await requirePermission(ctx, '/app/production-orders', 'edit');
     await ctx.db.patch(productionOrderId, {
       ...(packaging            !== undefined ? { packaging }            : {}),
       ...(printComment         !== undefined ? { printComment }         : {}),
@@ -523,6 +530,7 @@ export const updateProductionOrderStatus = mutation({
     status:             productionOrderStatusV,
   },
   handler: async (ctx, { productionOrderId, status }) => {
+    await requirePermission(ctx, '/app/production-orders', 'edit');
     const order = await ctx.db.get(productionOrderId)
     if (!order) throw new Error('Order not found')
     if (order.status === status) return
@@ -549,6 +557,7 @@ export const updateOrderItemBrandingType = mutation({
     ))),
   },
   handler: async (ctx, { itemId, brandingType }) => {
+    await requirePermission(ctx, '/app/production-orders', 'edit');
     await ctx.db.patch(itemId, { brandingType })
   },
 })
@@ -565,6 +574,7 @@ export const updateOrderItemCuttingBrandingType = mutation({
     ))),
   },
   handler: async (ctx, { itemId, cuttingBrandingType }) => {
+    await requirePermission(ctx, '/app/production-orders', 'edit');
     await ctx.db.patch(itemId, { cuttingBrandingType })
   },
 })
@@ -590,6 +600,7 @@ export const updateAllOrderItemsBrandingType = mutation({
     sewingComment:   v.optional(v.string()),
   },
   handler: async (ctx, { productionOrderId, brandingType, cuttingBrandingType, brandingComment, sewingComment }) => {
+    await requirePermission(ctx, '/app/production-orders', 'edit');
     const items = await ctx.db
       .query('productionOrderItems')
       .withIndex('by_productionOrder', q => q.eq('productionOrderId', productionOrderId))
@@ -619,6 +630,7 @@ export const updateSelectedOrderItemsBrandingType = mutation({
     sewingComment:   v.optional(v.string()),
   },
   handler: async (ctx, { itemIds, brandingType, cuttingBrandingType, brandingComment, sewingComment }) => {
+    await requirePermission(ctx, '/app/production-orders', 'edit');
     for (const id of itemIds) {
       await ctx.db.patch(id, { brandingType, cuttingBrandingType, brandingComment, sewingComment })
     }
@@ -650,6 +662,7 @@ export const updateOrderItemBrandingComment = mutation({
     brandingComment: v.optional(v.string()),
   },
   handler: async (ctx, { itemId, brandingComment }) => {
+    await requirePermission(ctx, '/app/production-orders', 'edit');
     await ctx.db.patch(itemId, { brandingComment })
   },
 })
@@ -660,6 +673,7 @@ export const updateOrderItemSewingComment = mutation({
     sewingComment: v.optional(v.string()),
   },
   handler: async (ctx, { itemId, sewingComment }) => {
+    await requirePermission(ctx, '/app/production-orders', 'edit');
     await ctx.db.patch(itemId, { sewingComment })
   },
 })
@@ -718,6 +732,7 @@ export const creatreProductionOrder = mutation({
 
     // 3. Create productionOrderItems
     const orderItems: OrderItemEntry[] = [];
+    const customFields = (externalData.custom_fields ?? []) as Array<{ uuid: string; value: unknown }>;
 
     for (const product of physicalProducts) {
       const color = product.properties.find((p: any) => p.name === 'колір')?.value ?? '';
@@ -740,6 +755,7 @@ export const creatreProductionOrder = mutation({
         if (mapping) processingType = mapping.processingType;
       }
       const shipmentType = product.shipment_type as 'manufacturing' | 'warehouse';
+      const { brandingType, cuttingBrandingType } = resolveBrandingTypesFromCustomFields(customFields, productSkuPrefix);
 
       const itemId = await ctx.db.insert('productionOrderItems', {
         productionOrderId,
@@ -756,6 +772,8 @@ export const creatreProductionOrder = mutation({
         shipmentType,
         keycrmProductStatusId: product.product_status_id ?? null,
         processingType,
+        brandingType,
+        cuttingBrandingType,
       });
 
       orderItems.push({
@@ -772,8 +790,13 @@ export const creatreProductionOrder = mutation({
 })
 
 export const createProductionTasks = mutation({
-  args: { productionOrderId: v.id('productionOrders') },
-  handler: async (ctx, { productionOrderId }) => {
+  args: {
+    productionOrderId: v.id('productionOrders'),
+    // Partial send: only these items. Omitted — every item not yet in production.
+    itemIds: v.optional(v.array(v.id('productionOrderItems'))),
+  },
+  handler: async (ctx, { productionOrderId, itemIds }) => {
+    await requirePermission(ctx, '/app/production-orders', 'launch');
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error('Not authenticated');
     const user = await ctx.db.get(userId);
@@ -792,7 +815,7 @@ export const createProductionTasks = mutation({
     // Only process items not already sent to production, so re-running this
     // (e.g. after adding more products to an in-progress order) doesn't
     // duplicate cutting/sewing/branding/packaging tasks or material reservations.
-    const dbItems = allDbItems.filter(item => !item.inProduction)
+    const dbItems = allDbItems.filter(item => !item.inProduction && (!itemIds || itemIds.includes(item._id)))
     if (dbItems.length === 0) return
 
     const orderItems: OrderItemEntry[] = dbItems.map(item => ({
@@ -810,11 +833,20 @@ export const createProductionTasks = mutation({
     const cuttingTaskIds = await createCuttingTasks(ctx, { productionOrderId, plannedShipDate, keycrmOrderId, orderItems })
     await createSewingTasks(ctx, { productionOrderId, plannedShipDate, keycrmOrderId, orderItems, cuttingTaskIds })
 
-    if (dbItems.some(itemNeedsBranding)) {
+    // Branding and packaging are one task per order — only create them on the
+    // first send that needs them, not again on every partial send.
+    const [existingBranding, existingPackaging] = await Promise.all([
+      ctx.db.query('brandingTasks').withIndex('by_productionOrder', q => q.eq('productionOrderId', productionOrderId)).first(),
+      ctx.db.query('packagingTasks').withIndex('by_productionOrder', q => q.eq('productionOrderId', productionOrderId)).first(),
+    ])
+
+    if (!existingBranding && dbItems.some(itemNeedsBranding)) {
       await createBrandingTasks(ctx, { productionOrderId, keycrmOrderId, plannedShipDate, externalData })
     }
 
-    await createPackagingTasks(ctx, { productionOrderId, keycrmOrderId, plannedShipDate })
+    if (!existingPackaging) {
+      await createPackagingTasks(ctx, { productionOrderId, keycrmOrderId, plannedShipDate })
+    }
 
     await createOrderMaterialReservations(ctx, {
       manager: order.keycrmManager ?? user?.name ?? 'Unknown',
@@ -919,6 +951,7 @@ export const createSubcontractorTask = mutation({
     note:               v.optional(v.string()),
   },
   handler: async (ctx, { productionOrderId, name, type, quantity, expectedSentDate, actualSentDate, expectedReturnDate, status, note }) => {
+    await requirePermission(ctx, '/app/production-orders', 'edit');
     const userId = await getAuthUserId(ctx)
     if (!userId) throw new Error('Not authenticated')
     const order = await ctx.db.get(productionOrderId)
@@ -941,6 +974,7 @@ export const createSubcontractorTask = mutation({
 export const deleteSubcontractorTask = mutation({
   args: { taskId: v.id('subcontractorTasks') },
   handler: async (ctx, { taskId }) => {
+    await requirePermission(ctx, '/app/production-orders', 'edit');
     await ctx.db.delete(taskId)
   },
 })
@@ -957,6 +991,7 @@ export const updateSubcontractorTaskStatus = mutation({
     ),
   },
   handler: async (ctx, { taskId, status }) => {
+    await requirePermission(ctx, '/app/production-orders', 'edit');
     await ctx.db.patch(taskId, { status })
   },
 })
@@ -968,6 +1003,7 @@ export const updateSubcontractorTaskActualDates = mutation({
     actualReturnDate: v.optional(v.union(v.number(), v.null())),
   },
   handler: async (ctx, { taskId, actualSentDate, actualReturnDate }) => {
+    await requirePermission(ctx, '/app/production-orders', 'edit');
     await ctx.db.patch(taskId, {
       actualSentDate,
       actualReturnDate: actualReturnDate === null ? undefined : actualReturnDate,
@@ -981,6 +1017,7 @@ export const splitOrderItem = mutation({
     splitQuantity: v.number(),
   },
   handler: async (ctx, { itemId, splitQuantity }) => {
+    await requirePermission(ctx, '/app/production-orders', 'edit');
     const original = await ctx.db.get(itemId)
     if (!original) throw new Error('Item not found')
     if (splitQuantity < 1 || splitQuantity >= original.quantity)
@@ -1017,6 +1054,7 @@ export const updateOrderItemDestination = mutation({
     destination: v.union(v.literal('customer'), v.literal('warehouse'), v.literal('defects')),
   },
   handler: async (ctx, { itemId, destination }) => {
+    await requirePermission(ctx, '/app/production-orders', 'edit');
     const item = await ctx.db.get(itemId)
     if (!item) throw new Error('Item not found')
     await ctx.db.patch(itemId, { destination })
@@ -1036,6 +1074,7 @@ export const updateOrderItemDestination = mutation({
 export const deleteProductionOrderItem = mutation({
   args: { itemId: v.id('productionOrderItems') },
   handler: async (ctx, { itemId }) => {
+    await requirePermission(ctx, '/app/production-orders', 'edit');
     const item = await ctx.db.get(itemId)
     if (!item) throw new Error('Товар не знайдено')
     if (item.inProduction) throw new Error('Неможливо видалити товар, який вже у виробництві')
@@ -1078,12 +1117,16 @@ export const updateOrderItem = mutation({
     customSewingComment: v.optional(v.string()),
   },
   handler: async (ctx, { itemId, isCustomCut, isCustomSewing, customCutComment, customSewingComment, ...fields }) => {
+    await requirePermission(ctx, '/app/production-orders', 'edit');
     const item = await ctx.db.get(itemId)
     if (!item) throw new Error('Item not found')
     await ctx.db.patch(itemId, {
       ...fields,
       ...(isCustomCut   != null ? { isCustomCut }   : {}),
       ...(isCustomSewing != null ? { isCustomSewing } : {}),
+      // Toggled by hand — no longer owned by the spec-copy auto flags (orderItemSpec.ts).
+      ...(isCustomCut    != null && isCustomCut    !== !!item.isCustomCut    ? { autoCustomCut: false }    : {}),
+      ...(isCustomSewing != null && isCustomSewing !== !!item.isCustomSewing ? { autoCustomSewing: false } : {}),
       ...(customCutComment    != null ? { customCutComment }    : {}),
       ...(customSewingComment != null ? { customSewingComment } : {}),
     })
@@ -1159,6 +1202,7 @@ export const addProductionOrderItems = mutation({
     })),
   },
   handler: async (ctx, { productionOrderId, items }) => {
+    await requirePermission(ctx, '/app/production-orders', 'edit');
     const order = await ctx.db.get(productionOrderId)
     if (!order) throw new Error('Order not found')
 
@@ -1200,6 +1244,7 @@ export const createManualProductionOrder = mutation({
     plannedShipDate: v.number(),
   },
   handler: async (ctx, { keycrmOrderId, keycrmManager, plannedShipDate }) => {
+    await requirePermission(ctx, '/app/production-orders', 'create');
     const existing = await ctx.db
       .query('productionOrders')
       .withIndex('by_keycrmOrderId', q => q.eq('keycrmOrderId', keycrmOrderId))
@@ -1221,7 +1266,10 @@ export const createManualProductionOrder = mutation({
 
 export const generateOrderFileUploadUrl = mutation({
   args: {},
-  handler: async (ctx) => ctx.storage.generateUploadUrl(),
+  handler: async (ctx) => {
+    await requirePermission(ctx, '/app/production-orders', 'edit')
+    return ctx.storage.generateUploadUrl()
+  },
 })
 
 export const addAttachedFile = mutation({
@@ -1232,6 +1280,7 @@ export const addAttachedFile = mutation({
     contentType:       v.optional(v.string()),
   },
   handler: async (ctx, { productionOrderId, storageId, name, contentType }) => {
+    await requirePermission(ctx, '/app/production-orders', 'edit');
     const url = await ctx.storage.getUrl(storageId as any)
     if (!url) throw new Error('File not found in storage')
     const order = await ctx.db.get(productionOrderId)
@@ -1293,6 +1342,7 @@ async function deleteConnectedTasks(ctx: MutationCtx, productionOrderId: Id<'pro
 export const deleteProductionOrder = mutation({
   args: { productionOrderId: v.id('productionOrders') },
   handler: async (ctx, { productionOrderId }) => {
+    await requirePermission(ctx, '/app/production-orders', 'delete');
     const items = await ctx.db
       .query('productionOrderItems')
       .withIndex('by_productionOrder', q => q.eq('productionOrderId', productionOrderId))
@@ -1306,6 +1356,7 @@ export const deleteProductionOrder = mutation({
 export const deleteProductionOrders = mutation({
   args: { productionOrderIds: v.array(v.id('productionOrders')) },
   handler: async (ctx, { productionOrderIds }) => {
+    await requirePermission(ctx, '/app/production-orders', 'delete');
     await Promise.all(productionOrderIds.map(async productionOrderId => {
       const items = await ctx.db
         .query('productionOrderItems')

@@ -48,7 +48,7 @@ export const SubcontractorTaskForm = ({ onSubmit, defaultValues }: Props) => {
       type:             'other' as const,
       expectedSentDate: new UTCDate().valueOf(),
       expectedReturnDate: new UTCDate().valueOf(),
-      status:           'sent' as const,
+      status:           'waiting_to_sent' as const,
       ...defaultValues,
     },
     onSubmit: ({ value }) => {

@@ -15,6 +15,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedAppRouteRouteImport } from './routes/_authenticated/app/route'
 import { Route as AuthenticatedAppWorkloadRouteImport } from './routes/_authenticated/app/workload'
 import { Route as AuthenticatedAppUsersRouteImport } from './routes/_authenticated/app/users'
+import { Route as AuthenticatedAppSuppliersRouteImport } from './routes/_authenticated/app/suppliers'
 import { Route as AuthenticatedAppStoreRouteImport } from './routes/_authenticated/app/store'
 import { Route as AuthenticatedAppStockBalanceRouteImport } from './routes/_authenticated/app/stock-balance'
 import { Route as AuthenticatedAppSpecificationsRouteImport } from './routes/_authenticated/app/specifications'
@@ -28,13 +29,17 @@ import { Route as AuthenticatedAppProductionCutRouteImport } from './routes/_aut
 import { Route as AuthenticatedAppProductionCalendarRouteImport } from './routes/_authenticated/app/production-calendar'
 import { Route as AuthenticatedAppPlannerRouteImport } from './routes/_authenticated/app/planner'
 import { Route as AuthenticatedAppPackingListRouteImport } from './routes/_authenticated/app/packing-list'
+import { Route as AuthenticatedAppOrderProcessingRouteImport } from './routes/_authenticated/app/order-processing'
 import { Route as AuthenticatedAppMaterialsRouteImport } from './routes/_authenticated/app/materials'
 import { Route as AuthenticatedAppLoginRouteImport } from './routes/_authenticated/app/login'
 import { Route as AuthenticatedAppInventoryMovementRouteImport } from './routes/_authenticated/app/inventory-movement'
 import { Route as AuthenticatedAppFabricsRouteImport } from './routes/_authenticated/app/fabrics'
+import { Route as AuthenticatedAppExtraWorksRouteImport } from './routes/_authenticated/app/extra-works'
 import { Route as AuthenticatedAppBrandingRouteImport } from './routes/_authenticated/app/branding'
+import { Route as AuthenticatedAppUsersUserIdRouteImport } from './routes/_authenticated/app/users_.$userId'
 import { Route as AuthenticatedAppSpecificationsSpecIdRouteImport } from './routes/_authenticated/app/specifications_.$specId'
 import { Route as AuthenticatedAppProductionOrdersOrderIdRouteImport } from './routes/_authenticated/app/production-orders_.$orderId'
+import { Route as AuthenticatedAppOrderProcessingOrderNumberRouteImport } from './routes/_authenticated/app/order-processing_.$orderNumber'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -66,6 +71,12 @@ const AuthenticatedAppUsersRoute = AuthenticatedAppUsersRouteImport.update({
   path: '/users',
   getParentRoute: () => AuthenticatedAppRouteRoute,
 } as any)
+const AuthenticatedAppSuppliersRoute =
+  AuthenticatedAppSuppliersRouteImport.update({
+    id: '/suppliers',
+    path: '/suppliers',
+    getParentRoute: () => AuthenticatedAppRouteRoute,
+  } as any)
 const AuthenticatedAppStoreRoute = AuthenticatedAppStoreRouteImport.update({
   id: '/store',
   path: '/store',
@@ -141,6 +152,12 @@ const AuthenticatedAppPackingListRoute =
     path: '/packing-list',
     getParentRoute: () => AuthenticatedAppRouteRoute,
   } as any)
+const AuthenticatedAppOrderProcessingRoute =
+  AuthenticatedAppOrderProcessingRouteImport.update({
+    id: '/order-processing',
+    path: '/order-processing',
+    getParentRoute: () => AuthenticatedAppRouteRoute,
+  } as any)
 const AuthenticatedAppMaterialsRoute =
   AuthenticatedAppMaterialsRouteImport.update({
     id: '/materials',
@@ -163,10 +180,22 @@ const AuthenticatedAppFabricsRoute = AuthenticatedAppFabricsRouteImport.update({
   path: '/fabrics',
   getParentRoute: () => AuthenticatedAppRouteRoute,
 } as any)
+const AuthenticatedAppExtraWorksRoute =
+  AuthenticatedAppExtraWorksRouteImport.update({
+    id: '/extra-works',
+    path: '/extra-works',
+    getParentRoute: () => AuthenticatedAppRouteRoute,
+  } as any)
 const AuthenticatedAppBrandingRoute =
   AuthenticatedAppBrandingRouteImport.update({
     id: '/branding',
     path: '/branding',
+    getParentRoute: () => AuthenticatedAppRouteRoute,
+  } as any)
+const AuthenticatedAppUsersUserIdRoute =
+  AuthenticatedAppUsersUserIdRouteImport.update({
+    id: '/users_/$userId',
+    path: '/users/$userId',
     getParentRoute: () => AuthenticatedAppRouteRoute,
   } as any)
 const AuthenticatedAppSpecificationsSpecIdRoute =
@@ -181,16 +210,24 @@ const AuthenticatedAppProductionOrdersOrderIdRoute =
     path: '/production-orders/$orderId',
     getParentRoute: () => AuthenticatedAppRouteRoute,
   } as any)
+const AuthenticatedAppOrderProcessingOrderNumberRoute =
+  AuthenticatedAppOrderProcessingOrderNumberRouteImport.update({
+    id: '/order-processing_/$orderNumber',
+    path: '/order-processing/$orderNumber',
+    getParentRoute: () => AuthenticatedAppRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/app': typeof AuthenticatedAppRouteRouteWithChildren
   '/app/branding': typeof AuthenticatedAppBrandingRoute
+  '/app/extra-works': typeof AuthenticatedAppExtraWorksRoute
   '/app/fabrics': typeof AuthenticatedAppFabricsRoute
   '/app/inventory-movement': typeof AuthenticatedAppInventoryMovementRoute
   '/app/login': typeof AuthenticatedAppLoginRoute
   '/app/materials': typeof AuthenticatedAppMaterialsRoute
+  '/app/order-processing': typeof AuthenticatedAppOrderProcessingRoute
   '/app/packing-list': typeof AuthenticatedAppPackingListRoute
   '/app/planner': typeof AuthenticatedAppPlannerRoute
   '/app/production-calendar': typeof AuthenticatedAppProductionCalendarRoute
@@ -204,20 +241,25 @@ export interface FileRoutesByFullPath {
   '/app/specifications': typeof AuthenticatedAppSpecificationsRoute
   '/app/stock-balance': typeof AuthenticatedAppStockBalanceRoute
   '/app/store': typeof AuthenticatedAppStoreRoute
+  '/app/suppliers': typeof AuthenticatedAppSuppliersRoute
   '/app/users': typeof AuthenticatedAppUsersRoute
   '/app/workload': typeof AuthenticatedAppWorkloadRoute
+  '/app/order-processing/$orderNumber': typeof AuthenticatedAppOrderProcessingOrderNumberRoute
   '/app/production-orders/$orderId': typeof AuthenticatedAppProductionOrdersOrderIdRoute
   '/app/specifications/$specId': typeof AuthenticatedAppSpecificationsSpecIdRoute
+  '/app/users/$userId': typeof AuthenticatedAppUsersUserIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/app': typeof AuthenticatedAppRouteRouteWithChildren
   '/app/branding': typeof AuthenticatedAppBrandingRoute
+  '/app/extra-works': typeof AuthenticatedAppExtraWorksRoute
   '/app/fabrics': typeof AuthenticatedAppFabricsRoute
   '/app/inventory-movement': typeof AuthenticatedAppInventoryMovementRoute
   '/app/login': typeof AuthenticatedAppLoginRoute
   '/app/materials': typeof AuthenticatedAppMaterialsRoute
+  '/app/order-processing': typeof AuthenticatedAppOrderProcessingRoute
   '/app/packing-list': typeof AuthenticatedAppPackingListRoute
   '/app/planner': typeof AuthenticatedAppPlannerRoute
   '/app/production-calendar': typeof AuthenticatedAppProductionCalendarRoute
@@ -231,10 +273,13 @@ export interface FileRoutesByTo {
   '/app/specifications': typeof AuthenticatedAppSpecificationsRoute
   '/app/stock-balance': typeof AuthenticatedAppStockBalanceRoute
   '/app/store': typeof AuthenticatedAppStoreRoute
+  '/app/suppliers': typeof AuthenticatedAppSuppliersRoute
   '/app/users': typeof AuthenticatedAppUsersRoute
   '/app/workload': typeof AuthenticatedAppWorkloadRoute
+  '/app/order-processing/$orderNumber': typeof AuthenticatedAppOrderProcessingOrderNumberRoute
   '/app/production-orders/$orderId': typeof AuthenticatedAppProductionOrdersOrderIdRoute
   '/app/specifications/$specId': typeof AuthenticatedAppSpecificationsSpecIdRoute
+  '/app/users/$userId': typeof AuthenticatedAppUsersUserIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -243,10 +288,12 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/_authenticated/app': typeof AuthenticatedAppRouteRouteWithChildren
   '/_authenticated/app/branding': typeof AuthenticatedAppBrandingRoute
+  '/_authenticated/app/extra-works': typeof AuthenticatedAppExtraWorksRoute
   '/_authenticated/app/fabrics': typeof AuthenticatedAppFabricsRoute
   '/_authenticated/app/inventory-movement': typeof AuthenticatedAppInventoryMovementRoute
   '/_authenticated/app/login': typeof AuthenticatedAppLoginRoute
   '/_authenticated/app/materials': typeof AuthenticatedAppMaterialsRoute
+  '/_authenticated/app/order-processing': typeof AuthenticatedAppOrderProcessingRoute
   '/_authenticated/app/packing-list': typeof AuthenticatedAppPackingListRoute
   '/_authenticated/app/planner': typeof AuthenticatedAppPlannerRoute
   '/_authenticated/app/production-calendar': typeof AuthenticatedAppProductionCalendarRoute
@@ -260,10 +307,13 @@ export interface FileRoutesById {
   '/_authenticated/app/specifications': typeof AuthenticatedAppSpecificationsRoute
   '/_authenticated/app/stock-balance': typeof AuthenticatedAppStockBalanceRoute
   '/_authenticated/app/store': typeof AuthenticatedAppStoreRoute
+  '/_authenticated/app/suppliers': typeof AuthenticatedAppSuppliersRoute
   '/_authenticated/app/users': typeof AuthenticatedAppUsersRoute
   '/_authenticated/app/workload': typeof AuthenticatedAppWorkloadRoute
+  '/_authenticated/app/order-processing_/$orderNumber': typeof AuthenticatedAppOrderProcessingOrderNumberRoute
   '/_authenticated/app/production-orders_/$orderId': typeof AuthenticatedAppProductionOrdersOrderIdRoute
   '/_authenticated/app/specifications_/$specId': typeof AuthenticatedAppSpecificationsSpecIdRoute
+  '/_authenticated/app/users_/$userId': typeof AuthenticatedAppUsersUserIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -272,10 +322,12 @@ export interface FileRouteTypes {
     | '/login'
     | '/app'
     | '/app/branding'
+    | '/app/extra-works'
     | '/app/fabrics'
     | '/app/inventory-movement'
     | '/app/login'
     | '/app/materials'
+    | '/app/order-processing'
     | '/app/packing-list'
     | '/app/planner'
     | '/app/production-calendar'
@@ -289,20 +341,25 @@ export interface FileRouteTypes {
     | '/app/specifications'
     | '/app/stock-balance'
     | '/app/store'
+    | '/app/suppliers'
     | '/app/users'
     | '/app/workload'
+    | '/app/order-processing/$orderNumber'
     | '/app/production-orders/$orderId'
     | '/app/specifications/$specId'
+    | '/app/users/$userId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/login'
     | '/app'
     | '/app/branding'
+    | '/app/extra-works'
     | '/app/fabrics'
     | '/app/inventory-movement'
     | '/app/login'
     | '/app/materials'
+    | '/app/order-processing'
     | '/app/packing-list'
     | '/app/planner'
     | '/app/production-calendar'
@@ -316,10 +373,13 @@ export interface FileRouteTypes {
     | '/app/specifications'
     | '/app/stock-balance'
     | '/app/store'
+    | '/app/suppliers'
     | '/app/users'
     | '/app/workload'
+    | '/app/order-processing/$orderNumber'
     | '/app/production-orders/$orderId'
     | '/app/specifications/$specId'
+    | '/app/users/$userId'
   id:
     | '__root__'
     | '/'
@@ -327,10 +387,12 @@ export interface FileRouteTypes {
     | '/login'
     | '/_authenticated/app'
     | '/_authenticated/app/branding'
+    | '/_authenticated/app/extra-works'
     | '/_authenticated/app/fabrics'
     | '/_authenticated/app/inventory-movement'
     | '/_authenticated/app/login'
     | '/_authenticated/app/materials'
+    | '/_authenticated/app/order-processing'
     | '/_authenticated/app/packing-list'
     | '/_authenticated/app/planner'
     | '/_authenticated/app/production-calendar'
@@ -344,10 +406,13 @@ export interface FileRouteTypes {
     | '/_authenticated/app/specifications'
     | '/_authenticated/app/stock-balance'
     | '/_authenticated/app/store'
+    | '/_authenticated/app/suppliers'
     | '/_authenticated/app/users'
     | '/_authenticated/app/workload'
+    | '/_authenticated/app/order-processing_/$orderNumber'
     | '/_authenticated/app/production-orders_/$orderId'
     | '/_authenticated/app/specifications_/$specId'
+    | '/_authenticated/app/users_/$userId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -398,6 +463,13 @@ declare module '@tanstack/react-router' {
       path: '/users'
       fullPath: '/app/users'
       preLoaderRoute: typeof AuthenticatedAppUsersRouteImport
+      parentRoute: typeof AuthenticatedAppRouteRoute
+    }
+    '/_authenticated/app/suppliers': {
+      id: '/_authenticated/app/suppliers'
+      path: '/suppliers'
+      fullPath: '/app/suppliers'
+      preLoaderRoute: typeof AuthenticatedAppSuppliersRouteImport
       parentRoute: typeof AuthenticatedAppRouteRoute
     }
     '/_authenticated/app/store': {
@@ -491,6 +563,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppPackingListRouteImport
       parentRoute: typeof AuthenticatedAppRouteRoute
     }
+    '/_authenticated/app/order-processing': {
+      id: '/_authenticated/app/order-processing'
+      path: '/order-processing'
+      fullPath: '/app/order-processing'
+      preLoaderRoute: typeof AuthenticatedAppOrderProcessingRouteImport
+      parentRoute: typeof AuthenticatedAppRouteRoute
+    }
     '/_authenticated/app/materials': {
       id: '/_authenticated/app/materials'
       path: '/materials'
@@ -519,11 +598,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppFabricsRouteImport
       parentRoute: typeof AuthenticatedAppRouteRoute
     }
+    '/_authenticated/app/extra-works': {
+      id: '/_authenticated/app/extra-works'
+      path: '/extra-works'
+      fullPath: '/app/extra-works'
+      preLoaderRoute: typeof AuthenticatedAppExtraWorksRouteImport
+      parentRoute: typeof AuthenticatedAppRouteRoute
+    }
     '/_authenticated/app/branding': {
       id: '/_authenticated/app/branding'
       path: '/branding'
       fullPath: '/app/branding'
       preLoaderRoute: typeof AuthenticatedAppBrandingRouteImport
+      parentRoute: typeof AuthenticatedAppRouteRoute
+    }
+    '/_authenticated/app/users_/$userId': {
+      id: '/_authenticated/app/users_/$userId'
+      path: '/users/$userId'
+      fullPath: '/app/users/$userId'
+      preLoaderRoute: typeof AuthenticatedAppUsersUserIdRouteImport
       parentRoute: typeof AuthenticatedAppRouteRoute
     }
     '/_authenticated/app/specifications_/$specId': {
@@ -540,15 +633,24 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppProductionOrdersOrderIdRouteImport
       parentRoute: typeof AuthenticatedAppRouteRoute
     }
+    '/_authenticated/app/order-processing_/$orderNumber': {
+      id: '/_authenticated/app/order-processing_/$orderNumber'
+      path: '/order-processing/$orderNumber'
+      fullPath: '/app/order-processing/$orderNumber'
+      preLoaderRoute: typeof AuthenticatedAppOrderProcessingOrderNumberRouteImport
+      parentRoute: typeof AuthenticatedAppRouteRoute
+    }
   }
 }
 
 interface AuthenticatedAppRouteRouteChildren {
   AuthenticatedAppBrandingRoute: typeof AuthenticatedAppBrandingRoute
+  AuthenticatedAppExtraWorksRoute: typeof AuthenticatedAppExtraWorksRoute
   AuthenticatedAppFabricsRoute: typeof AuthenticatedAppFabricsRoute
   AuthenticatedAppInventoryMovementRoute: typeof AuthenticatedAppInventoryMovementRoute
   AuthenticatedAppLoginRoute: typeof AuthenticatedAppLoginRoute
   AuthenticatedAppMaterialsRoute: typeof AuthenticatedAppMaterialsRoute
+  AuthenticatedAppOrderProcessingRoute: typeof AuthenticatedAppOrderProcessingRoute
   AuthenticatedAppPackingListRoute: typeof AuthenticatedAppPackingListRoute
   AuthenticatedAppPlannerRoute: typeof AuthenticatedAppPlannerRoute
   AuthenticatedAppProductionCalendarRoute: typeof AuthenticatedAppProductionCalendarRoute
@@ -562,19 +664,24 @@ interface AuthenticatedAppRouteRouteChildren {
   AuthenticatedAppSpecificationsRoute: typeof AuthenticatedAppSpecificationsRoute
   AuthenticatedAppStockBalanceRoute: typeof AuthenticatedAppStockBalanceRoute
   AuthenticatedAppStoreRoute: typeof AuthenticatedAppStoreRoute
+  AuthenticatedAppSuppliersRoute: typeof AuthenticatedAppSuppliersRoute
   AuthenticatedAppUsersRoute: typeof AuthenticatedAppUsersRoute
   AuthenticatedAppWorkloadRoute: typeof AuthenticatedAppWorkloadRoute
+  AuthenticatedAppOrderProcessingOrderNumberRoute: typeof AuthenticatedAppOrderProcessingOrderNumberRoute
   AuthenticatedAppProductionOrdersOrderIdRoute: typeof AuthenticatedAppProductionOrdersOrderIdRoute
   AuthenticatedAppSpecificationsSpecIdRoute: typeof AuthenticatedAppSpecificationsSpecIdRoute
+  AuthenticatedAppUsersUserIdRoute: typeof AuthenticatedAppUsersUserIdRoute
 }
 
 const AuthenticatedAppRouteRouteChildren: AuthenticatedAppRouteRouteChildren = {
   AuthenticatedAppBrandingRoute: AuthenticatedAppBrandingRoute,
+  AuthenticatedAppExtraWorksRoute: AuthenticatedAppExtraWorksRoute,
   AuthenticatedAppFabricsRoute: AuthenticatedAppFabricsRoute,
   AuthenticatedAppInventoryMovementRoute:
     AuthenticatedAppInventoryMovementRoute,
   AuthenticatedAppLoginRoute: AuthenticatedAppLoginRoute,
   AuthenticatedAppMaterialsRoute: AuthenticatedAppMaterialsRoute,
+  AuthenticatedAppOrderProcessingRoute: AuthenticatedAppOrderProcessingRoute,
   AuthenticatedAppPackingListRoute: AuthenticatedAppPackingListRoute,
   AuthenticatedAppPlannerRoute: AuthenticatedAppPlannerRoute,
   AuthenticatedAppProductionCalendarRoute:
@@ -589,12 +696,16 @@ const AuthenticatedAppRouteRouteChildren: AuthenticatedAppRouteRouteChildren = {
   AuthenticatedAppSpecificationsRoute: AuthenticatedAppSpecificationsRoute,
   AuthenticatedAppStockBalanceRoute: AuthenticatedAppStockBalanceRoute,
   AuthenticatedAppStoreRoute: AuthenticatedAppStoreRoute,
+  AuthenticatedAppSuppliersRoute: AuthenticatedAppSuppliersRoute,
   AuthenticatedAppUsersRoute: AuthenticatedAppUsersRoute,
   AuthenticatedAppWorkloadRoute: AuthenticatedAppWorkloadRoute,
+  AuthenticatedAppOrderProcessingOrderNumberRoute:
+    AuthenticatedAppOrderProcessingOrderNumberRoute,
   AuthenticatedAppProductionOrdersOrderIdRoute:
     AuthenticatedAppProductionOrdersOrderIdRoute,
   AuthenticatedAppSpecificationsSpecIdRoute:
     AuthenticatedAppSpecificationsSpecIdRoute,
+  AuthenticatedAppUsersUserIdRoute: AuthenticatedAppUsersUserIdRoute,
 }
 
 const AuthenticatedAppRouteRouteWithChildren =

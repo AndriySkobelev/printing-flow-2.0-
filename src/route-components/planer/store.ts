@@ -34,6 +34,7 @@ type PlannerStore = {
   moveWithPush:  (id: string, startDate: string, startMinute: number) => void
   moveWithSwap:  (id: string, startDate: string, startMinute: number, sewerPeers: PlannedTask[]) => void
   resize:        (id: string, durationMinutes: number) => void
+  setDuration:   (id: string, durationMinutes: number) => void
   unassign:      (id: string) => void
   markSaved:     (id: string) => void
 }
@@ -143,6 +144,14 @@ export const usePlannerStore = create<PlannerStore>((set) => ({
 
       return { tasks: draft }
     }),
+
+  // Recomputed duration (e.g. extra work added) — not a user edit, so not dirty.
+  setDuration: (id, durationMinutes) =>
+    set((s) =>
+      s.tasks[id]
+        ? { tasks: { ...s.tasks, [id]: { ...s.tasks[id], durationMinutes } } }
+        : s
+    ),
 
   resize: (id, durationMinutes) =>
     set((s) =>

@@ -4,11 +4,20 @@ import { defineTable } from 'convex/server';
 export enum TransactionType { INCOMING = 'incoming', OUTGOING = 'outgoing', RESERVE='reserve' }
 export const TRANSACTION_TYPES = { INCOMING: 'incoming', OUTGOING: 'outgoing', RESERVE: 'reserve' } as const;
 
+export const suppliersSchema = {
+  name: v.string(),
+  contactPerson: v.optional(v.string()),
+  phone: v.optional(v.string()),
+  website: v.optional(v.string()),
+  note: v.optional(v.string()),
+};
+
 export const fabricsSchema = {
   name: v.string(),
   skuPrefix: v.string(),
   units: v.union(v.literal('кг'), v.literal('м')),
   processingType: v.optional(v.union(v.string(), v.null())),
+  supplierId: v.optional(v.union(v.id('suppliers'), v.null())),
   updatedAt: v.optional(v.string()),
   lastIndexVariant: v.optional(v.number()),
 };
@@ -78,6 +87,11 @@ export const reservations = {
   productionOrderItemId: v.id('productionOrderItems'),
   materialId: v.union(v.id('materialVariants'), v.id('fabricVariants')),
   status: v.union(v.literal('active'), v.literal('released'), v.literal('fulfilled')),
+  // How much of `quantity` was free on stock when it was reserved (the rest had
+  // to be ordered / waited for). Missing on reservations made before it existed.
+  coveredAtReserve: v.optional(v.number()),
+  // Free stock (inStock − reserved) of the material right before this reservation.
+  freeAtReserve: v.optional(v.number()),
 }
 
 export const stockBalances = {
@@ -112,7 +126,9 @@ export const productsSpecification = {
   brandingTime:    v.optional(v.union(v.number(), v.string())),
   customSizes: v.optional(v.array(v.string())),
   materials: v.array(v.object({
-    units: v.string(),
+    // Legacy — units now come from the parent fabric/material (see resolveMaterialParent).
+    units: v.optional(v.string()),
+    // The line's own label (e.g. "Основна тканина"), not the parent material's name.
     name: v.optional(v.string()),
     lineId: v.optional(v.string()),
     quantity: v.union(v.number(), v.string()),
@@ -152,6 +168,7 @@ export const fabricColors = {
   labelHex: v.string(),
 }
 
+const suppliersTable = defineTable(suppliersSchema)
 const fabricsTable = defineTable(fabricsSchema)
 const fabricVariantsTable = defineTable(fabricVariantsSchema)
 const fabricColorsTable = defineTable(fabricColors)
@@ -164,6 +181,7 @@ const reservationsTable = defineTable(reservations)
 const stockBalancesTable = defineTable(stockBalances)
 
 export {
+  suppliersTable,
   fabricsTable,
   fabricVariantsTable,
   fabricColorsTable,

@@ -13,7 +13,8 @@ function RouteComponent() {
   const search = useSearch({ from: '/login'})
   const { signIn,  } = useAuthActions();
   const handleSubmit = (actionName: string) => {
-    const some = signIn(actionName, { redirectTo: search.redirectTo ?? '/app'})
+    // Absolute URL so the backend sends us back to this frontend, not SITE_URL.
+    const some = signIn(actionName, { redirectTo: `${window.location.origin}${search.redirectTo ?? '/app'}` })
   }
 
   return (

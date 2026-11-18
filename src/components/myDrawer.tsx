@@ -83,10 +83,18 @@ const MyDrawer = ({
           <div className="text-sm text-primary">{description}</div>
         </DrawerHeader>
         {content}
-        <Footer
-          formId={formId}
-          isLoading={isLoading}
-          actionSubmit={actionSubmit} />
+        {withForm || actionSubmit ? (
+          <Footer
+            formId={formId}
+            isLoading={isLoading}
+            actionSubmit={actionSubmit} />
+        ) : (
+          <DrawerFooter>
+            <DrawerClose asChild>
+              <Button id="drawer-cancel" type="button" variant="outline" className="w-full">Закрити</Button>
+            </DrawerClose>
+          </DrawerFooter>
+        )}
       </DrawerContent>
     </Drawer>
   )

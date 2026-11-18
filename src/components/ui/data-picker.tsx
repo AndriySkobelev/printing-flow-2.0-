@@ -1,3 +1,4 @@
+import clsx from "clsx"
 import * as React from "react"
 import { Calendar } from "@/components/ui/calendar"
 import {
@@ -12,11 +13,11 @@ import { UTCDate } from "@date-fns/utc"
 
 const representComponents = {
   input: (date: number) => (
-    <div className="flex justify-between items-center border h-9.5 rounded-md py-1.25 px-4 text-primary/80 cursor-pointer">
-      <span className={date ? '' : 'text-primary/60 text-md'}>
-        {date ? format(date, "PPP", { locale: uk }) : 'Виберіть дату'}
+    <div className="flex min-w-0 justify-between items-center gap-2 border h-9.5 rounded-md py-1.25 px-3 text-primary/80 cursor-pointer">
+      <span className={clsx('truncate', !date && 'text-primary/60 text-md')}>
+        {date ? format(date, "dd.MM.yyyy") : 'Виберіть дату'}
       </span>
-      <ChevronDownIcon size={22} color="#ccc"/>
+      <ChevronDownIcon size={22} color="#ccc" className="shrink-0"/>
     </div>
   ),
   iconText: (date: number) => (

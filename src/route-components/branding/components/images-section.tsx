@@ -67,6 +67,10 @@ export const useLightbox = (): LightboxState => {
   }
 }
 
+// Marks the viewer's portals (body-level, outside any open dialog) so an open
+// Radix dialog lets them be clicked — see LIGHTBOX_CLASS handling in MyDialog.
+export const LIGHTBOX_CLASS = 'app-lightbox'
+
 // shared by every "click a thumbnail to zoom" spot in the app — a full-screen,
 // swipeable/zoomable image viewer (pan, wheel zoom, pinch, double-click zoom)
 export const LightboxGroup = ({ images, lightbox }: { images: string[]; lightbox: LightboxState }) => (
@@ -74,6 +78,7 @@ export const LightboxGroup = ({ images, lightbox }: { images: string[]; lightbox
     items={images}
     icons={previewIcons}
     preview={{
+      rootClassName:   LIGHTBOX_CLASS,
       visible:         lightbox.visible,
       current:         lightbox.current,
       onVisibleChange: lightbox.onVisibleChange,

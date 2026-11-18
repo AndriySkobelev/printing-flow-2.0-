@@ -6,10 +6,12 @@ import { Button } from '@/components/ui/button'
 import { values, pick, omit, groupBy } from 'ramda'
 import AppTable from '@/components/ui/app-table'
 import { DialogContext } from '@/contexts/dialog'
-import { useUpdateSelectedOrderItemsBrandingType } from '../actions'
+import { useUpdateSelectedOrderItemsBrandingType, useCreateProductionTasks } from '../actions'
+import { useCan } from '@/hooks/use-can'
 import { type OrderItem } from '../types'
 import { itemHeaders } from './item-cells'
 import { BulkBrandingForm } from '../forms/bulk-branding-form'
+import { Factory, Loader2 } from 'lucide-react'
 import clsx from 'clsx'
 
 const combineGroupItems = (items: any) => {
@@ -25,16 +27,17 @@ const combineGroupItems = (items: any) => {
   return combine;
 }
 
-export const ProductGroup = memo(({ items, readOnly }: { items: OrderItem[]; readOnly?: boolean }) => {
+export const ProductGroup = memo(({ items, productionOrderId, readOnly }: { items: OrderItem[]; productionOrderId: string; readOnly?: boolean }) => {
   const groupedItems = useMemo(() => groupBy(i => i.name, items), [items])
   const combineToTable = useMemo(() => combineGroupItems(groupedItems), [items])
-  console.log("🚀 ~ combineToTable:", combineToTable)
   const tableRef = useRef<TableAPI>(null);
   const [tableKey, setTableKey] = useState(0)
   const nestedTableRef = useRef<TableAPI>(null);
   const { openDialog, closeDialog } = useContext(DialogContext)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const { mutateAsync: updateSelected } = useUpdateSelectedOrderItemsBrandingType()
+  const { mutate: createTasks, isPending: isSending } = useCreateProductionTasks()
+  const canLaunch = useCan()('/app/production-orders', 'launch')
 
   const handleSelectionChange = useCallback(({ selectedRows }: RowSelectionChangeProps) => {
     setSelectedIds(new Set(selectedRows))
@@ -58,6 +61,19 @@ export const ProductGroup = memo(({ items, readOnly }: { items: OrderItem[]; rea
       return next
     })
   }, [])
+
+  // Selected items that can still be sent — already-sent ones are skipped.
+  const sendableIds = useMemo(
+    () => items.filter(i => selectedIds.has(i._id) && !i.inProduction).map(i => i._id as Id<'productionOrderItems'>),
+    [items, selectedIds]
+  )
+
+  const handleSendSelected = useCallback(() => {
+    createTasks(
+      { productionOrderId: productionOrderId as Id<'productionOrders'>, itemIds: sendableIds },
+      { onSuccess: clearSelection },
+    )
+  }, [productionOrderId, sendableIds, createTasks, clearSelection])
 
   const handleConfigureSelected = useCallback(() => {
     const firstId = [...selectedIds][0]
@@ -97,18 +113,28 @@ export const ProductGroup = memo(({ items, readOnly }: { items: OrderItem[]; rea
               selectedIds.size > 0 && 'opacity-100'
             )
           }>
-            <span className="flex-1 text-xs font-medium text-primary">
-              {selectedIds.size} вибрано
-            </span>
             <Button
               size="sm"
               type="button"
               variant="outline"
               onClick={handleConfigureSelected}
-              className="h-6 text-[11px] px-2 border-primary/30 text-primary hover:bg-primary/10"
+              className="h-7 text-xs border-primary/30 text-primary hover:bg-primary/10"
             >
-              Налаштувати вибрані
+              {`Налаштувати вибрані (${selectedIds.size})`}
             </Button>
+            {canLaunch && <Button
+              key={`send-${isSending}`}
+              size="sm"
+              type="button"
+              onClick={handleSendSelected}
+              disabled={sendableIds.length === 0 || isSending}
+              className="h-7 text-xs"
+            >
+              {isSending
+                ? <Loader2 size={14} className="animate-spin" />
+                : <Factory size={14} />}
+              <span>{`На виробництво (${sendableIds.length})`}</span>
+            </Button>}
           </div>
         )}
         <AppTable

@@ -1,7 +1,10 @@
-import { ArrowDownSquare, ArrowUpSquare, LockKeyhole } from 'lucide-react'
-import { useContext } from "react";
+import { ArrowDownSquare, ArrowUpSquare, LockKeyhole, Search } from 'lucide-react'
+import { useContext, useState } from "react";
 import type {FunctionComponent} from "react";
 import { usePaginatedQuery } from 'convex/react'
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
+import { convexQuery } from '@convex-dev/react-query'
+import { useDebounce } from 'use-debounce'
 import { useCreateIncomingMutation } from './queries';
 import { api } from "convex/_generated/api";
 import ComingMaterialForm from './forms/coming';
@@ -10,6 +13,8 @@ import type { Fabrics, Materials, StoreMovements } from "convex/schema";
 import { type HeaderObject } from "simple-table-core";
 import { DialogContext } from '@/contexts/dialog'
 import { Button } from '@/components/ui/button';
+import { useCan } from '@/hooks/use-can';
+import { Input } from '@/components/ui/input';
 import AppTable from '@/components/ui/app-table';
 
 // getMovementsWithMaterials resolves a movement's variant back to its parent
@@ -113,7 +118,7 @@ const headers: Array<HeaderObject> = [
     }
   },
   { accessor: "manager", label: "Менеджер", width: 150, isSortable: true, type: "string" },
-  { accessor: "description", label: "Опис", width: 150, isSortable: true, type: "string" },
+  { accessor: "description", label: "Коментар", width: 150, isSortable: true, type: "string" },
   { accessor: "sku", label: "SKU", width: 100, isSortable: true, type: "string",
     cellRenderer: (props) => {
       const row = props.row as StoreMovements & { material: ResolvedMaterial };
@@ -152,11 +157,19 @@ const InventoryMovement: FunctionComponent = () => {
     {},
     { initialNumItems: 100 },
   );
+  const [input, setInput] = useState('');
+  const [search] = useDebounce(input.trim(), 300);
+  const { data: searchResults, isLoading: isSearchLoading } = useQuery({
+    ...convexQuery(api.queries.movements.searchMovementsWithMaterials, { search }),
+    enabled: !!search,
+    placeholderData: keepPreviousData,
+  });
   const { mutate: incomingMutation} = useCreateIncomingMutation();
+  const canCreate = useCan()('/app/inventory-movement', 'create');
 
   const handlePageChange = (page: number) => {
     const needed = (page + 1) * 50
-    if (needed > data.length && status === 'CanLoadMore') {
+    if (!search && needed > data.length && status === 'CanLoadMore') {
       loadMore(100)
     }
   }
@@ -203,19 +216,30 @@ const InventoryMovement: FunctionComponent = () => {
   return (
     <div className="flex flex-col gap-4 p-4">
       <div className='flex gap-2'>
-        <Button onClick={handleComingMaterial}>+ Прихід</Button>
-        <Button onClick={handleConsumptionMaterial}>- Росхід</Button>
+        {canCreate && <Button onClick={handleComingMaterial}>+ Прихід</Button>}
+        {canCreate && <Button onClick={handleConsumptionMaterial}>- Росхід</Button>}
         {/* <Button onClick={handleUpdate}>Update Data</Button> */}
+        <div className="relative w-96">
+          <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+          <Input
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            placeholder="Пошук: матеріал, колір, SKU, менеджер, опис, № замовлення"
+            className="h-9.5 pl-8 text-sm"
+          />
+        </div>
       </div>
       <AppTable
+        key={search}
         shouldPaginate
         rowsPerPage={50}
-        rows={data || []}
-        isLoading={status === 'LoadingFirstPage'}
+        rows={search ? searchResults ?? [] : data || []}
+        isLoading={search ? isSearchLoading : status === 'LoadingFirstPage'}
+        tableEmptyStateRenderer={<div className="py-8 text-center text-sm text-muted-foreground">Нічого не знайдено</div>}
         defaultHeaders={headers}
         rowGrouping={['group', 'data']}
         onPageChange={handlePageChange}
-        getRowId={({ row }) => row.id as string}
+        getRowId={({ row }) => row._id as string}
       />
     </div>
   );

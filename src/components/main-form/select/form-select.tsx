@@ -19,9 +19,10 @@ const valueToOption = (value: string | number | null | undefined, options: Array
   return findValue;
 };
 
-const CustomDefaultOption: FunctionComponent<{ innerProps: any, innerRef: any, data: Option }> = ({ innerProps, innerRef, data }) => {
+// An option with `isDisabled` gets no click handler from react-select — shown greyed out.
+const CustomDefaultOption: FunctionComponent<{ innerProps: any, innerRef: any, data: Option, isDisabled?: boolean }> = ({ innerProps, innerRef, data, isDisabled }) => {
   return (
-    <div ref={innerRef} {...innerProps} className="px-4 py-2 hover:bg-primary/5 cursor-pointer">
+    <div ref={innerRef} {...innerProps} className={clsx('px-4 py-2', isDisabled ? 'cursor-not-allowed opacity-40' : 'hover:bg-primary/5 cursor-pointer')}>
       {data.label}
     </div>
   );
@@ -89,16 +90,20 @@ type OptionTypes = typeof OptionModes;
 interface FormSelectProps {
   label?: string;
   isMulti?: boolean,
+  isClearable?: boolean;
   disabled?: boolean;
   className?: string,
   placeholder?: string;
   addOnChange?: () => void;
+  // Multi select: keep picked values on one line and scroll them sideways
+  // instead of letting the input grow taller with every value.
+  singleLine?: boolean;
   modeOption?: keyof OptionTypes;
   valueMode?: 'value' | 'object';
   options: Array<{ value: string | number; label: string }> | any;
 }
 
-const FormSelect: FunctionComponent<FormSelectProps> = ({ options, label, placeholder, disabled, isMulti = false, valueMode = 'value', className, modeOption = 'default', addOnChange }) => {
+const FormSelect: FunctionComponent<FormSelectProps> = ({ options, label, placeholder, disabled, isMulti = false, isClearable = false, valueMode = 'value', className, modeOption = 'default', addOnChange, singleLine = false }) => {
   const field = useFieldContext();
   const name = useMemo(() => field.name, [field.name]);
   const value = useMemo(() => field.state.value as string | number | undefined, [field.state.value]);
@@ -120,6 +125,8 @@ const FormSelect: FunctionComponent<FormSelectProps> = ({ options, label, placeh
         name={name}
         options={options}
         isMulti={isMulti}
+        isClearable={isClearable}
+        closeMenuOnSelect={!isMulti}
         isDisabled={disabled}
         className='hover:active:border-none'
         placeholder={placeholder ?? "Виберіть..."}
@@ -141,6 +148,12 @@ const FormSelect: FunctionComponent<FormSelectProps> = ({ options, label, placeh
             ...baseStyles,
             borderRadius: '8px',
             borderColor: '#e7e3e4',
+          }),
+          // A long placeholder in a narrow select is cut off instead of wrapping.
+          placeholder: (baseStyles) => ({ ...baseStyles, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }),
+          ...(singleLine && {
+            valueContainer: (baseStyles) => ({ ...baseStyles, flexWrap: 'nowrap', overflowX: 'auto' }),
+            multiValue: (baseStyles) => ({ ...baseStyles, flexShrink: 0 }),
           }),
         }}/>
         {!isValid && <div className="text-sm text-red-500 ml-2">{errors?.[0]?.message}</div>}

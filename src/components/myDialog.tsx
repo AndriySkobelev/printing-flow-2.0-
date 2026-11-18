@@ -3,6 +3,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 
+// The image viewer (LIGHTBOX_CLASS in images-section) portals to <body>, outside
+// this dialog: clicks there must not count as "outside", and Esc closes the
+// viewer rather than the dialog while it's open.
+const isInLightbox = (target: EventTarget | null) =>
+  target instanceof Element && !!target.closest('.app-lightbox')
+const isLightboxOpen = () => !!document.querySelector('.rc-image-preview-operations-wrapper.app-lightbox')
+
 type FooterProps = {
   formId?: string,
   isLoading: boolean,
@@ -44,6 +51,8 @@ export default function MyDialog({
   setOpen,
   withForm,
   className,
+  noAutoFocus,
+  hideCloseButton,
   description,
   actionSubmit,
   isLoading = false,
@@ -53,6 +62,8 @@ export default function MyDialog({
   formId?: string,
   withForm?: boolean,
   className?: string,
+  noAutoFocus?: boolean,
+  hideCloseButton?: boolean,
   isLoading?: boolean,
   outerClose?: boolean,
   title?: React.ReactNode,
@@ -75,8 +86,12 @@ export default function MyDialog({
         }
         <DialogContent
           className={clsx('max-w-none', className)}
+          onOpenAutoFocus={noAutoFocus ? (event) => event.preventDefault() : undefined}
           onInteractOutside={(event) => {
-            if (!outerClose) return event.preventDefault()
+            if (!outerClose || isInLightbox(event.target)) return event.preventDefault()
+          }}
+          onEscapeKeyDown={(event) => {
+            if (isLightboxOpen()) event.preventDefault()
           }}
         >
           {
@@ -99,7 +114,7 @@ export default function MyDialog({
                 isLoading={isLoading} 
                 actionSubmit={actionSubmit}/>
             )
-            : (
+            : !hideCloseButton && (
               <DialogClose asChild>
                 <Button id="dialog-cancel" type="button" variant="outline" className=" w-full md:w-auto flex-1">Закрити</Button>
               </DialogClose>

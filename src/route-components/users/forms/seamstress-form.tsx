@@ -5,7 +5,7 @@ import { type Id } from 'convex/_generated/dataModel'
 import { type Doc } from 'convex/_generated/dataModel'
 import { useAppForm } from '@/components/main-form'
 import { Clock } from 'lucide-react'
-import { useUpdateSeamstressData } from '../queries'
+import { useUpdateSeamstressData } from '../actions'
 
 type DevelopingEntry = {
   specificationId: Id<'specifications'>
@@ -16,12 +16,13 @@ type Props = {
   formId: string
   userId: Id<'users'>
   existing?: DevelopingEntry[]
-  onSuccess: () => void
+  onSuccess?: () => void
+  className?: string
 }
 
 type InnerProps = Props & { specs: Doc<'specifications'>[] }
 
-function SeamstressFormInner({ formId, userId, existing = [], specs, onSuccess }: InnerProps) {
+const SeamstressFormInner = ({ formId, userId, existing = [], specs, onSuccess, className }: InnerProps) => {
   const { mutate: save } = useUpdateSeamstressData()
 
   const defaultValues = Object.fromEntries(
@@ -48,7 +49,7 @@ function SeamstressFormInner({ formId, userId, existing = [], specs, onSuccess }
     <form
       id={formId}
       onSubmit={(e: React.SyntheticEvent) => { e.preventDefault(); form.handleSubmit() }}
-      className="flex flex-col gap-2 max-h-[60vh] overflow-y-auto pr-1"
+      className={className ?? "flex flex-col gap-2 max-h-[60vh] overflow-y-auto pr-1"}
     >
       {specs.map(spec => (
         <div key={spec._id} className="flex items-center gap-3">
@@ -73,7 +74,7 @@ function SeamstressFormInner({ formId, userId, existing = [], specs, onSuccess }
   )
 }
 
-export default function SeamstressForm(props: Props) {
+const SeamstressForm = (props: Props) => {
   const { data: specs, isLoading } = useQuery(
     convexQuery(api.queries.specifications.getSpecifications, {})
   )
@@ -84,3 +85,5 @@ export default function SeamstressForm(props: Props) {
 
   return <SeamstressFormInner {...props} specs={specs} />
 }
+
+export default SeamstressForm

@@ -9,6 +9,7 @@ import { DialogContext } from '@/contexts/dialog'
 import { useCreateFabric, useAddFabricVariants, useDeleteFabric, useDeleteFabricVariant, useUpdateFabric } from "./queries";
 import { Button } from "@/components/ui/button";
 import { ActionsMenu } from "@/components/actions-menu";
+import { useCan } from "@/hooks/use-can";
 import { Trash2, SquarePen } from "lucide-react";
 import CreateFabricForm from "./forms/create-fabrics";
 import AddFabricVariantForm from "./forms/add-fabric-variant";
@@ -30,11 +31,13 @@ const fabricHeaders = (
   onEdit: (row: any) => void,
   selectedFabricId: Id<'fabrics'> | null,
   setSelectedFabricId: (id: Id<'fabrics'> | null) => void,
+  can: ReturnType<typeof useCan>,
 ): HeaderObject[] => [
   { accessor: "name",           label: "Назва",       width: 220, type: "string", headerRenderer: renderHeader },
   { accessor: "skuPrefix",      label: "SKU префікс", width: 110, type: "string", headerRenderer: renderHeader },
   { accessor: "units",          label: "Од.",          width: 70,  type: "string", headerRenderer: renderHeader },
   { accessor: "processingType", label: "Обробка",      width: 130, type: "string", headerRenderer: renderHeader },
+  { accessor: "supplierName",   label: "Постачальник", width: 150, type: "string", headerRenderer: renderHeader },
   { accessor: "variantCount",   label: "Кольорів",     width: 90,  type: "number", headerRenderer: renderHeader },
   {
     accessor: "_actions",
@@ -44,8 +47,8 @@ const fabricHeaders = (
     pinned: 'right',
     cellRenderer: ({ row }: any) => (
       <ActionsMenu items={[
-        { label: 'Редагувати', icon: <SquarePen className="size-3" />, onClick: () => onEdit(row) },
-        { label: 'Видалити', icon: <Trash2 className="size-3" />, destructive: true, onClick: () => {
+        { label: 'Редагувати', icon: <SquarePen className="size-3" />, onClick: () => onEdit(row), hidden: !can('/app/fabrics', 'edit') },
+        { label: 'Видалити', icon: <Trash2 className="size-3" />, destructive: true, hidden: !can('/app/fabrics', 'delete'), onClick: () => {
           confirmDelete(row._id);
           if (selectedFabricId === row._id) setSelectedFabricId(null);
         }},
@@ -54,7 +57,7 @@ const fabricHeaders = (
   },
 ]
 
-const variantHeaders = (deleteVariant: DeleteVariantFn): HeaderObject[] => [
+const variantHeaders = (deleteVariant: DeleteVariantFn, canDelete: boolean): HeaderObject[] => [
   { accessor: "color",     label: "Колір",       width: 180, type: "string", headerRenderer: renderHeader },
   { accessor: "sku",       label: "SKU",         width: 120, type: "string", headerRenderer: renderHeader },
   { accessor: "skuNumber", label: "№",           width: 60,  type: "number", headerRenderer: renderHeader },
@@ -70,6 +73,7 @@ const variantHeaders = (deleteVariant: DeleteVariantFn): HeaderObject[] => [
         label: 'Видалити',
         icon: <Trash2 className="size-3" />,
         destructive: true,
+        hidden: !canDelete,
         onClick: () => deleteVariant({ id: row._id }),
       }]} />
     ),
@@ -78,7 +82,9 @@ const variantHeaders = (deleteVariant: DeleteVariantFn): HeaderObject[] => [
 
 const Fabrics: FunctionComponent<FabricsProps> = () => {
   const { data = [], isLoading } = useQuery(convexQuery(api.queries.fabrics.getFabrics));
+  const { data: suppliers = [] } = useQuery(convexQuery(api.queries.suppliers.getSuppliers, {}));
   const { mutate: createFabric } = useCreateFabric();
+  const can = useCan();
   const { mutate: addVariant } = useAddFabricVariants();
   const { mutate: deleteFabric } = useDeleteFabric();
   const { mutate: updateFabric } = useUpdateFabric();
@@ -96,7 +102,7 @@ const Fabrics: FunctionComponent<FabricsProps> = () => {
         <CreateFabricForm
           isEdit
           formId={formId}
-          defaultValues={{ name: row.name, skuPrefix: row.skuPrefix, units: row.units, processingType: row.processingType }}
+          defaultValues={{ name: row.name, skuPrefix: row.skuPrefix, units: row.units, processingType: row.processingType, supplierId: row.supplierId }}
           actionSubmit={(values) => {
             updateFabric({ id: row._id, ...values }, { onSuccess: () => closeDialog() })
           }}
@@ -123,6 +129,8 @@ const Fabrics: FunctionComponent<FabricsProps> = () => {
     skuPrefix: fabric.skuPrefix,
     units: fabric.units,
     processingType: fabric.processingType ?? '',
+    supplierId: fabric.supplierId ?? null,
+    supplierName: suppliers.find(s => s._id === fabric.supplierId)?.name ?? '',
     variantCount: fabric.variants.length,
   }));
 
@@ -178,32 +186,35 @@ const Fabrics: FunctionComponent<FabricsProps> = () => {
       <div className="flex gap-4 justify-between w-full">
         <div className="flex flex-col gap-2 flex-1">
           <div className="flex justify-end">
-            <Button type="button" onClick={handleOpenCreateFabric}>Додати тканину</Button>
+            {can('/app/fabrics', 'create') && <Button type="button" onClick={handleOpenCreateFabric}>Додати тканину</Button>}
           </div>
           <AppTable
             height={650}
             rows={fabricRows}
             isLoading={isLoading}
-            defaultHeaders={fabricHeaders(handleConfirmDeleteFabric, handleEditFabric, selectedFabricId, setSelectedFabricId)}
+            defaultHeaders={fabricHeaders(handleConfirmDeleteFabric, handleEditFabric, selectedFabricId, setSelectedFabricId, can)}
             onCellClick={handleFabricClick}
             getRowId={(row) => row.row._id as string}
+            selectedRowId={selectedFabricId}
           />
         </div>
         <div className="flex flex-col gap-2 flex-1">
           <div className="flex justify-end">
-            <Button
-              type="button"
-              disabled={!selectedFabricId}
-              onClick={handleOpenAddVariant}
-            >
-              Додати колір
-            </Button>
+            {can('/app/fabrics', 'edit') && (
+              <Button
+                type="button"
+                disabled={!selectedFabricId}
+                onClick={handleOpenAddVariant}
+              >
+                Додати колір
+              </Button>
+            )}
           </div>
           <AppTable
             height={650}
             rows={variantRows}
             isLoading={isLoading}
-            defaultHeaders={variantHeaders(deleteVariant)}
+            defaultHeaders={variantHeaders(deleteVariant, can('/app/fabrics', 'delete'))}
             getRowId={(row) => row.row._id as string}
           />
         </div>

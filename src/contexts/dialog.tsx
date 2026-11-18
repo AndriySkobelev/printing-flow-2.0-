@@ -4,13 +4,15 @@ import { createContext, useState, useCallback, useMemo, ReactElement } from "rea
 type DialogOptions = {
   trigger?: any
   content: any
-  title?: string
+  title?: React.ReactNode
   description?: string | ReactElement
   withForm?: boolean
   form?: any
   formId?: string
   outerClose?: boolean
   className?: string
+  noAutoFocus?: boolean
+  hideCloseButton?: boolean
   actionSubmit?: (data: any) => void
   onDismiss?: () => void
 }
@@ -57,6 +59,8 @@ export const ContextDialogComponent = ({ children }: { children: React.ReactNode
           withForm={dialog.withForm}
           setIsLoading={setIsLoading}
           className={dialog.className}
+          noAutoFocus={dialog.noAutoFocus}
+          hideCloseButton={dialog.hideCloseButton}
           outerClose={dialog.outerClose}
           description={dialog.description}
           actionSubmit={dialog.actionSubmit}

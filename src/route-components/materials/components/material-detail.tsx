@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useAddMaterialColors, useAddMaterialSizes, useRenameMaterialColor, useRenameMaterialSize } from '../queries'
+import { useCan } from '@/hooks/use-can'
 
 type Props = {
   materialId: Id<'materials'>
@@ -41,7 +42,7 @@ const EditableChip = ({
   prefix,
 }: {
   label: string
-  onRename: (newValue: string) => void
+  onRename?: (newValue: string) => void
   prefix?: React.ReactNode
 }) => {
   const [editing, setEditing] = useState(false)
@@ -49,7 +50,7 @@ const EditableChip = ({
 
   const commit = () => {
     const trimmed = value.trim()
-    if (trimmed && trimmed !== label) onRename(trimmed)
+    if (trimmed && trimmed !== label) onRename?.(trimmed)
     else setValue(label)
     setEditing(false)
   }
@@ -73,12 +74,17 @@ const EditableChip = ({
     <div className="group flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs">
       {prefix}
       <span>{label}</span>
-      <button
-        onClick={() => setEditing(true)}
-        className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
-      >
-        <Pencil size={10} />
-      </button>
+      {onRename && (
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          onClick={() => setEditing(true)}
+          className="size-4 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
+        >
+          <Pencil size={10} />
+        </Button>
+      )}
     </div>
   )
 }
@@ -120,6 +126,7 @@ const AddChip = ({ onAdd, placeholder }: { onAdd: (v: string) => void; placehold
 }
 
 export const MaterialDetail = ({ materialId }: Props) => {
+  const canEdit = useCan()('/app/materials', 'edit')
   const { data, isLoading } = useQuery(
     convexQuery(api.queries.materials.getMaterialWithVariants, { id: materialId })
   )
@@ -177,13 +184,15 @@ export const MaterialDetail = ({ materialId }: Props) => {
                 key={color}
                 label={color}
                 prefix={colorDot(color)}
-                onRename={newColor => renameColor({ id: materialId, oldColor: color, newColor })}
+                onRename={canEdit ? newColor => renameColor({ id: materialId, oldColor: color, newColor }) : undefined}
               />
             ))}
-            <AddChip
-              placeholder="Додати колір"
-              onAdd={color => addColors({ id: materialId, colors: [color] })}
-            />
+            {canEdit && (
+              <AddChip
+                placeholder="Додати колір"
+                onAdd={color => addColors({ id: materialId, colors: [color] })}
+              />
+            )}
           </div>
         </ScrollArea>
       </div>
@@ -199,13 +208,15 @@ export const MaterialDetail = ({ materialId }: Props) => {
             <EditableChip
               key={size}
               label={size}
-              onRename={newSize => renameSize({ id: materialId, oldSize: size, newSize })}
+              onRename={canEdit ? newSize => renameSize({ id: materialId, oldSize: size, newSize }) : undefined}
             />
           ))}
-          <AddChip
-            placeholder="Додати"
-            onAdd={size => addSizes({ id: materialId, sizes: [size] })}
-          />
+          {canEdit && (
+            <AddChip
+              placeholder="Додати"
+              onAdd={size => addSizes({ id: materialId, sizes: [size] })}
+            />
+          )}
         </div>
       </div>
 

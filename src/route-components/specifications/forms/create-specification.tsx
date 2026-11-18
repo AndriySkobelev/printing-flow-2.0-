@@ -2,7 +2,7 @@ import { type FunctionComponent, type MutableRefObject, useMemo } from "react";
 import { Trash2Icon } from 'lucide-react'
 import { z } from 'zod';
 import clsx from "clsx";
-import { revalidateLogic } from '@tanstack/react-form';
+import { revalidateLogic, useStore } from '@tanstack/react-form';
 import { useQuery } from '@tanstack/react-query';
 import { convexQuery } from '@convex-dev/react-query';
 import { useAction } from 'convex/react';
@@ -36,7 +36,7 @@ const specificationSchema = z.object({
   // first line is always the base fabric by convention (see products.ts).
   materials: z.array(z.object({
     type: z.union([z.literal('material'), z.literal('fabric')]),
-    units: z.string(),
+    name: z.string().min(1, 'Must be an 1 min charts'),
     quantity: z.string(),
     id: selectFieldSchema,
   }))
@@ -45,15 +45,15 @@ const specificationSchema = z.object({
 const defaultMaterialValues = {
   type: 'material' as const,
   id: undefined,
+  name: '',
   quantity: '',
-  units: ''
 }
 
 const defaultFabricsValues = {
   type: 'fabric' as const,
   id: undefined,
+  name: '',
   quantity: '',
-  units: ''
 }
 
 export type SpecificationFormType = z.infer<typeof specificationSchema>
@@ -110,7 +110,7 @@ const SpecificationForm: FunctionComponent<SpecificationFormProps> = ({
         packingTime:    '0',
         brandingTime:   '0',
         materials: [
-          { type: 'fabric' as const, id: undefined, quantity: '1', units: '' }
+          { type: 'fabric' as const, id: undefined, name: '', quantity: '1' }
         ]
       }
     }
@@ -135,6 +135,20 @@ const SpecificationForm: FunctionComponent<SpecificationFormProps> = ({
   });
 
   if (formApiRef) formApiRef.current = () => form.state.values;
+
+  // Whatever was already picked in the form is offered right away in the other
+  // rows of the same type — no need to search for it again. Subscribed to the
+  // whole materials array: the array field itself re-renders only when rows
+  // are added or removed, not when a row's selection changes.
+  const materials = useStore(form.store, (state) => state.values.materials);
+  const pickedOptions = (type: 'fabric' | 'material', base: Array<Option> = []) => {
+    const picked = materials
+      .filter(row => row.type === type && row.id)
+      .map(row => row.id as Option)
+    return [...base, ...picked].filter((o, idx, all) => all.findIndex(x => x.value === o.value) === idx)
+  }
+  const fabricPicked   = pickedOptions('fabric', defaultFabricOptions)
+  const materialPicked = pickedOptions('material', defaultMaterialsOptions)
 
   return (
     <div>
@@ -205,10 +219,15 @@ const SpecificationForm: FunctionComponent<SpecificationFormProps> = ({
           >
             {(field) => (
               <div className='flex flex-col gap-2 w-full'>
-                  <div className="flex flex-col items-center gap-2 w-full">
-                    <span className="text-primary/40">Матеріали</span>
+                  <span className="text-primary/40 text-center">Елементи</span>
+                  {/* Rows scroll inside; the title and add buttons stay put.
+                      react-select scrolls this box to reveal an open menu. */}
+                  <div className="flex flex-col items-center gap-2 w-full max-h-[60vh] overflow-y-auto pr-1 pb-1">
                     {field.state.value.map((value, i) => (
                       <div key={i} className={clsx('flex gap-2 w-full items-end')}>
+                        <form.AppField key={`name-${i}`} name={`materials[${i}].name`}
+                          children={(subField) => (<subField.FormTextField className="flex-4" type='text' label="Назва"/>)}
+                        />
                         <form.AppField key={`id-${i}`} name={`materials[${i}].id`}
                           children={(subField) => (
                             <subField.FormAsyncSelect
@@ -217,25 +236,17 @@ const SpecificationForm: FunctionComponent<SpecificationFormProps> = ({
                               label={value.type === 'material' ? "Матеріал" : 'Тканина'}
                               modeOption='default'
                               asyncOptions={value.type === 'material' ? materialOptions : fabricOptions}
-                              defaultOptions={value.type === 'material' ? defaultMaterialsOptions : defaultFabricOptions}/>
+                              defaultOptions={value.type === 'material' ? materialPicked : fabricPicked}/>
                           )}
                         />
                         <form.AppField key={`quantity-${i}`} name={`materials[${i}].quantity`}
                           children={(subField) => (<subField.FormTextNumberField className="flex-3" type='number' label="Кількість"/>)}
                         />
-                        <form.AppField key={`units-${i}`} name={`materials[${i}].units`}
-                            children={(subField) => (<subField.FormSelect className="flex-3" options={unitsOptions} placeholder='...' label="Од. виміру"/>)}
-                        />
-                        {
-                          i != 0
-                          ? <Button type='button' disabled={i === 0} className="self-end" onClick={() => field.removeValue(i)}><Trash2Icon size={17}/></Button>
-                          : null
-                        }
-                        
+                        <Button type='button' disabled={i === 0} className="self-end" onClick={() => field.removeValue(i)}><Trash2Icon size={17}/></Button>
                       </div>
                     ))}
                   </div>
-                <div className="flex flex-row justify-between gap-2 bg-white py-2 mt-4">
+                <div className="flex flex-row justify-between gap-2 bg-white py-2 mt-2">
                   <Button className="flex-1 w-full text-primary/80" type="button" variant='secondary' onClick={() => field.pushValue(defaultMaterialValues)}>Додати матеріал</Button>
                   <Button className="flex-1 w-full text-primary/80" type="button" variant='secondary' onClick={() => field.pushValue(defaultFabricsValues)}>Додати Тканину</Button>
                 </div>

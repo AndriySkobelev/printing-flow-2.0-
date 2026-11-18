@@ -3,6 +3,7 @@ import { Link, useLocation } from '@tanstack/react-router'
 import type { LucideIcon } from 'lucide-react'
 import {
   ArrowLeftRight,
+  Calculator,
   CalendarDays,
   ChevronDown,
   ChevronRight,
@@ -21,13 +22,14 @@ import {
   Wand2,
   CalendarRange,
   ShoppingBag,
+  Truck,
   Users,
   Warehouse,
+  Wrench,
   X,
 } from 'lucide-react'
 import { useAuth } from '@/hooks/auth-hooks'
 import { canAccessPage } from '@/constants/page-roles'
-import type { UserRole } from '@/constants/roles'
 import UserAvatar from '@/components/UserAvatar'
 import {
   DropdownMenu,
@@ -81,8 +83,15 @@ const navConfig: NavItem[] = [
     label: 'Склад',
     icon: Warehouse,
     children: [
-      { to: '/app/inventory-movement', label: 'Рух матеріалів', icon: ArrowLeftRight },
-      { to: '/app/stock-balance', label: 'Залишки', icon: Layers },
+      {
+        type: 'subgroup',
+        label: 'Облік',
+        children: [
+          { to: '/app/inventory-movement', label: 'Рух матеріалів', icon: ArrowLeftRight },
+          { to: '/app/stock-balance', label: 'Залишки', icon: Layers },
+        ],
+      },
+      { to: '/app/suppliers', label: 'Постачальники', icon: Truck },
     ],
   },
   {
@@ -90,6 +99,7 @@ const navConfig: NavItem[] = [
     label: 'Виробництво',
     icon: CalendarDays,
     children: [
+      { to: '/app/order-processing', label: 'Обробка замовлень',     icon: Calculator              },
       { to: '/app/workload',        label: 'Календар завантаження',  icon: CalendarRange           },
       { to: '/app/planner',         label: 'Планер пошиву',          icon: Waypoints               },
       { to: '/app/production-cut',  label: 'Виробництво крою',       icon: ScissorsLineDashedIcon  },
@@ -112,6 +122,7 @@ const navConfig: NavItem[] = [
           { to: '/app/specifications', label: 'Виробів', icon: ClipboardList },
         ],
       },
+      { to: '/app/extra-works', label: 'Додаткові роботи', icon: Wrench },
     ],
   },
   {
@@ -386,7 +397,7 @@ const MobileMenu = ({ open, onClose, canSee, user }: {
                 size="sm"
                 nameColor='white'
                 name={user.name}
-                role={user.role}
+                role={user.roleName ?? user.role}
                 image={user.image}
                 lastName={user.lastName}
               />
@@ -402,10 +413,9 @@ const MobileMenu = ({ open, onClose, canSee, user }: {
 
 const Header = () => {
   const { user } = useAuth()
-  const userRole: UserRole | undefined = user?.role
   const [mobileOpen, setMobileOpen] = useState(false)
 
-  const canSee = (to?: string) => !to || canAccessPage(userRole, to)
+  const canSee = (to?: string) => !to || canAccessPage(user, to)
 
   return (
     <>
@@ -436,7 +446,7 @@ const Header = () => {
             to={'/app/profile' as any}
             className="hidden md:flex items-center gap-2.5 px-2 py-1 rounded-md hover:bg-white/10 transition-colors shrink-0"
           >
-            <UserAvatar name={user.name} role={user.role} lastName={user.lastName} image={user.image} size="sm" showName showRole />
+            <UserAvatar name={user.name} role={user.roleName ?? user.role} lastName={user.lastName} image={user.image} size="sm" showName showRole />
           </Link>
         )}
 

@@ -1,6 +1,6 @@
 import { useState, useMemo, useContext, useCallback } from 'react'
 import { useNavigate } from '@tanstack/react-router'
-import { History } from 'lucide-react'
+import { Check, History, ListFilter } from 'lucide-react'
 import { type HeaderObject } from 'simple-table-core'
 import clsx from 'clsx'
 import { Button } from '@/components/ui/button'
@@ -14,9 +14,10 @@ import { MyPopover } from '@/components/my-popover'
 import { Calendar } from '@/components/ui/calendar'
 import { UTCDate } from '@date-fns/utc'
 import { SizeInfo } from './components/size-info'
-import { SpecInfo, type SpecData } from './components/spec-info'
+import { type SpecData } from './components/spec-info'
+import { CuttingSpecDetails } from '@/components/spec-details'
 import { OrderInfo } from './components/order-info'
-import { StatusFilter } from './components/status-filter'
+import { MaterialReservationCell, type FabricReservation } from './components/material-reservation'
 import { OrderLogs } from '@/components/order-logs'
 import { DrawerContext } from '@/contexts/drawer'
 import { AuthContext } from '@/contexts/auth'
@@ -37,13 +38,20 @@ const ORDER_TYPES = {
 type OrderType = keyof typeof ORDER_TYPES
 
 const STATUSES = {
-  new:         { label: 'Нове',             className: 'bg-blue-100 text-blue-700'   },
-  in_progress: { label: 'В роботі',         className: 'bg-amber-100 text-amber-700' },
-  paused:      { label: 'На паузі',         className: 'bg-gray-100 text-gray-600'   },
-  waiting:     { label: 'Очікуєм Тканину',  className: 'bg-purple-100 text-purple-700' },
-  done:        { label: 'Виконано',         className: 'bg-green-100 text-green-700' },
+  new:         { label: 'Нове',             className: 'bg-blue-100 text-blue-700',     dot: 'bg-blue-500'   },
+  in_progress: { label: 'В роботі',         className: 'bg-amber-100 text-amber-800',   dot: 'bg-amber-500'  },
+  paused:      { label: 'На паузі',         className: 'bg-gray-100 text-gray-600',     dot: 'bg-gray-400'   },
+  waiting:     { label: 'Очікуєм тканину',  className: 'bg-purple-100 text-purple-700', dot: 'bg-purple-500' },
+  done:        { label: 'Виконано',         className: 'bg-green-500 text-white',       dot: 'bg-green-500'  },
 } as const
 type Status = keyof typeof STATUSES
+type StatusConfig = (typeof STATUSES)[Status]
+
+const StatusChip = ({ cfg, className }: { cfg: StatusConfig; className?: string }) => (
+  <span className={clsx('inline-flex h-7 items-center rounded-md px-2 text-xs font-medium whitespace-nowrap', cfg.className, className)}>
+    {cfg.label}
+  </span>
+)
 
 export type SizeLog = {
   quantity: number
@@ -72,6 +80,7 @@ interface Order {
   specName: string
   spec: SpecData | null
   material: string
+  fabricReservations: FabricReservation[]
   color: string
   sizes: Partial<Record<Size, number>>
   sizeDetails: SizeDetail[]
@@ -81,6 +90,7 @@ interface Order {
   note: string
   isCustomCut: boolean
   customCutComment: string | null
+  hasCustomSpec: boolean
   relevantLogsCount: number
   unseenLogsCount: number
 }
@@ -141,6 +151,62 @@ const PlanedDateCell = ({ row, onUpdate }: { row: OrderRow; onUpdate: (id: strin
   )
 }
 
+const STATUS_ENTRIES = Object.entries(STATUSES) as [Status, StatusConfig][]
+
+const DEFAULT_STATUS_FILTER: Status[] = ['new', 'in_progress', 'waiting']
+const ACTIVE_STATUSES: Status[] = ['new', 'in_progress']
+
+const StatusOption = ({ cfg, active, onClick }: { cfg: StatusConfig; active: boolean; onClick: () => void }) => (
+  <Button
+    variant="ghost"
+    className={clsx('h-9 justify-start gap-2.5 px-2 font-normal', active && 'bg-muted')}
+    onClick={onClick}
+  >
+    <span className={clsx('size-2.5 shrink-0 rounded-sm', cfg.dot)} />
+    <span className="flex-1 text-left">{cfg.label}</span>
+    {active && <Check size={14} className="text-primary" />}
+  </Button>
+)
+
+const StatusFilter = ({ selected, onChange }: { selected: Status[]; onChange: (s: Status[]) => void }) => {
+  const toggle = (key: Status) =>
+    onChange(selected.includes(key) ? selected.filter(k => k !== key) : [...selected, key])
+  return (
+    <MyPopover
+      align="start"
+      trigger={
+        <Button variant="outline" className={clsx('h-9 gap-2 px-3 font-normal', selected.length > 0 && 'border-primary/60')}>
+          <ListFilter size={14} />
+          Статус
+          {selected.length > 0 && (
+            <span className="flex items-center gap-1">
+              {STATUS_ENTRIES.filter(([key]) => selected.includes(key)).map(([key, cfg]) => (
+                <span key={key} className={clsx('size-2.5 rounded-sm', cfg.dot)} title={cfg.label} />
+              ))}
+            </span>
+          )}
+        </Button>
+      }
+      content={
+        <div className="flex min-w-56 flex-col gap-0.5">
+          <span className="px-2 pb-1.5 text-xs font-medium text-muted-foreground">Статус крою</span>
+          {STATUS_ENTRIES.map(([key, cfg]) => (
+            <StatusOption key={key} cfg={cfg} active={selected.includes(key)} onClick={() => toggle(key)} />
+          ))}
+          <div className="mt-1 flex gap-1 border-t pt-1.5">
+            <Button variant="ghost" size="sm" className="flex-1 text-xs" onClick={() => onChange(DEFAULT_STATUS_FILTER)}>
+              За замовчуванням
+            </Button>
+            <Button variant="ghost" size="sm" className="flex-1 text-xs" onClick={() => onChange([])}>
+              Скинути
+            </Button>
+          </div>
+        </div>
+      }
+    />
+  )
+}
+
 const StatusCell = ({ row, onUpdate }: { row: OrderRow; onUpdate: (id: string, status: Status) => void }) => {
   const [open, setOpen] = useState(false)
   const s = row.status
@@ -150,29 +216,49 @@ const StatusCell = ({ row, onUpdate }: { row: OrderRow; onUpdate: (id: string, s
       onOpenChange={setOpen}
       align="start"
       trigger={
-        <button className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full hover:opacity-80 transition-opacity ${STATUSES[s].className}`}>
-          {STATUSES[s].label}
-        </button>
+        <Button variant="ghost" className="h-auto p-0 hover:bg-transparent hover:opacity-80">
+          <StatusChip cfg={STATUSES[s]} />
+        </Button>
       }
       content={
-        <div className="flex flex-col p-1 min-w-36">
-          {(Object.entries(STATUSES) as [Status, { label: string; className: string }][]).map(([key, cfg]) => (
-            <button
+        <div className="flex min-w-56 flex-col gap-0.5">
+          <span className="px-2 pb-1.5 text-xs font-medium text-muted-foreground">Статус крою</span>
+          {STATUS_ENTRIES.map(([key, cfg]) => (
+            <StatusOption
               key={key}
-              disabled={key === s}
-              onClick={() => { onUpdate(row.id, key); setOpen(false) }}
-              className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted disabled:opacity-40 disabled:cursor-default"
-            >
-              <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${cfg.className}`}>
-                {cfg.label}
-              </span>
-            </button>
+              cfg={cfg}
+              active={key === s}
+              onClick={() => { if (key !== s) onUpdate(row.id, key); setOpen(false) }}
+            />
           ))}
         </div>
       }
     />
   )
 }
+
+// Spec elements this cutting task actually uses — the items' edited copies
+// where they exist (see getCuttingTaskSpecDetails), with changes vs the base marked.
+const SpecCell = ({ row }: { row: OrderRow }) => (
+  <MyPopover
+    align="start"
+    withArrow
+    trigger={
+      <Button
+        variant="ghost"
+        className="relative h-auto min-w-0 max-w-full p-0 text-sm font-normal text-left whitespace-normal capitalize hover:bg-transparent hover:text-primary"
+      >
+        <span className="line-clamp-2 leading-tight break-words" title={row.specName}>{row.specName}</span>
+        {row.hasCustomSpec && (
+          <span className="absolute -top-2.5 left-0 rounded bg-violet-100 px-1 text-[9px] font-medium leading-4 text-violet-700 normal-case">
+            Змінено
+          </span>
+        )}
+      </Button>
+    }
+    content={<CuttingSpecDetails cuttingTaskId={row.id as Id<'cuttingTasks'>} productName={row.specName} color={row.color} className="min-w-60 max-w-90" />}
+  />
+)
 
 // ─── Table headers ────────────────────────────────────────────────────────────
 
@@ -234,24 +320,15 @@ const makeHeaders = (
   },
   {
     accessor: 'specName', label: 'Виріб', width: 140, isSortable: true, type: 'string',
+    cellRenderer: ({ row }) => <SpecCell row={row as OrderRow} />,
+  },
+  {
+    accessor: 'material', label: 'Матеріал', width: 160, isSortable: true, type: 'string',
     cellRenderer: ({ row }) => {
       const o = row as OrderRow
-      if (!o.spec) return <span className="text-sm">{o.specName}</span>
-      return (
-        <MyPopover
-          align="start"
-          withArrow
-          trigger={
-            <button className="text-sm text-left decoration-dotted underline-offset-2 cursor-pointer capitalize hover:text-primary transition-colors">
-              {o.specName}
-            </button>
-          }
-          content={<SpecInfo spec={o.spec} />}
-        />
-      )
+      return <MaterialReservationCell material={o.material} reservations={o.fabricReservations} />
     },
   },
-  { accessor: 'material', label: 'Матеріал', width: 160, isSortable: true, type: 'string' },
   { accessor: 'color',    label: 'Колір',    width: 120, isSortable: true, type: 'string' },
   ...SIZES.map((s): HeaderObject => ({
     accessor: `sz_${s}`,
@@ -288,7 +365,7 @@ const makeHeaders = (
             >
               {n}
               {quantityChange && (
-                <span className="absolute top-0 -right-1.5 min-w-4 h-4 px-0.5 rounded bg-red-500 text-white text-[9px] line-through font-semibold flex items-center justify-center leading-none">
+                <span className="absolute top-0 -right-1.5 min-w-4 h-4 px-0.5 rounded bg-red-500 text-white text-[9px] font-semibold flex items-center justify-center leading-none">
                   {quantityChange.oldQty}
                 </span>
               )}
@@ -322,7 +399,7 @@ const makeHeaders = (
     },
   },
   {
-    accessor: 'status', label: 'Статус', width: 90, isSortable: true, type: 'string',
+    accessor: 'status', label: 'Статус', width: 140, isSortable: true, type: 'string',
     cellRenderer: ({ row }) => <StatusCell row={row as OrderRow} onUpdate={onUpdateStatus} />,
   },
   {
@@ -355,7 +432,7 @@ export default function ProductionCut() {
   const { user }    = useContext(AuthContext)
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all')
-  const [statusFilter, setStatusFilter] = useState<Status[]>([])
+  const [statusFilter, setStatusFilter] = useState<Status[]>(DEFAULT_STATUS_FILTER)
   const { data: rawTasks = [] } = useQuery(convexQuery(api.queries.cutting.getAllCuttingTasks, {}))
   const { mutate: updateDate }   = useUpdateCuttingTaskPlanedEndDate()
   const { mutate: updateStatus } = useUpdateCuttingTaskStatus()
@@ -368,6 +445,7 @@ export default function ProductionCut() {
       manager:           task.keycrmManager ?? null,
       type:              deriveType(task.specName),
       material:          task.fabric,
+      fabricReservations: task.fabricReservations,
       color:             task.color,
       specName:          task.specName,
       spec:              (task.spec as SpecData | null) ?? null,
@@ -389,6 +467,7 @@ export default function ProductionCut() {
       note:              task.note ?? '',
       isCustomCut:       (task as any).isCustomCut ?? false,
       customCutComment:  (task as any).customCutComment ?? null,
+      hasCustomSpec:     task.sizes.some(s => (s as any).hasCustomSpec),
       relevantLogsCount: task.relevantLogsCount ?? 0,
       unseenLogsCount:   task.unseenLogsCount   ?? 0,
     })),
@@ -422,52 +501,54 @@ export default function ProductionCut() {
     })
   }, [openDrawer, user])
 
-  const specNames = useMemo(() => [...new Set(orders.map(o => o.specName))], [orders])
+  // Search + status filters only, so the spec buttons list what the table can show.
+  const filteredOrders = useMemo(() => {
+    const q = search.toLowerCase()
+    return orders.filter(o => {
+      const matchSearch = !q || o.number.toLowerCase().includes(q) || o.material.toLowerCase().includes(q) || o.color.toLowerCase().includes(q)
+      const matchStatus = statusFilter.length === 0 || statusFilter.includes(o.status)
+      return matchSearch && matchStatus
+    })
+  }, [orders, search, statusFilter])
 
-  // total quantity (across all sizes) cut for each spec — same "виробів" meaning as the stats bar above
   const specQtyByName = useMemo(() => {
     const counts = new Map<string, number>()
-    for (const o of orders) counts.set(o.specName, (counts.get(o.specName) ?? 0) + totalQty(o.sizes))
+    for (const o of filteredOrders) counts.set(o.specName, (counts.get(o.specName) ?? 0) + totalQty(o.sizes))
     return counts
-  }, [orders])
+  }, [filteredOrders])
 
-  const statusOptions = useMemo(
-    () => (Object.entries(STATUSES) as [Status, { label: string; className: string }][])
-      .map(([key, cfg]) => ({ key, label: cfg.label, className: cfg.className })),
-    [],
-  )
+  const specNames = useMemo(() => {
+    const names = [...specQtyByName.keys()]
+    return typeFilter !== 'all' && !names.includes(typeFilter) ? [...names, typeFilter] : names
+  }, [specQtyByName, typeFilter])
 
   const headers = useMemo(
     () => makeHeaders(handleSchedule, handleOpenLogs, handleUpdateDate, handleUpdateStatus),
     [handleSchedule, handleOpenLogs, handleUpdateDate, handleUpdateStatus],
   )
 
-  const rows = useMemo(() => {
-    const q = search.toLowerCase()
-    return orders
-      .filter(o => {
-        const matchSearch = !q || o.number.toLowerCase().includes(q) || o.material.toLowerCase().includes(q) || o.color.toLowerCase().includes(q)
-        const matchType   = typeFilter === 'all' || o.specName === typeFilter
-        const matchStatus = statusFilter.length === 0 || statusFilter.includes(o.status)
-        return matchSearch && matchType && matchStatus
-      })
-      .map(toRow)
-  }, [orders, search, typeFilter, statusFilter])
+  const rows = useMemo(
+    () => filteredOrders.filter(o => typeFilter === 'all' || o.specName === typeFilter).map(toRow),
+    [filteredOrders, typeFilter],
+  )
 
-  const stats = useMemo(() => ({
-    total:       orders.length,
-    qty:         orders.reduce((s, o) => s + totalQty(o.sizes), 0),
-    in_progress: orders.filter(o => o.status === 'in_progress').length,
-    urgent:      orders.filter(o => !!o.deadline && daysUntil(o.deadline) < 7 && o.status !== 'done').length,
-  }), [orders])
+  const stats = useMemo(() => {
+    const active = orders.filter(o => ACTIVE_STATUSES.includes(o.status))
+    return {
+      total:       active.length,
+      qty:         active.reduce((s, o) => s + totalQty(o.sizes), 0),
+      in_progress: orders.filter(o => o.status === 'in_progress').length,
+      urgent:      orders.filter(o => !!o.deadline && daysUntil(o.deadline) < 7 && o.status !== 'done').length,
+    }
+  }, [orders])
 
   return (
-    <div className="flex flex-col gap-4 p-4">
+    <div className="flex h-full flex-col gap-4 p-4">
 
       {/* Stats */}
       <div className="flex flex-wrap gap-2">
         {([
-          { label: 'Замовлень',  value: stats.total,  bg: 'bg-primary/10 text-primary' },
+          { label: 'Завдань',    value: stats.total,  bg: 'bg-primary/10 text-primary' },
           { label: 'Виробів',    value: stats.qty,    bg: 'bg-blue-50 text-blue-700' },
           { label: 'В роботі',   value: stats.in_progress, bg: 'bg-green-50 text-green-700' },
           { label: 'Термінових', value: stats.urgent, bg: 'bg-red-50 text-red-600' },
@@ -486,14 +567,14 @@ export default function ProductionCut() {
           value={search}
           onChange={e => setSearch(e.target.value)}
         />
-        <StatusFilter selected={statusFilter} onChange={setStatusFilter} options={statusOptions} />
+        <StatusFilter selected={statusFilter} onChange={setStatusFilter} />
         <div className="h-5 w-px bg-border" />
         <div className="flex gap-1">
-          <Button size="sm" variant={typeFilter === 'all' ? 'default' : 'outline'} onClick={() => setTypeFilter('all')}>
+          <Button size="sm" className="transition-none" variant={typeFilter === 'all' ? 'default' : 'outline'} onClick={() => setTypeFilter('all')}>
             Всі
           </Button>
           {specNames.map(name => (
-            <Button key={name} size="sm" variant={typeFilter === name ? 'default' : 'outline'} onClick={() => setTypeFilter(name)}>
+            <Button key={name} size="sm" className="transition-none" variant={typeFilter === name ? 'default' : 'outline'} onClick={() => setTypeFilter(name)}>
               {name} ({specQtyByName.get(name) ?? 0})
             </Button>
           ))}
@@ -501,12 +582,15 @@ export default function ProductionCut() {
       </div>
 
       {/* Table */}
-      <AppTable
-        rows={rows}
-        height={600}
-        defaultHeaders={headers}
-        getRowId={({ row }) => (row as OrderRow).id}
-      />
+      <div className="min-h-0 flex-1">
+        <AppTable
+          rows={rows}
+          height="100%"
+          rowHeight={52}
+          defaultHeaders={headers}
+          getRowId={({ row }) => (row as OrderRow).id}
+        />
+      </div>
     </div>
   )
 }
