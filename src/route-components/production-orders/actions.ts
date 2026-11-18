@@ -48,7 +48,10 @@ export const useSyncKeyCrmOrders = () => {
   const syncKeyCrm = useAction(api.http_actions.orders.getKeyCrmOrders)
   return useMutation({
     mutationFn: () => syncKeyCrm({}),
-    onSuccess: () => toast.success('Замовлення синхронізовано з KeyCRM'),
+    onSuccess: (result) => {
+      toast.success('Замовлення синхронізовано з KeyCRM')
+      if (result?.linksFailed) toast.error(`Не вдалося записати посилання в KeyCRM для ${result.linksFailed} замовлень`)
+    },
     onError: (e: Error) => toast.error(e.message),
   })
 }

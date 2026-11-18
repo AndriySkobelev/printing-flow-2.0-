@@ -19,9 +19,10 @@ const valueToOption = (value: string | number | null | undefined, options: Array
   return findValue;
 };
 
-const CustomDefaultOption: FunctionComponent<{ innerProps: any, innerRef: any, data: Option }> = ({ innerProps, innerRef, data }) => {
+// An option with `isDisabled` gets no click handler from react-select — shown greyed out.
+const CustomDefaultOption: FunctionComponent<{ innerProps: any, innerRef: any, data: Option, isDisabled?: boolean }> = ({ innerProps, innerRef, data, isDisabled }) => {
   return (
-    <div ref={innerRef} {...innerProps} className="px-4 py-2 hover:bg-primary/5 cursor-pointer">
+    <div ref={innerRef} {...innerProps} className={clsx('px-4 py-2', isDisabled ? 'cursor-not-allowed opacity-40' : 'hover:bg-primary/5 cursor-pointer')}>
       {data.label}
     </div>
   );

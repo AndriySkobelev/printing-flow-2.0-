@@ -176,6 +176,44 @@ export const rolesSchema = {
 
 const rolesTable = defineTable(rolesSchema)
 
+const invoicePartyV = v.object({ name: v.string(), code: v.string() })
+
+// Invoices made on the order processing page: the form as filled in, plus the
+// invoice PDF generated from it; its waybills are in `waybills`.
+export const invoicesSchema = {
+  supplierId:    v.string(),
+  // Whether the payer was on the single tax when looked up — limits suppliers.
+  payerTax:      v.optional(v.union(v.literal('singleTax'), v.literal('other'))),
+  payer:         invoicePartyV,
+  recipient:     invoicePartyV,
+  orderNumber:   v.string(),
+  date:          v.number(),
+  contract:      v.string(),
+  lines:         v.array(v.object({ name: v.string(), unit: v.string(), quantity: v.string(), price: v.string() })),
+  total:         v.number(),
+  invoiceFileId: v.optional(v.id('_storage')),
+  searchText:    v.string(),
+  createdBy:     v.id('users'),
+  updatedAt:     v.number(),
+}
+
+const invoicesTable = defineTable(invoicesSchema)
+
+// Waybills made from a saved invoice — one per order number given at the time;
+// generating again with the same number replaces it.
+export const waybillsSchema = {
+  invoiceId:   v.id('invoices'),
+  orderNumber: v.string(),
+  date:        v.number(),
+  lines:       invoicesSchema.lines,
+  total:       v.number(),
+  fileId:      v.id('_storage'),
+  createdBy:   v.id('users'),
+  updatedAt:   v.number(),
+}
+
+const waybillsTable = defineTable(waybillsSchema)
+
 export type Materials = Doc<'materials'>;
 export type MaterialVariants = Doc<'materialVariants'>;
 export type Users = Doc<'users'>;
@@ -207,6 +245,11 @@ export default defineSchema({
   productionOrderLogs: productionOrderLogsTable,
   users: usersTable.index("email", ["email"]).index('by_roleId', ['roleId']),
   roles: rolesTable.index('by_systemKey', ['systemKey']),
+  invoices: invoicesTable
+    .index('by_updatedAt', ['updatedAt'])
+    .index('by_orderNumber', ['orderNumber'])
+    .searchIndex('search_text', { searchField: 'searchText' }),
+  waybills: waybillsTable.index('by_invoice_orderNumber', ['invoiceId', 'orderNumber']),
   orders: ordersTable.index("orderId", ["orderId"]),
   suppliers: suppliersTable.index('by_name', ['name']),
   fabrics: fabricsTable

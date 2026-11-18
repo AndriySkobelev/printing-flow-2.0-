@@ -1,11 +1,11 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { convexQuery } from '@convex-dev/react-query'
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
 import { useStore } from '@tanstack/react-form'
 import { UTCDate } from '@date-fns/utc'
 import { format } from 'date-fns'
 import { useDebounce } from 'use-debounce'
-import { Plus, Trash2 } from 'lucide-react'
+import { Loader2, Plus, Trash2 } from 'lucide-react'
 import { api } from 'convex/_generated/api'
 import { type Doc, type Id } from 'convex/_generated/dataModel'
 import { useAppForm } from '@/components/main-form'
@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button'
 import { WorkloadCalendar, type WorkloadDay } from '@/components/workload-calendar'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { RegistrationLookup } from './components/registration-lookup'
+import { InvoiceForm } from './components/invoice-form'
 import { MaterialRequirementRow, isMaterialSufficient } from '@/components/material-requirement-row'
 import { cn } from '@/lib/utils'
 
@@ -135,7 +136,13 @@ const useWorkload = () => {
   return { days, onRangeChange }
 }
 
-const OrderProcessing = () => {
+const TabLoader = () => (
+  <div className="flex justify-center py-10 text-muted-foreground">
+    <Loader2 className="size-5 animate-spin" />
+  </div>
+)
+
+const OrderProcessing = ({ orderNumber }: { orderNumber?: string }) => {
   const workload = useWorkload()
   const { data: specs = [] } = useQuery(convexQuery(api.queries.specifications.getSpecifications, {}))
   const form = useAppForm({ defaultValues: { lines: [EMPTY_LINE] } })
@@ -171,13 +178,22 @@ const OrderProcessing = () => {
   const allSufficient = visibleMaterials.every(isMaterialSufficient)
 
   return (
-    <Tabs defaultValue="processing" className="flex h-full flex-col gap-0">
+    <Tabs key={orderNumber} defaultValue={orderNumber ? 'invoice' : 'processing'} className="flex h-full flex-col gap-0">
       <TabsList className="mx-4 mt-3">
         <TabsTrigger value="processing">Прорахунок</TabsTrigger>
         <TabsTrigger value="registration">Реєстраційні дані</TabsTrigger>
+        <TabsTrigger value="invoice">Рахунок</TabsTrigger>
       </TabsList>
+      <TabsContent value="invoice" className="min-h-0 overflow-y-auto p-3">
+        {/* Form fields load lazily — wait here, not by blanking the whole page. */}
+        <Suspense fallback={<TabLoader />}>
+          <InvoiceForm key={orderNumber} orderNumber={orderNumber} />
+        </Suspense>
+      </TabsContent>
       <TabsContent value="registration" className="min-h-0 overflow-y-auto p-3">
-        <RegistrationLookup />
+        <Suspense fallback={<TabLoader />}>
+          <RegistrationLookup />
+        </Suspense>
       </TabsContent>
       <TabsContent value="processing" className="min-h-0">
         <div className="flex h-full flex-col gap-3 overflow-y-auto p-3 lg:flex-row lg:overflow-hidden">
