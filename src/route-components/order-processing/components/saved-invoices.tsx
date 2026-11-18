@@ -59,7 +59,8 @@ export const SavedInvoices = ({ currentId, onSelect, onNew, onDeleted }: {
   const confirmDelete = useConfirmDeleteInvoice()
   const [search, setSearch] = useState('')
   const [debounced] = useDebounce(search, 300)
-  const { data: invoices = [], isLoading } = useQuery(convexQuery(api.queries.invoices.searchInvoices, { search: debounced }))
+  const query = debounced.trim()
+  const { data: invoices = [], isFetched } = useQuery(convexQuery(api.queries.invoices.searchInvoices, query ? { search: query } : 'skip'))
 
   return (
     <section className={CARD}>
@@ -76,10 +77,10 @@ export const SavedInvoices = ({ currentId, onSelect, onNew, onDeleted }: {
         </Button>
       </div>
 
-      {!isLoading && invoices.length === 0 && (
-        <p className="text-xs text-muted-foreground">{debounced ? 'Нічого не знайдено' : 'Збережених рахунків ще немає'}</p>
+      {query && isFetched && invoices.length === 0 && (
+        <p className="text-xs text-muted-foreground">Нічого не знайдено</p>
       )}
-      {invoices.length > 0 && (
+      {query && invoices.length > 0 && (
         <div className="flex max-h-60 flex-col divide-y overflow-y-auto rounded-md border">
           {invoices.map(invoice => (
             <div

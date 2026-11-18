@@ -26,15 +26,14 @@ const withFileUrls = async (ctx: QueryCtx, invoice: Doc<'invoices'>) => ({
   }))),
 })
 
-// The latest invoices, or those matching the text (order number, payer, recipient, contract).
+// Invoices matching the text (order number, payer, recipient, contract).
 export const searchInvoices = query({
   args: { search: v.string() },
   handler: async (ctx, { search }) => {
     await requirePage(ctx, PAGE)
     const text = search.trim()
-    const invoices = text
-      ? await ctx.db.query('invoices').withSearchIndex('search_text', q => q.search('searchText', text)).take(20)
-      : await ctx.db.query('invoices').withIndex('by_updatedAt').order('desc').take(20)
+    if (!text) return []
+    const invoices = await ctx.db.query('invoices').withSearchIndex('search_text', q => q.search('searchText', text)).take(20)
     return Promise.all(invoices.map(invoice => withFileUrls(ctx, invoice)))
   },
 })
