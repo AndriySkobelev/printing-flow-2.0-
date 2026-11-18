@@ -4,8 +4,6 @@ import { internal } from '../_generated/api'
 
 const API_URL = 'https://opendatabot.com/api/v4'
 
-type SingleTax = { group?: number; rate?: number; startDate?: string; active?: boolean; dateEnd?: string }
-type Vat       = { code?: string; registrationDate?: string; cancellationDate?: string }
 type Usr       = {
   fullName?: string
   shortName?: string
@@ -20,10 +18,10 @@ type OdbResponse = {
   fullName?: string
   companyName?: string
   USR?: Usr
-  taxes?: { generalSystem?: boolean; singleTax?: SingleTax; VAT?: Vat }
-  singleTax?: SingleTax
-  vat?: Vat
-  whiteList?: { taxSystemName?: string }
+  taxes?: Record<string, unknown>
+  singleTax?: Record<string, unknown>
+  vat?: Record<string, unknown>
+  whiteList?: Record<string, unknown>
 }
 
 type Fetched = { status: 'found'; data: OdbResponse } | { status: 'not_found' } | { status: 'error'; message: string }
@@ -39,30 +37,6 @@ const fetchRegistry = async (kind: 'company' | 'fop', code: string, apiKey: stri
   // 400 — the code isn't one of this kind (e.g. a 10-digit ІПН asked as company).
   if (res.status === 404 || res.status === 400) return { status: 'not_found' }
   return { status: 'error', message: ERRORS[res.status] ?? `Opendatabot: помилка ${res.status}` }
-}
-
-const describeTaxSystem = (data: OdbResponse) => {
-  const single = data.taxes?.singleTax?.group ? data.taxes.singleTax : data.singleTax
-  if (single?.group && single.active !== false && !single.dateEnd) {
-    return {
-      name:  `Єдиний податок, ${single.group} група`,
-      rate:  single.rate ?? null,
-      since: single.startDate ?? null,
-    }
-  }
-  if (data.taxes?.generalSystem) return { name: 'Загальна система', rate: null, since: null }
-  if (data.whiteList?.taxSystemName) return { name: data.whiteList.taxSystemName, rate: null, since: null }
-  return null
-}
-
-const describeVat = (data: OdbResponse) => {
-  const vat = data.taxes?.VAT?.code ? data.taxes.VAT : data.vat
-  if (!vat?.code) return null
-  return {
-    code:             vat.code,
-    registrationDate: vat.registrationDate ?? null,
-    cancellationDate: vat.cancellationDate ?? null,
-  }
 }
 
 // Registration of an ЄДРПОУ / ІПН: looked up as a company first, as a ФОП
@@ -97,8 +71,12 @@ export const lookupRegistration = action({
       address:          data.USR?.location ?? null,
       primaryActivity:  data.USR?.primaryActivity ?? null,
       ceoName:          data.USR?.ceoName ?? null,
-      taxSystem:        describeTaxSystem(data),
-      vat:              describeVat(data),
+      // Tax blocks exactly as the API returns them — whichever are present.
+      taxes: Object.fromEntries(
+        (['taxes', 'singleTax', 'vat', 'whiteList'] as const)
+          .filter(key => data[key] != null)
+          .map(key => [key, data[key] as Record<string, unknown>]),
+      ),
     }
   },
 })

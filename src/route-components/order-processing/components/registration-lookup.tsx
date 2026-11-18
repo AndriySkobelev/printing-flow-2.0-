@@ -22,6 +22,73 @@ const Row = ({ label, children }: { label: string; children: ReactNode }) =>
     </div>
   ) : null
 
+// Field names as the Opendatabot spec describes them.
+const FIELD_LABELS: Record<string, string> = {
+  taxes:             'Податки',
+  singleTax:         'Єдиний податок',
+  VAT:               'ПДВ',
+  vat:               'ПДВ',
+  unProfit:          'Неприбутковість',
+  whiteList:         'Білий перелік',
+  generalSystem:     'Загальна система оподаткування',
+  statusText:        'Причина помилки',
+  group:             'Група',
+  rate:              'Ставка, %',
+  startDate:         'Дата початку дії',
+  admissionDate:     'Дата початку застосування ставки та групи',
+  dateEnd:           'Дата завершення дії',
+  active:            'Запис активний',
+  databaseDate:      'Дата останнього оновлення',
+  nonProfitCategory: 'Категорія неприбутковості',
+  code:              'Податковий номер',
+  registrationDate:  'Дата реєстрації',
+  cancellationDate:  'Дата скасування',
+  taxSystemId:       'Ідентифікатор системи оподаткування',
+  taxSystemName:     'Назва системи оподаткування',
+  classId:           'Ідентифікатор класу',
+  className:         'Клас',
+  regionId:          'Ідентифікатор регіону',
+  regionName:        'Регіон',
+  sectionId:         'Ідентифікатор розділу',
+  sectionName:       'Розділ',
+  finStateRevenue:   'Дохід',
+  finStateProfit:    'Прибуток',
+  finStateYear:      'Рік фінансової звітності',
+}
+
+const formatValue = (value: unknown) => {
+  if (typeof value === 'boolean') return value ? 'Так' : 'Ні'
+  if (value == null || value === '') return '—'
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}/.test(value)) return formatDate(value)
+  return String(value)
+}
+
+const isBlock = (value: unknown): value is Record<string, unknown> =>
+  value !== null && typeof value === 'object'
+
+// A block from the API with its fields translated — values as they came.
+const ApiBlock = ({ name, data }: { name: string; data: Record<string, unknown> }) => {
+  const entries = Object.entries(data).filter(([key]) => key !== 'requestStatus')
+  const fields  = entries.filter(([, value]) => !isBlock(value))
+  const blocks  = entries.filter((entry): entry is [string, Record<string, unknown>] => isBlock(entry[1]))
+  return (
+    <div className="flex flex-col gap-1.5">
+      <span className="text-xs font-semibold">{FIELD_LABELS[name] ?? name}</span>
+      {fields.map(([key, value]) => (
+        <div key={key} className="flex flex-col sm:flex-row sm:gap-3">
+          <span className="shrink-0 text-xs text-muted-foreground sm:w-64">{FIELD_LABELS[key] ?? key}</span>
+          <span className="text-sm font-medium">{formatValue(value)}</span>
+        </div>
+      ))}
+      {blocks.map(([key, value]) => (
+        <div key={key} className="mt-1 border-l-2 pl-3">
+          <ApiBlock name={key} data={value} />
+        </div>
+      ))}
+    </div>
+  )
+}
+
 export const RegistrationLookup = () => {
   const [code, setCode] = useState('')
   const { mutate: lookup, data: result, isPending } = useLookupRegistration()
@@ -67,24 +134,10 @@ export const RegistrationLookup = () => {
             <span className="text-xs tabular-nums text-muted-foreground">{result.code}</span>
           </div>
 
-          <div className="flex flex-col gap-1 rounded-lg bg-muted/50 p-3">
-            <span className="text-[11px] text-muted-foreground">Система оподаткування</span>
-            <span className="text-lg font-semibold leading-tight">{result.taxSystem?.name ?? 'Не визначено'}</span>
-            {(result.taxSystem?.rate != null || result.taxSystem?.since) && (
-              <span className="text-xs text-muted-foreground">
-                {[
-                  result.taxSystem.rate != null && `ставка ${result.taxSystem.rate}%`,
-                  result.taxSystem.since && `з ${formatDate(result.taxSystem.since)}`,
-                ].filter(Boolean).join(' · ')}
-              </span>
-            )}
-            <span className={cn('text-xs font-medium', result.vat && !result.vat.cancellationDate ? 'text-green-700' : 'text-muted-foreground')}>
-              {!result.vat
-                ? 'Не платник ПДВ'
-                : result.vat.cancellationDate
-                  ? `ПДВ анульовано ${formatDate(result.vat.cancellationDate)}`
-                  : `Платник ПДВ · ІПН ${result.vat.code}${result.vat.registrationDate ? ` · з ${formatDate(result.vat.registrationDate)}` : ''}`}
-            </span>
+          <div className="flex flex-col gap-3 rounded-lg bg-muted/50 p-3">
+            {Object.keys(result.taxes).length
+              ? Object.entries(result.taxes).map(([key, value]) => <ApiBlock key={key} name={key} data={value} />)
+              : <span className="text-xs text-muted-foreground">Податкових даних у відповіді немає</span>}
           </div>
 
           <div className="flex flex-col gap-2">
