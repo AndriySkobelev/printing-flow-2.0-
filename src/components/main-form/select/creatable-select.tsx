@@ -4,6 +4,7 @@ import { type SingleValue, MultiValue } from 'react-select';
 import CreatableSelect from 'react-select/creatable';
 import { useFieldContext } from "@/components/main-form";
 import clsx from 'clsx';
+import { Button } from '@/components/ui/button';
 
 export type Option = {
   value: string | number | null | undefined;
@@ -104,9 +105,10 @@ interface FormAsyncSelectProps {
   modeOption?: keyof OptionTypes;
   options: Array<{ value: string | number; label: string }> | any;
   defaultOptions?: Array<{ value: string | number; label: string }> | any;
+  withSelectAll?: boolean;
 }
 
-const FormCreatableSelect: FunctionComponent<FormAsyncSelectProps> = ({ defaultOptions = [], label, options, className, isMulti = true, modeOption = 'default' }) => {
+const FormCreatableSelect: FunctionComponent<FormAsyncSelectProps> = ({ defaultOptions = [], label, options, className, isMulti = true, modeOption = 'default', withSelectAll = false }) => {
   const field = useFieldContext();
   const name = useMemo(() => field.name, [field.name]);
   const value = useMemo(() => field.state.value as string | number | undefined, [field.state.value]);
@@ -131,13 +133,41 @@ const FormCreatableSelect: FunctionComponent<FormAsyncSelectProps> = ({ defaultO
     }
   };
 
+  // Options in their list order, then the ones typed in by hand.
+  const handleSelectAll = () => {
+    const current = Array.isArray(field.state.value) ? (field.state.value as Option[]) : [];
+    const custom = current.filter(c => !options.some((o: Option) => o.value === c.value));
+    field.handleChange([...options, ...custom] as any);
+  };
+
   const selectStyles = {
     control: (baseStyles: any) => ({
       ...baseStyles,
       borderRadius: '8px',
       borderColor: '#e7e3e4',
-      maxHeight: '80px',
+    }),
+    // Scroll the chips only, so the clear and dropdown icons stay in place.
+    valueContainer: (baseStyles: any) => ({
+      ...baseStyles,
+      maxHeight: '132px',
       overflowY: 'auto',
+      gap: '4px',
+      padding: '4px 6px',
+    }),
+    multiValue: (baseStyles: any) => ({
+      ...baseStyles,
+      margin: 0,
+      borderRadius: '6px',
+      backgroundColor: '#f1f1f3',
+    }),
+    multiValueLabel: (baseStyles: any) => ({
+      ...baseStyles,
+      fontSize: '12px',
+      padding: '2px 4px 2px 6px',
+    }),
+    multiValueRemove: (baseStyles: any) => ({
+      ...baseStyles,
+      borderRadius: '0 6px 6px 0',
     }),
   };
 
@@ -146,15 +176,22 @@ const FormCreatableSelect: FunctionComponent<FormAsyncSelectProps> = ({ defaultO
       <div className="flex items-center justify-between ml-2 mr-1">
         <label className="text-sm text-[#bbbfc7]">{label}</label>
         {isMulti && (
-          <label className="flex items-center gap-1 cursor-pointer select-none">
-            <input
-              type="checkbox"
-              className="accent-primary w-3 h-3"
-              checked={splitMode}
-              onChange={e => setSplitMode(e.target.checked)}
-            />
-            <span className="text-xs text-[#bbbfc7]">Split</span>
-          </label>
+          <div className="flex items-center gap-3">
+            {withSelectAll && (
+              <Button type="button" variant="link" className="h-auto p-0 text-xs font-normal" onClick={handleSelectAll}>
+                Вибрати всі
+              </Button>
+            )}
+            <label className="flex items-center gap-1 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                className="accent-primary w-3 h-3"
+                checked={splitMode}
+                onChange={e => setSplitMode(e.target.checked)}
+              />
+              <span className="text-xs text-[#bbbfc7]">Split</span>
+            </label>
+          </div>
         )}
       </div>
       {isMulti ? (

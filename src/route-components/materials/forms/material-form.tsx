@@ -75,20 +75,18 @@ const MaterialForm: FunctionComponent<MaterialFormProps> = ({ formId, defaultVal
         <form.AppField name="units" children={(field) => <field.FormSelect label="Одиниці" options={unitsOptions} />} />
         <form.AppField name="material" children={(field) => <field.FormTextField label="Склад" placeholder="бавовна, сатин..." />} />
       </div>
-      <div className="flex gap-2">
-        <form.AppField
-          name="colors"
-          children={(field) => (
-            <field.FormCreatableSelect isMulti={true} options={[]} label="Кольори" />
-          )}
-        />
-        <form.AppField
-          name="sizes"
-          children={(field) => (
-            <field.FormCreatableSelect isMulti={true} options={sizeOptions} label="Розміри" />
-          )}
-        />
-      </div>
+      <form.AppField
+        name="colors"
+        children={(field) => (
+          <field.FormCreatableSelect isMulti={true} options={[]} label="Кольори" />
+        )}
+      />
+      <form.AppField
+        name="sizes"
+        children={(field) => (
+          <field.FormCreatableSelect isMulti={true} options={sizeOptions} label="Розміри" withSelectAll />
+        )}
+      />
     </form>
   );
 };
