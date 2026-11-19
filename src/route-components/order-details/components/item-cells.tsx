@@ -353,12 +353,6 @@ const RowActionsCell = ({ row }: { row: Record<string, unknown> }) => {
 
 // ─── Headers ──────────────────────────────────────────────────────────────────
 
-const renderHeader = ({ header }: { header: HeaderObject }) => (
-  <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground/50 px-2">
-    {header.label}
-  </span>
-)
-
 export const itemNestedHeaders = (readOnly?: boolean): HeaderObject[] => [
   {
     accessor:       'color',
@@ -366,7 +360,6 @@ export const itemNestedHeaders = (readOnly?: boolean): HeaderObject[] => [
     width:          150,
     minWidth:       70,
     type:           'string',
-    headerRenderer: renderHeader,
     cellRenderer:   ({ row }) => {
       const { color, size} = (row as OrderItem)
       if (!color) return null
@@ -388,7 +381,6 @@ export const itemNestedHeaders = (readOnly?: boolean): HeaderObject[] => [
     width:          70,
     minWidth:       50,
     type:           'number',
-    headerRenderer: renderHeader,
     cellRenderer:   ({ row }) => {
       const qty = (row as OrderItem).quantity
       if (qty == null) return null
@@ -401,7 +393,6 @@ export const itemNestedHeaders = (readOnly?: boolean): HeaderObject[] => [
     width:          110,
     minWidth:       80,
     type:           'string',
-    headerRenderer: renderHeader,
     cellRenderer:   ShipmentTypeCell,
   },
   {
@@ -410,7 +401,6 @@ export const itemNestedHeaders = (readOnly?: boolean): HeaderObject[] => [
     width:          90,
     minWidth:       70,
     type:           'string',
-    headerRenderer: renderHeader,
     cellRenderer:   InProductionCell,
   },
   {
@@ -419,7 +409,6 @@ export const itemNestedHeaders = (readOnly?: boolean): HeaderObject[] => [
     width:          100,
     minWidth:       50,
     type:           'string',
-    headerRenderer: renderHeader,
     cellRenderer:   readOnly ? CommentsCellReadOnly : CommentsCell,
   },
   {
@@ -428,7 +417,6 @@ export const itemNestedHeaders = (readOnly?: boolean): HeaderObject[] => [
     width:          120,
     minWidth:       50,
     type:           'string',
-    headerRenderer: renderHeader,
     cellRenderer:   CustomCell,
   },
   {
@@ -437,7 +425,6 @@ export const itemNestedHeaders = (readOnly?: boolean): HeaderObject[] => [
     width:          150,
     minWidth:       100,
     type:           'string',
-    headerRenderer: renderHeader,
     cellRenderer:   BrandingCell,
   },
   {
@@ -445,7 +432,6 @@ export const itemNestedHeaders = (readOnly?: boolean): HeaderObject[] => [
     label:          'На кроях',
     width:          100,
     type:           'string',
-    headerRenderer: renderHeader,
     cellRenderer:   CuttingBrandingCell,
   },
   {
@@ -454,7 +440,6 @@ export const itemNestedHeaders = (readOnly?: boolean): HeaderObject[] => [
     width:          150,
     minWidth:       100,
     type:           'string',
-    headerRenderer: renderHeader,
     cellRenderer:   DestinationCell,
   },
   ...(readOnly ? [] : [{
@@ -463,7 +448,6 @@ export const itemNestedHeaders = (readOnly?: boolean): HeaderObject[] => [
     width:          40,
     minWidth:       40,
     type:           'string',
-    headerRenderer: renderHeader,
     cellRenderer:   RowActionsCell,
   } as HeaderObject]),
 ]
@@ -476,7 +460,6 @@ export const itemHeaders: (nestedRef: any, nestedSelectRows: any, readOnly?: boo
     minWidth:       70,
     type:           'string',
     expandable:       true,
-    headerRenderer: renderHeader,
     nestedTable: {
       tableRef: nestedRef,
       enableRowSelection: !readOnly,

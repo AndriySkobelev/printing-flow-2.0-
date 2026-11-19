@@ -72,6 +72,7 @@ const Materials: FunctionComponent = () => {
   const handleOpenCreate = () => {
     openDialog({
       title: 'Додати матеріал',
+      className: 'sm:w-[760px] sm:max-w-[760px]',
       content: <MaterialForm formId="material-form" actionSubmit={handleCreate} />,
       withForm: true,
       formId: 'material-form',
