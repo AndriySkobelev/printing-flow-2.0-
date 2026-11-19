@@ -200,56 +200,58 @@ const OrderProcessing = ({ orderNumber }: { orderNumber?: string }) => {
           <div className="flex min-w-0 flex-1 flex-col gap-3 p-1 lg:overflow-y-auto">
             <section className={CARD}>
               <h2 className="text-sm font-semibold">Вироби</h2>
-              <form.Field name="lines" mode="array">
-                {(field) => (
-                  <div className="flex flex-col gap-3">
-                    {lines.map((line, i) => (
-                      <div key={i} className="flex flex-col gap-1">
-                        <div className="flex items-end gap-2">
-                          <form.AppField
-                            name={`lines[${i}].specificationId`}
-                            children={(f) => (
-                              <f.FormSelect
-                                label="Виріб"
-                                className="flex-3 min-w-0"
-                                options={specOptions}
-                                addOnChange={() => form.setFieldValue(`lines[${i}].color`, null)}
-                              />
-                            )}
-                          />
-                          <ColorField form={form} index={i} specificationId={line.specificationId} />
-                          <form.AppField
-                            name={`lines[${i}].quantity`}
-                            children={(f) => <f.FormTextNumberField type="number" label="Кількість" className="flex-1 min-w-16" />}
-                          />
-                          <form.AppField
-                            name={`lines[${i}].prints`}
-                            children={(f) => <f.FormTextNumberField type="number" label="Друків" className="flex-1 min-w-16" />}
-                          />
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="size-[38px] shrink-0 text-muted-foreground"
-                            disabled={lines.length === 1}
-                            onClick={() => field.removeValue(i)}
-                          >
-                            <Trash2 size={16} />
-                          </Button>
+              <Suspense fallback={<TabLoader />}>
+                <form.Field name="lines" mode="array">
+                  {(field) => (
+                    <div className="flex flex-col gap-3">
+                      {lines.map((line, i) => (
+                        <div key={i} className="flex flex-col gap-1">
+                          <div className="flex items-end gap-2">
+                            <form.AppField
+                              name={`lines[${i}].specificationId`}
+                              children={(f) => (
+                                <f.FormSelect
+                                  label="Виріб"
+                                  className="flex-3 min-w-0"
+                                  options={specOptions}
+                                  addOnChange={() => form.setFieldValue(`lines[${i}].color`, null)}
+                                />
+                              )}
+                            />
+                            <ColorField form={form} index={i} specificationId={line.specificationId} />
+                            <form.AppField
+                              name={`lines[${i}].quantity`}
+                              children={(f) => <f.FormTextNumberField type="number" label="Кількість" className="flex-1 min-w-16" />}
+                            />
+                            <form.AppField
+                              name={`lines[${i}].prints`}
+                              children={(f) => <f.FormTextNumberField type="number" label="Друків" className="flex-1 min-w-16" />}
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="size-[38px] shrink-0 text-muted-foreground"
+                              disabled={lines.length === 1}
+                              onClick={() => field.removeValue(i)}
+                            >
+                              <Trash2 size={16} />
+                            </Button>
+                          </div>
+                          {STAGES.some(({ key }) => lineMinutes[i][key] > 0) && (
+                            <p className="ml-2 text-[11px] text-muted-foreground">
+                              {STAGES.map(({ key, label }) => `${label} ${formatHours(lineMinutes[i][key])}`).join(' · ')}
+                            </p>
+                          )}
                         </div>
-                        {STAGES.some(({ key }) => lineMinutes[i][key] > 0) && (
-                          <p className="ml-2 text-[11px] text-muted-foreground">
-                            {STAGES.map(({ key, label }) => `${label} ${formatHours(lineMinutes[i][key])}`).join(' · ')}
-                          </p>
-                        )}
-                      </div>
-                    ))}
-                    <Button type="button" variant="secondary" className="self-start" onClick={() => field.pushValue(EMPTY_LINE)}>
-                      <Plus size={14} /> Додати виріб
-                    </Button>
-                  </div>
-                )}
-              </form.Field>
+                      ))}
+                      <Button type="button" variant="secondary" className="self-start" onClick={() => field.pushValue(EMPTY_LINE)}>
+                        <Plus size={14} /> Додати виріб
+                      </Button>
+                    </div>
+                  )}
+                </form.Field>
+              </Suspense>
             </section>
 
             <section className={CARD}>
