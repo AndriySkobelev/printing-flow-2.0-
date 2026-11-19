@@ -17,12 +17,6 @@ import AppTable from "@/components/ui/app-table";
 
 interface FabricsProps {}
 
-const renderHeader = ({ header }: { header: HeaderObject }) => (
-  <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground/50 px-2">
-    {header.label}
-  </span>
-)
-
 type DeleteFabricFn  = (args: { id: Id<'fabrics'> }) => void
 type DeleteVariantFn = (args: { id: Id<'fabricVariants'> }) => void
 
@@ -33,12 +27,12 @@ const fabricHeaders = (
   setSelectedFabricId: (id: Id<'fabrics'> | null) => void,
   can: ReturnType<typeof useCan>,
 ): HeaderObject[] => [
-  { accessor: "name",           label: "Назва",       width: 220, type: "string", headerRenderer: renderHeader },
-  { accessor: "skuPrefix",      label: "SKU префікс", width: 110, type: "string", headerRenderer: renderHeader },
-  { accessor: "units",          label: "Од.",          width: 70,  type: "string", headerRenderer: renderHeader },
-  { accessor: "processingType", label: "Обробка",      width: 130, type: "string", headerRenderer: renderHeader },
-  { accessor: "supplierName",   label: "Постачальник", width: 150, type: "string", headerRenderer: renderHeader },
-  { accessor: "variantCount",   label: "Кольорів",     width: 90,  type: "number", headerRenderer: renderHeader },
+  { accessor: "name",           label: "Назва",       width: 220, type: "string" },
+  { accessor: "skuPrefix",      label: "SKU префікс", width: 110, type: "string" },
+  { accessor: "units",          label: "Од.",          width: 70,  type: "string" },
+  { accessor: "processingType", label: "Обробка",      width: 130, type: "string" },
+  { accessor: "supplierName",   label: "Постачальник", width: 150, type: "string" },
+  { accessor: "variantCount",   label: "Кольорів",     width: 90,  type: "number" },
   {
     accessor: "_actions",
     label: "",
@@ -58,10 +52,10 @@ const fabricHeaders = (
 ]
 
 const variantHeaders = (deleteVariant: DeleteVariantFn, canDelete: boolean): HeaderObject[] => [
-  { accessor: "color",     label: "Колір",       width: 180, type: "string", headerRenderer: renderHeader },
-  { accessor: "sku",       label: "SKU",         width: 120, type: "string", headerRenderer: renderHeader },
-  { accessor: "skuNumber", label: "№",           width: 60,  type: "number", headerRenderer: renderHeader },
-  { accessor: "threds",    label: "Номер нитки", width: 140, type: "string", headerRenderer: renderHeader },
+  { accessor: "color",     label: "Колір",       width: 180, type: "string" },
+  { accessor: "sku",       label: "SKU",         width: 120, type: "string" },
+  { accessor: "skuNumber", label: "№",           width: 60,  type: "number" },
+  { accessor: "threds",    label: "Номер нитки", width: 140, type: "string" },
   {
     accessor: "_actions",
     label: "",

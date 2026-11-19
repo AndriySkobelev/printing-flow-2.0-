@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState, useId } from 'react';
+import { lazy, Suspense, useId, useMemo, useState } from 'react';
 import { type HeaderObject, type CellClickProps, type OnRowGroupExpandProps, QuickFilterConfig, RowSelectionChangeProps} from 'simple-table-core';
 import { Search } from 'lucide-react';
 import { Spinner } from '@/components/ui/spinner';
@@ -48,9 +48,27 @@ interface AppTableProps {
   tableEmptyStateRenderer?: React.ReactNode;
 }
 
+const renderHeader = ({ header }: { header: HeaderObject }) => (
+  <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground/50 px-2">
+    {header.label}
+  </span>
+)
+
+// Every column gets the same header look unless it brings its own renderer — nested tables too.
+const withHeaderStyle = (headers: HeaderObject[]): HeaderObject[] =>
+  headers.map(header => ({
+    ...header,
+    headerRenderer: header.headerRenderer ?? renderHeader,
+    children:       header.children && withHeaderStyle(header.children),
+    nestedTable:    header.nestedTable?.defaultHeaders
+      ? { ...header.nestedTable, defaultHeaders: withHeaderStyle(header.nestedTable.defaultHeaders) }
+      : header.nestedTable,
+  }));
+
 const AppTable = ({ fallback, className, defaultHeaders, height, rows, isLoading, getRowId, withSearch, searchPlaceholder, columnSearch, quickFilter, toolbar, selectedRowId, rowHeight = 40, ...props }: AppTableProps) => {
   const [search, setSearch] = useState('');
   const tableId = useId();
+  const styledHeaders = useMemo(() => withHeaderStyle(defaultHeaders), [defaultHeaders]);
 
   // simple-table has no row-class API; its cells carry data-row-id = "<index path>-<getRowId>".
   const selectedStyle = selectedRowId && (
@@ -72,7 +90,7 @@ const AppTable = ({ fallback, className, defaultHeaders, height, rows, isLoading
       <SimpleTable
         rows={rows}
         height={height || 650}
-        defaultHeaders={defaultHeaders}
+        defaultHeaders={styledHeaders}
         getRowId={getRowId}
         isLoading={isLoading}
         theme={'modern-light'}

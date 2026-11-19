@@ -186,12 +186,6 @@ const ActionsCell = ({ orderId }: { orderId: string }) => {
 }
 
 // ─── Headers ──────────────────────────────────────────────────────────────────
-const renderHeader = ({ header }: { header: HeaderObject }) => (
-  <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground/50 px-2">
-    {header.label}
-  </span>
-)
-
 const formatDate = (ts: number) =>
   new Date(ts).toLocaleDateString('uk-UA', { day: '2-digit', month: '2-digit', year: '2-digit' })
 
@@ -205,7 +199,6 @@ const headers: HeaderObject[] = [
     expandable:  true,
     showWhen:    'always',
     collapsible: true,
-    headerRenderer: renderHeader,
     cellRenderer: ({ row }) => (
       <div className="flex flex-col gap-0.5 min-w-0">
         <span className="text-xs font-medium truncate">{row.group as string}</span>
@@ -222,7 +215,6 @@ const headers: HeaderObject[] = [
     minWidth:       80,
     type:           'string',
     showWhen:       'parentCollapsed',
-    headerRenderer: renderHeader,
     cellRenderer: ({ row }) => {
       const val = row.indicator
       if (val == null) return <span className="text-muted-foreground/40 text-xs">—</span>
@@ -236,7 +228,6 @@ const headers: HeaderObject[] = [
     minWidth:     80,
     type:         'string',
     showWhen:     'parentCollapsed',
-    headerRenderer: renderHeader,
     cellRenderer: ({ row }) => <ProductsCell row={row} />,
   },
   {
@@ -246,7 +237,6 @@ const headers: HeaderObject[] = [
     minWidth:   70,
     type:       'number',
     isSortable: true,
-    headerRenderer: renderHeader,
     showWhen:   'parentCollapsed',
   },
   {
@@ -256,7 +246,6 @@ const headers: HeaderObject[] = [
     minWidth:   80,
     type:       'string',
     isSortable: true,
-    headerRenderer: renderHeader,
     showWhen:   'parentCollapsed',
     cellRenderer: ({ row }) => <StatusCell row={row} />,
   },
@@ -266,7 +255,6 @@ const headers: HeaderObject[] = [
     width:          140,
     minWidth:       100,
     type:           'string',
-    headerRenderer: renderHeader,
     showWhen:       'parentCollapsed',
     cellRenderer:   ({ row }) => <OrderProgressCell row={row} />,
   },
@@ -277,7 +265,6 @@ const headers: HeaderObject[] = [
     minWidth:   70,
     type:       'number',
     isSortable: true,
-    headerRenderer: renderHeader,
     showWhen:   'parentCollapsed',
   },
   {
@@ -287,7 +274,6 @@ const headers: HeaderObject[] = [
     minWidth:       90,
     type:           'string',
     isSortable:     true,
-    headerRenderer: renderHeader,
     valueFormatter: ({ value }) => value ? formatDate(value as number) : '—',
     showWhen:       'parentCollapsed',
   },

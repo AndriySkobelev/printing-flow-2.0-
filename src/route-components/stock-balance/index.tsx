@@ -23,12 +23,6 @@ const MATERIAL_TYPE_LABELS: Record<Group['materialType'], string> = {
   materialVariants: 'Матеріал',
 }
 
-const renderHeader = ({ header }: { header: HeaderObject }) => (
-  <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground/50 px-2">
-    {header.label}
-  </span>
-)
-
 const formatQty = (value: number) => value.toLocaleString('uk-UA', { maximumFractionDigits: 2 })
 
 const Quantity = ({ value, units, className }: { value: number; units?: string; className?: string }) => (
@@ -115,7 +109,6 @@ const quantityHeaders = (
     align: 'right',
     isSortable: true,
     type: 'number',
-    headerRenderer: renderHeader,
     cellRenderer: ({ row }: any) => renderStock(row),
   },
   {
@@ -125,7 +118,6 @@ const quantityHeaders = (
     align: 'right',
     isSortable: true,
     type: 'number',
-    headerRenderer: renderHeader,
     cellRenderer: ({ row }: any) => renderReserved(row),
   },
   {
@@ -135,7 +127,6 @@ const quantityHeaders = (
     align: 'right',
     isSortable: true,
     type: 'number',
-    headerRenderer: renderHeader,
     cellRenderer: ({ row }: any) => renderAvailable(row),
   },
   {
@@ -144,7 +135,6 @@ const quantityHeaders = (
     width: 140,
     isSortable: true,
     type: 'date',
-    headerRenderer: renderHeader,
     valueFormatter: formatDate,
   },
 ]
@@ -168,9 +158,9 @@ const itemQuantityHeaders = quantityHeaders(
 )
 
 const itemHeaders: HeaderObject[] = [
-  { accessor: 'color', label: 'Колір', width: 180, isSortable: true, type: 'string', headerRenderer: renderHeader, cellRenderer: textCell('text-sm') },
-  { accessor: 'size',  label: 'Розмір', width: 100, isSortable: true, type: 'string', headerRenderer: renderHeader, cellRenderer: textCell('text-sm') },
-  { accessor: 'sku',   label: 'SKU', width: 140, isSortable: true, type: 'string', headerRenderer: renderHeader, cellRenderer: textCell('text-xs text-[#868686]') },
+  { accessor: 'color', label: 'Колір', width: 180, isSortable: true, type: 'string', cellRenderer: textCell('text-sm') },
+  { accessor: 'size',  label: 'Розмір', width: 100, isSortable: true, type: 'string', cellRenderer: textCell('text-sm') },
+  { accessor: 'sku',   label: 'SKU', width: 140, isSortable: true, type: 'string', cellRenderer: textCell('text-xs text-[#868686]') },
   ...itemQuantityHeaders,
 ]
 
@@ -182,7 +172,6 @@ const groupHeaders: HeaderObject[] = [
     isSortable: true,
     expandable: true,
     type: 'string',
-    headerRenderer: renderHeader,
     nestedTable: {
       defaultHeaders: itemHeaders,
       hideFooter: true,
@@ -201,7 +190,6 @@ const groupHeaders: HeaderObject[] = [
     width: 120,
     isSortable: true,
     type: 'string',
-    headerRenderer: renderHeader,
     cellRenderer: ({ row }: any) => <span className="text-sm">{MATERIAL_TYPE_LABELS[row.materialType as Group['materialType']]}</span>,
   },
   {
@@ -210,7 +198,6 @@ const groupHeaders: HeaderObject[] = [
     width: 180,
     isSortable: true,
     type: 'string',
-    headerRenderer: renderHeader,
     cellRenderer: textCell('text-sm truncate'),
   },
   ...groupQuantityHeaders,
