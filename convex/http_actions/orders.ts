@@ -45,7 +45,7 @@ export const getKeyCrmOrders = action(async (ctx) => {
 const ORDER_LINK_FIELD = 'OR_1020'
 
 const orderProcessingLink = (orderId: number) =>
-  `${process.env.APP_URL ?? 'https://dev--printing-flow.netlify.app'}/app/order-processing/${orderId}`
+  `${process.env.APP_URL ?? 'https://dev--liubegolube-production.netlify.app'}/app/order-processing/${orderId}`
 
 // Writes the link into the order's custom field — only when it isn't there yet.
 const syncOrderProcessingLink = async (order: { id: number; custom_fields?: Array<{ uuid: string; value: unknown }> }) => {
