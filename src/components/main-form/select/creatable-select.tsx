@@ -141,6 +141,18 @@ const FormCreatableSelect: FunctionComponent<FormAsyncSelectProps> = ({ defaultO
   };
 
   const selectStyles = {
+    container: (baseStyles: any) => ({
+      ...baseStyles,
+      minWidth: 0,
+    }),
+    // react-select sizes the input to the typed text, so a long pasted list
+    // would push the whole form past the dialog edge.
+    input: (baseStyles: any) => ({
+      ...baseStyles,
+      gridTemplateColumns: '0 minmax(0, 1fr)',
+      maxWidth: '100%',
+      overflow: 'hidden',
+    }),
     control: (baseStyles: any) => ({
       ...baseStyles,
       borderRadius: '8px',
@@ -172,7 +184,7 @@ const FormCreatableSelect: FunctionComponent<FormAsyncSelectProps> = ({ defaultO
   };
 
   return (
-    <div className={clsx('flex flex-col gap-1 w-full', className)}>
+    <div className={clsx('flex flex-col gap-1 w-full min-w-0', className)}>
       <div className="flex items-center justify-between ml-2 mr-1">
         <label className="text-sm text-[#bbbfc7]">{label}</label>
         {isMulti && (
