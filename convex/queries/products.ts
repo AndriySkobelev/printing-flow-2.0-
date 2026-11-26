@@ -99,6 +99,12 @@ export const getProductsBySpec = query({
   },
 })
 
+export const specHasVariants = query({
+  args: { specificationId: v.id('specifications') },
+  handler: async (ctx, { specificationId }) =>
+    !!await ctx.db.query('products').withIndex('by_parentId', q => q.eq('parentId', specificationId)).first(),
+})
+
 export const getSpecBaseFabricColors = query({
   args: { specificationId: v.id('specifications') },
   handler: async (ctx, { specificationId }) => {

@@ -67,6 +67,8 @@ interface SpecificationFormProps {
   defaultMaterialsOptions?: Array<Option>,
   actionSubmit: (values: SpecificationFormType | SpecificationFormType & { _id: string, _creationTime: string}) => void,
   formApiRef?: MutableRefObject<(() => SpecificationFormType) | null>,
+  // The spec already has variants: rows saved before keep their fabric/material.
+  lockMaterials?: boolean,
 }
 
 const SpecificationForm: FunctionComponent<SpecificationFormProps> = ({
@@ -77,6 +79,7 @@ const SpecificationForm: FunctionComponent<SpecificationFormProps> = ({
   defaultFabricOptions,
   defaultMaterialsOptions,
   formApiRef,
+  lockMaterials,
 }) => {
   const { loadOptions: fabricOptions } = useAsyncOptions(api.queries.fabrics.getFabricsOptions, 'fabric');
   const { loadOptions: materialOptions } = useAsyncOptions(api.queries.materials.getMaterialOptions, 'materials');
@@ -240,6 +243,7 @@ const SpecificationForm: FunctionComponent<SpecificationFormProps> = ({
                               valueMode='object'
                               label={value.type === 'material' ? "Матеріал" : 'Тканина'}
                               modeOption='default'
+                              disabled={lockMaterials && !!(value as { lineId?: string }).lineId}
                               asyncOptions={value.type === 'material' ? materialOptions : fabricOptions}
                               defaultOptions={value.type === 'material' ? materialPicked : fabricPicked}/>
                           )}

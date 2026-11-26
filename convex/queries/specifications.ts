@@ -109,6 +109,15 @@ export const updateSpecification = mutation({
   args: { id: v.id('specifications'), data: v.optional(v.object(productsSpecification)) },
   handler: async (ctx, args) => {
     const { id, data } = args;
+    // Variants point at a line's fabric/material by lineId, so once any exist a
+    // saved line keeps its fabric/material; name and quantity stay editable.
+    if (data?.materials) {
+      const hasVariants = await ctx.db.query('products').withIndex('by_parentId', q => q.eq('parentId', id)).first();
+      const current = hasVariants ? await ctx.db.get(id) : null;
+      const changed = current?.materials.some(old =>
+        data.materials.some(m => m.lineId === old.lineId && m.id !== old.id));
+      if (changed) throw new Error('Для специфікації вже створено варіанти — тканину чи матеріал наявного елемента змінити не можна');
+    }
     const patch = data?.materials
       ? { ...data, materials: data.materials.map(m => ({ ...m, lineId: m.lineId ?? crypto.randomUUID() })) }
       : data || {};

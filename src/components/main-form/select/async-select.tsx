@@ -24,6 +24,7 @@ interface FormAsyncSelectProps {
   valueMode?: 'string' | 'object';
   asyncOptions: Array<{ value: string | number; label: string }> | any;
   defaultOptions?: Array<{ value: string | number; label: string }> | any;
+  disabled?: boolean;
 }
 
 const valueToOption = <T extends { value: any }>(value: T['value'], options: Array<T>) => {
@@ -179,6 +180,7 @@ const FormAsyncSelect: FunctionComponent<FormAsyncSelectProps> = ({
   valueMode = 'string',
   modeOption = 'default',
   modeControl = 'default',
+  disabled,
 }) => {
   const field = useFieldContext();
   const name = useMemo(() => field.name, [field.name]);
@@ -204,6 +206,7 @@ const FormAsyncSelect: FunctionComponent<FormAsyncSelectProps> = ({
       <AsyncSelect
         name={name}
         cacheOptions
+        isDisabled={disabled}
         placeholder="Пошук..."
         defaultOptions={defaultOptions}
         className='hover:active:border-none'
