@@ -112,9 +112,13 @@ export const InvoiceForm = ({ orderNumber }: { orderNumber?: string }) => {
         total: filledLines.reduce((sum, line) => sum + lineSum(line), 0),
         invoiceRef: saved ? { orderNumber: saved.orderNumber, date: format(new Date(saved.date), 'dd.MM.yyyy') } : undefined,
       })
-      const url = URL.createObjectURL(blob)
-      if (tab) tab.location.href = url
-      else window.location.assign(url)
+      const show = (url: string) => {
+        if (tab) tab.location.href = url
+        else window.location.assign(url)
+      }
+      // Saved files open from their named URL, so the browser saves them as
+      // Рахунок_№ / Видаткова_№; the bare blob only when there is nothing saved.
+      const showBlob = () => show(URL.createObjectURL(blob))
 
       // A waybill goes onto the current invoice, one per order number; the
       // invoice's data changes only when the invoice itself is generated.
@@ -127,8 +131,14 @@ export const InvoiceForm = ({ orderNumber }: { orderNumber?: string }) => {
             date:        values.date,
             lines:       filledLines,
             total,
-          }, { onSuccess: () => toast.success(`Видаткову накладну № ${values.orderNumber.trim() || 'б/н'} збережено`) })
-        }
+          }, {
+            onSuccess: ({ url }) => {
+              show(url)
+              toast.success(`Видаткову накладну № ${values.orderNumber.trim() || 'б/н'} збережено`)
+            },
+            onError: showBlob,
+          })
+        } else showBlob()
         return
       }
       savePdf({
@@ -144,10 +154,12 @@ export const InvoiceForm = ({ orderNumber }: { orderNumber?: string }) => {
         lines:       filledLines,
         total,
       }, {
-        onSuccess: (id) => {
+        onSuccess: ({ id, url }) => {
+          show(url)
           setSaved({ id, orderNumber: values.orderNumber.trim(), date: values.date })
           toast.success('Рахунок збережено')
         },
+        onError: showBlob,
       })
     } catch (e) {
       tab?.close()
