@@ -14,6 +14,7 @@ import { routeTree } from './routeTree.gen'
 import { ContextDialogComponent } from './contexts/dialog'
 import { ContextDrawerComponent } from './contexts/drawer'
 import { AuthProvider } from './contexts/auth';
+import { Spinner } from './components/ui/spinner';
 
 // Create a new router instance
 export const getRouter = () => {
@@ -42,6 +43,13 @@ export const getRouter = () => {
     defaultPreload: 'intent',
     defaultErrorComponent: ErrorComponent,
     defaultNotFoundComponent: () => <div>Not Found</div>,
+    // Also wraps every route in Suspense: anything that suspends shows this
+    // inside the layout instead of blanking the app.
+    defaultPendingComponent: () => (
+      <div className="flex h-full items-center justify-center">
+        <Spinner className="h-5 w-5" />
+      </div>
+    ),
     context: {
       queryClient,
       auth: undefined!,
