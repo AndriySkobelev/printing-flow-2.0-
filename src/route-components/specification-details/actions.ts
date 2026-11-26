@@ -1,9 +1,11 @@
+import { useContext } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { useConvexMutation } from '@convex-dev/react-query'
 import { useAction } from 'convex/react'
 import { api } from 'convex/_generated/api'
 import { type Id } from 'convex/_generated/dataModel'
 import { toast } from 'sonner'
+import { DialogContext } from '@/contexts/dialog'
 
 export const useCreateSpecVariants = () =>
   useMutation({
@@ -35,6 +37,27 @@ export const useMigrateSpecificationToKeyCrm = () => {
     },
     onError: (e: Error) => toast.error(e.message),
   })
+}
+
+export const useConfirmMigrateSpecification = () => {
+  const { openDialog, closeDialog, setIsLoading } = useContext(DialogContext)
+  const { mutate: migrate, isPending } = useMigrateSpecificationToKeyCrm()
+  const confirm = (spec: { _id: Id<'specifications'>; name: string }, notMigrated: number) => {
+    const id = openDialog({
+      title:        `Мігрувати «${spec.name}» у KeyCRM?`,
+      description:  `Буде створено ${notMigrated} варіант(ів) у KeyCRM.`,
+      content:      null,
+      withForm:     true,
+      actionSubmit: () => {
+        setIsLoading(true)
+        migrate({ specificationId: spec._id }, {
+          onSuccess: () => closeDialog(id),
+          onSettled: () => setIsLoading(false),
+        })
+      },
+    })
+  }
+  return { confirm, isPending }
 }
 
 export const useUploadSpecFile = (specificationId: string) => {

@@ -1,5 +1,5 @@
 import { Separator } from 'radix-ui'
-import { Clock, Scissors, Package, Palette, DollarSign } from 'lucide-react'
+import { Clock, Scissors, Package, Palette } from 'lucide-react'
 
 type Material = {
   name?: string
@@ -13,7 +13,7 @@ type Material = {
 
 type Spec = {
   name: string
-  category: string
+  category?: string
   skuPrefix: string
   productionPrice?: number | string
   salePrice?: number | string
@@ -27,6 +27,9 @@ type Spec = {
 type Props = {
   spec: Spec
 }
+
+const formatPrice = (value?: number | string) =>
+  value == null || value === '' ? '—' : `${value} грн`
 
 const InfoRow = ({ label, value }: { label: string; value?: React.ReactNode }) => {
   if (!value && value !== 0) return null
@@ -54,28 +57,8 @@ export const SpecInfo = ({ spec }: Props) => (
     <div className="flex flex-col gap-0.5">
       <InfoRow label="Категорія" value={spec.category} />
       <InfoRow label="SKU префікс" value={spec.skuPrefix} />
-      {spec.productionPrice !== undefined && (
-        <InfoRow
-          label="Ціна виробництва"
-          value={
-            <span className="flex items-center gap-1">
-              <DollarSign size={11} />
-              {spec.productionPrice}
-            </span>
-          }
-        />
-      )}
-      {spec.salePrice != null && spec.salePrice !== '' && (
-        <InfoRow
-          label="Ціна продажу"
-          value={
-            <span className="flex items-center gap-1">
-              <DollarSign size={11} />
-              {spec.salePrice}
-            </span>
-          }
-        />
-      )}
+      <InfoRow label="Ціна виробництва" value={formatPrice(spec.productionPrice)} />
+      <InfoRow label="Ціна продажу" value={formatPrice(spec.salePrice)} />
     </div>
 
     <Separator.Separator className="h-px bg-border" />
