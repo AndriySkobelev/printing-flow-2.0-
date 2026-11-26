@@ -1,11 +1,11 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { convexQuery } from '@convex-dev/react-query'
-import { Suspense, useState } from 'react'
+import { useState } from 'react'
 import { useStore } from '@tanstack/react-form'
 import { UTCDate } from '@date-fns/utc'
 import { format } from 'date-fns'
 import { useDebounce } from 'use-debounce'
-import { Loader2, Plus, Trash2 } from 'lucide-react'
+import { Plus, Trash2 } from 'lucide-react'
 import { api } from 'convex/_generated/api'
 import { type Doc, type Id } from 'convex/_generated/dataModel'
 import { useAppForm } from '@/components/main-form'
@@ -14,6 +14,7 @@ import { WorkloadCalendar, type WorkloadDay } from '@/components/workload-calend
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { RegistrationLookup } from './components/registration-lookup'
 import { InvoiceForm } from './components/invoice-form'
+import { PrintPrice } from './components/print-price'
 import { MaterialRequirementRow, isMaterialSufficient } from '@/components/material-requirement-row'
 import { cn } from '@/lib/utils'
 
@@ -136,12 +137,6 @@ const useWorkload = () => {
   return { days, onRangeChange }
 }
 
-const TabLoader = () => (
-  <div className="flex justify-center py-10 text-muted-foreground">
-    <Loader2 className="size-5 animate-spin" />
-  </div>
-)
-
 const OrderProcessing = ({ orderNumber }: { orderNumber?: string }) => {
   const workload = useWorkload()
   const { data: specs = [] } = useQuery(convexQuery(api.queries.specifications.getSpecifications, {}))
@@ -181,77 +176,74 @@ const OrderProcessing = ({ orderNumber }: { orderNumber?: string }) => {
     <Tabs key={orderNumber} defaultValue={orderNumber ? 'invoice' : 'processing'} className="flex h-full flex-col gap-0">
       <TabsList className="mx-4 mt-3">
         <TabsTrigger value="processing">Прорахунок</TabsTrigger>
+        <TabsTrigger value="price">Ціна друку</TabsTrigger>
         <TabsTrigger value="registration">Реєстраційні дані</TabsTrigger>
         <TabsTrigger value="invoice">Рахунок</TabsTrigger>
       </TabsList>
+      <TabsContent value="price" className="min-h-0 overflow-y-auto p-3">
+        <PrintPrice />
+      </TabsContent>
       <TabsContent value="invoice" className="min-h-0 overflow-y-auto p-3">
-        {/* Form fields load lazily — wait here, not by blanking the whole page. */}
-        <Suspense fallback={<TabLoader />}>
-          <InvoiceForm key={orderNumber} orderNumber={orderNumber} />
-        </Suspense>
+        <InvoiceForm key={orderNumber} orderNumber={orderNumber} />
       </TabsContent>
       <TabsContent value="registration" className="min-h-0 overflow-y-auto p-3">
-        <Suspense fallback={<TabLoader />}>
-          <RegistrationLookup />
-        </Suspense>
+        <RegistrationLookup />
       </TabsContent>
       <TabsContent value="processing" className="min-h-0">
         <div className="flex h-full flex-col gap-3 overflow-y-auto p-3 lg:flex-row lg:overflow-hidden">
           <div className="flex min-w-0 flex-1 flex-col gap-3 p-1 lg:overflow-y-auto">
             <section className={CARD}>
               <h2 className="text-sm font-semibold">Вироби</h2>
-              <Suspense fallback={<TabLoader />}>
-                <form.Field name="lines" mode="array">
-                  {(field) => (
-                    <div className="flex flex-col gap-3">
-                      {lines.map((line, i) => (
-                        <div key={i} className="flex flex-col gap-1">
-                          <div className="flex items-end gap-2">
-                            <form.AppField
-                              name={`lines[${i}].specificationId`}
-                              children={(f) => (
-                                <f.FormSelect
-                                  label="Виріб"
-                                  className="flex-3 min-w-0"
-                                  options={specOptions}
-                                  addOnChange={() => form.setFieldValue(`lines[${i}].color`, null)}
-                                />
-                              )}
-                            />
-                            <ColorField form={form} index={i} specificationId={line.specificationId} />
-                            <form.AppField
-                              name={`lines[${i}].quantity`}
-                              children={(f) => <f.FormTextNumberField type="number" label="Кількість" className="flex-1 min-w-16" />}
-                            />
-                            <form.AppField
-                              name={`lines[${i}].prints`}
-                              children={(f) => <f.FormTextNumberField type="number" label="Друків" className="flex-1 min-w-16" />}
-                            />
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="size-[38px] shrink-0 text-muted-foreground"
-                              disabled={lines.length === 1}
-                              onClick={() => field.removeValue(i)}
-                            >
-                              <Trash2 size={16} />
-                            </Button>
-                          </div>
-                          {STAGES.some(({ key }) => lineMinutes[i][key] > 0) && (
-                            <p className="ml-2 text-[11px] text-muted-foreground">
-                              {STAGES.map(({ key, label }) => `${label} ${formatHours(lineMinutes[i][key])}`).join(' · ')}
-                            </p>
-                          )}
+              <form.Field name="lines" mode="array">
+                {(field) => (
+                  <div className="flex flex-col gap-3">
+                    {lines.map((line, i) => (
+                      <div key={i} className="flex flex-col gap-1">
+                        <div className="flex items-end gap-2">
+                          <form.AppField
+                            name={`lines[${i}].specificationId`}
+                            children={(f) => (
+                              <f.FormSelect
+                                label="Виріб"
+                                className="flex-3 min-w-0"
+                                options={specOptions}
+                                addOnChange={() => form.setFieldValue(`lines[${i}].color`, null)}
+                              />
+                            )}
+                          />
+                          <ColorField form={form} index={i} specificationId={line.specificationId} />
+                          <form.AppField
+                            name={`lines[${i}].quantity`}
+                            children={(f) => <f.FormTextNumberField type="number" label="Кількість" className="flex-1 min-w-16" />}
+                          />
+                          <form.AppField
+                            name={`lines[${i}].prints`}
+                            children={(f) => <f.FormTextNumberField type="number" label="Друків" className="flex-1 min-w-16" />}
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="size-[38px] shrink-0 text-muted-foreground"
+                            disabled={lines.length === 1}
+                            onClick={() => field.removeValue(i)}
+                          >
+                            <Trash2 size={16} />
+                          </Button>
                         </div>
-                      ))}
-                      <Button type="button" variant="secondary" className="self-start" onClick={() => field.pushValue(EMPTY_LINE)}>
-                        <Plus size={14} /> Додати виріб
-                      </Button>
-                    </div>
-                  )}
-                </form.Field>
-              </Suspense>
+                        {STAGES.some(({ key }) => lineMinutes[i][key] > 0) && (
+                          <p className="ml-2 text-[11px] text-muted-foreground">
+                            {STAGES.map(({ key, label }) => `${label} ${formatHours(lineMinutes[i][key])}`).join(' · ')}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                    <Button type="button" variant="secondary" className="self-start" onClick={() => field.pushValue(EMPTY_LINE)}>
+                      <Plus size={14} /> Додати виріб
+                    </Button>
+                  </div>
+                )}
+              </form.Field>
             </section>
 
             <section className={CARD}>

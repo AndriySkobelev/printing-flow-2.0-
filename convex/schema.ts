@@ -138,6 +138,9 @@ export const systemSettingsSchema = {
   // to build cutting/sewing/branding tasks or reserve materials from — the
   // item is inserted with `isNew: true` and no productId).
   allowUnconfiguredProducts: v.boolean(),
+  // Fixed part of a print's price (грн), set by admins; missing = defaults in convex/lib/printPricing.ts.
+  printBaseStandard: v.optional(v.number()),
+  printBaseLarge:    v.optional(v.number()),
 }
 
 const systemSettingsTable = defineTable(systemSettingsSchema)

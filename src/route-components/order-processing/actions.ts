@@ -71,3 +71,10 @@ export const useConfirmDeleteInvoice = () => {
     })
   }
 }
+
+export const useUpdatePrintPricing = () =>
+  useMutation({
+    mutationFn: useConvexMutation(api.queries.settings.updatePrintPricing),
+    onSuccess: () => toast.success('Ціни друку збережено'),
+    onError: (e: Error) => toast.error(e.message),
+  })

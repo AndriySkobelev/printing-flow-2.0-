@@ -16,6 +16,7 @@ type Spec = {
   category: string
   skuPrefix: string
   productionPrice?: number | string
+  salePrice?: number | string
   productionTime?: number | string
   cutTime?: number | string
   packingTime?: number | string
@@ -60,6 +61,17 @@ export const SpecInfo = ({ spec }: Props) => (
             <span className="flex items-center gap-1">
               <DollarSign size={11} />
               {spec.productionPrice}
+            </span>
+          }
+        />
+      )}
+      {spec.salePrice != null && spec.salePrice !== '' && (
+        <InfoRow
+          label="Ціна продажу"
+          value={
+            <span className="flex items-center gap-1">
+              <DollarSign size={11} />
+              {spec.salePrice}
             </span>
           }
         />

@@ -4,6 +4,7 @@ import { type Doc, type Id } from '../_generated/dataModel'
 import { UTCDate } from '@date-fns/utc'
 import { invoicesSchema } from '../schema'
 import { requirePage } from './roles'
+import { invoiceFileName, pdfUrl, waybillFileName } from '../lib/pdfFiles'
 
 const PAGE = '/app/order-processing'
 
@@ -17,12 +18,12 @@ const waybillsOf = (ctx: QueryCtx, invoiceId: Id<'invoices'>) =>
 
 const withFileUrls = async (ctx: QueryCtx, invoice: Doc<'invoices'>) => ({
   ...invoice,
-  invoiceUrl: invoice.invoiceFileId ? await ctx.storage.getUrl(invoice.invoiceFileId) : null,
+  invoiceUrl: invoice.invoiceFileId ? pdfUrl(invoice.invoiceFileId, invoiceFileName(invoice.orderNumber)) : null,
   waybills:   await Promise.all((await waybillsOf(ctx, invoice._id)).map(async waybill => ({
     _id:         waybill._id,
     orderNumber: waybill.orderNumber,
     date:        waybill.date,
-    url:         await ctx.storage.getUrl(waybill.fileId),
+    url:         pdfUrl(waybill.fileId, waybillFileName(waybill.orderNumber)),
   }))),
 })
 
@@ -71,12 +72,14 @@ export const saveInvoice = mutation({
     const me = await requirePage(ctx, PAGE)
     const fields = { ...data, searchText: buildSearchText(data), updatedAt: new UTCDate().valueOf(), invoiceFileId: storageId }
 
+    const url = pdfUrl(storageId, invoiceFileName(data.orderNumber))
+
     const existing = id ? await ctx.db.get(id) : null
-    if (!existing) return ctx.db.insert('invoices', { ...fields, createdBy: me._id })
+    if (!existing) return { id: await ctx.db.insert('invoices', { ...fields, createdBy: me._id }), url }
 
     await ctx.db.patch(existing._id, fields)
     await replaceFile(ctx, existing.invoiceFileId, storageId)
-    return existing._id
+    return { id: existing._id, url }
   },
 })
 
@@ -100,11 +103,12 @@ export const saveWaybill = mutation({
       .query('waybills')
       .withIndex('by_invoice_orderNumber', q => q.eq('invoiceId', invoiceId).eq('orderNumber', data.orderNumber))
       .first()
-    if (!existing) return ctx.db.insert('waybills', { ...fields, invoiceId, createdBy: me._id })
+    const url = pdfUrl(storageId, waybillFileName(data.orderNumber))
+    if (!existing) return { id: await ctx.db.insert('waybills', { ...fields, invoiceId, createdBy: me._id }), url }
 
     await ctx.db.patch(existing._id, fields)
     await replaceFile(ctx, existing.fileId, storageId)
-    return existing._id
+    return { id: existing._id, url }
   },
 })
 

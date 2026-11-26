@@ -120,6 +120,8 @@ export const productsSpecification = {
   keycrm_product_id: v.optional(v.number()),
   skuPrefix: v.string(),
   productionPrice: v.optional(v.union(v.number(), v.string())),
+  // Price of one item for an order of 1–5; the print calculator discounts it for larger runs.
+  salePrice:       v.optional(v.union(v.number(), v.string())),
   productionTime:  v.optional(v.union(v.number(), v.string())),
   cutTime:         v.optional(v.union(v.number(), v.string())),
   packingTime:     v.optional(v.union(v.number(), v.string())),
