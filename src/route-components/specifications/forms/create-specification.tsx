@@ -32,6 +32,7 @@ const specificationSchema = z.object({
   packingTime:    z.string().min(1, 'Must be an 1 min charts'),
   brandingTime:   z.string().min(1, 'Must be an 1 min charts'),
   productionPrice: z.string().min(1, 'Must be an 1 min charts'),
+  salePrice: z.union([z.string(), z.number()]).optional(),
   // Every line references a specific fabricVariant/materialVariant via id; the
   // first line is always the base fabric by convention (see products.ts).
   materials: z.array(z.object({
@@ -105,6 +106,7 @@ const SpecificationForm: FunctionComponent<SpecificationFormProps> = ({
         category_crm: undefined,
         skuPrefix: '',
         productionPrice: '1',
+        salePrice: '',
         productionTime: '0',
         cutTime:        '0',
         packingTime:    '0',
@@ -194,6 +196,9 @@ const SpecificationForm: FunctionComponent<SpecificationFormProps> = ({
             <form.AppField
               name='productionPrice'
               children={(field) => <field.FormTextNumberField type="number" label='Ціна виробництва'/>} />
+            <form.AppField
+              name='salePrice'
+              children={(field) => <field.FormTextNumberField type="number" label='Ціна продажу'/>} />
           </div>
           <div className="flex gap-2 w-full">
             <form.AppField
