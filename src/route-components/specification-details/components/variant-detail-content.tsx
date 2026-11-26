@@ -58,37 +58,39 @@ const VariantDetailContent = ({ productId }: { productId: Id<'products'> }) => {
             </span>
           )}
         </div>
-        {data.lines.map((line, i) => (
-          <div key={line.lineId ?? i} className="flex items-center gap-3 py-2 border-b last:border-0">
-            <div className="flex flex-col flex-1 min-w-0">
-              <div className="flex items-center gap-1.5 min-w-0">
-                <span className="px-1.5 py-0.5 rounded-full bg-secondary text-secondary-foreground text-[10px] shrink-0">
-                  {line.type === 'material' ? 'Матеріал' : 'Тканина'}
-                </span>
-                <span className="text-sm font-medium truncate">{line.lineName ?? line.name}</span>
+        <div className="max-h-[55vh] overflow-y-auto pr-1">
+          {data.lines.map((line, i) => (
+            <div key={line.lineId ?? i} className="flex items-center gap-3 py-2 border-b last:border-0">
+              <div className="flex flex-col flex-1 min-w-0">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <span className="px-1.5 py-0.5 rounded-full bg-secondary text-secondary-foreground text-[10px] shrink-0">
+                    {line.type === 'material' ? 'Матеріал' : 'Тканина'}
+                  </span>
+                  <span className="text-sm font-medium truncate">{line.lineName ?? line.name}</span>
+                </div>
+                {line.lineName && <span className="text-xs text-muted-foreground truncate">{line.name}</span>}
               </div>
-              {line.lineName && <span className="text-xs text-muted-foreground truncate">{line.name}</span>}
+              <div className="flex flex-col items-end shrink-0 text-xs">
+                <span className="font-medium">{line.totalQuantity} {line.units}</span>
+                {line.multiplier !== 1 && (
+                  <span className="text-muted-foreground">{line.quantity} × {line.multiplier}</span>
+                )}
+              </div>
+              <div className="flex flex-col items-end min-w-0 w-64">
+                {line.assignedVariant ? (
+                  <>
+                    <span className="text-sm truncate max-w-full">{line.assignedVariant.label}</span>
+                    {line.assignedVariant.sku && (
+                      <span className="text-xs font-mono text-muted-foreground">{line.assignedVariant.sku}</span>
+                    )}
+                  </>
+                ) : (
+                  <span className="text-xs text-muted-foreground italic">не призначено</span>
+                )}
+              </div>
             </div>
-            <div className="flex flex-col items-end shrink-0 text-xs">
-              <span className="font-medium">{line.totalQuantity} {line.units}</span>
-              {line.multiplier !== 1 && (
-                <span className="text-muted-foreground">{line.quantity} × {line.multiplier}</span>
-              )}
-            </div>
-            <div className="flex flex-col items-end min-w-0 w-64">
-              {line.assignedVariant ? (
-                <>
-                  <span className="text-sm truncate max-w-full">{line.assignedVariant.label}</span>
-                  {line.assignedVariant.sku && (
-                    <span className="text-xs font-mono text-muted-foreground">{line.assignedVariant.sku}</span>
-                  )}
-                </>
-              ) : (
-                <span className="text-xs text-muted-foreground italic">не призначено</span>
-              )}
-            </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     </div>
   )

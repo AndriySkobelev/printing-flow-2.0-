@@ -13,14 +13,10 @@ type Props = {
 export const SpecImages = ({ specificationId, files }: Props) => {
   const uploadFile = useUploadSpecFile(specificationId)
 
-  const handleUpload = async (file: File) => {
-    const ext = file.name.includes('.') ? `.${file.name.split('.').pop()}` : ''
-    await uploadFile(file, `${specificationId}${ext}`)
-  }
 
   return (
     <div className="flex gap-2 items-center w-full px-3 py-3">
-      <FileInput onUpload={handleUpload} multiple>
+      <FileInput onUpload={file => uploadFile(file)} multiple>
         {({ isUploading, open }) => (
           <Button
             type="button"

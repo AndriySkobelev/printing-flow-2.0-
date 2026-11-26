@@ -67,6 +67,8 @@ interface SpecificationFormProps {
   defaultMaterialsOptions?: Array<Option>,
   actionSubmit: (values: SpecificationFormType | SpecificationFormType & { _id: string, _creationTime: string}) => void,
   formApiRef?: MutableRefObject<(() => SpecificationFormType) | null>,
+  // The spec already has variants: rows saved before keep their fabric/material.
+  lockMaterials?: boolean,
 }
 
 const SpecificationForm: FunctionComponent<SpecificationFormProps> = ({
@@ -77,6 +79,7 @@ const SpecificationForm: FunctionComponent<SpecificationFormProps> = ({
   defaultFabricOptions,
   defaultMaterialsOptions,
   formApiRef,
+  lockMaterials,
 }) => {
   const { loadOptions: fabricOptions } = useAsyncOptions(api.queries.fabrics.getFabricsOptions, 'fabric');
   const { loadOptions: materialOptions } = useAsyncOptions(api.queries.materials.getMaterialOptions, 'materials');
@@ -225,8 +228,7 @@ const SpecificationForm: FunctionComponent<SpecificationFormProps> = ({
             {(field) => (
               <div className='flex flex-col gap-2 w-full'>
                   <span className="text-primary/40 text-center">Елементи</span>
-                  {/* Rows scroll inside; the title and add buttons stay put.
-                      react-select scrolls this box to reveal an open menu. */}
+                  {/* Rows scroll inside; the title and add buttons stay put. */}
                   <div className="flex flex-col items-center gap-2 w-full max-h-[60vh] overflow-y-auto pr-1 pb-1">
                     {field.state.value.map((value, i) => (
                       <div key={i} className={clsx('flex gap-2 w-full items-end')}>
@@ -240,6 +242,7 @@ const SpecificationForm: FunctionComponent<SpecificationFormProps> = ({
                               valueMode='object'
                               label={value.type === 'material' ? "Матеріал" : 'Тканина'}
                               modeOption='default'
+                              disabled={lockMaterials && !!(value as { lineId?: string }).lineId}
                               asyncOptions={value.type === 'material' ? materialOptions : fabricOptions}
                               defaultOptions={value.type === 'material' ? materialPicked : fabricPicked}/>
                           )}

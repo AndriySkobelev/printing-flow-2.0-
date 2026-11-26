@@ -1,3 +1,4 @@
+import { type ReactNode } from 'react'
 import clsx from 'clsx'
 import { useQuery } from '@tanstack/react-query'
 import { convexQuery } from '@convex-dev/react-query'
@@ -83,15 +84,16 @@ export const OrderItemSpecDetails = ({ itemId, ...display }: DisplayProps & { it
   return <SpecDetailsView groups={data} isLoading={isLoading} {...display} />
 }
 
-export const SpecChangesPopover = ({ itemId, productName, color }: {
+export const SpecChangesPopover = ({ itemId, productName, color, trigger }: {
   itemId:       Id<'productionOrderItems'>
   productName?: string
   color?:       string
+  trigger?:     ReactNode
 }) => (
   <MyPopover
     align="start"
     withArrow
-    trigger={
+    trigger={trigger ??
       <Button type="button" variant="ghost" title="Специфікацію змінено" className="h-auto shrink-0 p-0 has-[>svg]:px-0 text-violet-500 hover:bg-transparent hover:text-violet-700">
         <FilePen size={13} />
       </Button>

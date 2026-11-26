@@ -11,13 +11,12 @@ import { useCreateSpecification } from "./utils/queries";
 import { Button } from "@/components/ui/button";
 import { type Specifications } from 'convex/schema'
 import SpecificationForm, { type SpecificationFormType } from './forms/create-specification';
-import { Trash2, Copy, SquarePen, Shirt } from "lucide-react";
+import { Trash2, Copy, SquarePen } from "lucide-react";
 import AppTable from "@/components/ui/app-table";
-import { MyPopover } from "@/components/my-popover";
 import { ActionsMenu } from "@/components/actions-menu";
-import { useDeleteSpecification, useUpdateSpecification } from "./utils/queries";
+import { useDeleteSpecification } from "./utils/queries";
+import { useEditSpecificationDialog } from "./utils/use-edit-specification";
 import { Separator } from "radix-ui";
-import { EditSpecifications } from "./forms/edit-specifications";
 import { DuplicateSpecification } from "./forms/duplicate-specification";
 import { omit } from "ramda";
 import { Id } from "convex/_generated/dataModel";
@@ -140,24 +139,6 @@ const headers: (props: HeaderProps) => Array<HeaderObject> = ({ handleEditSpec, 
   { accessor: "category_name", label: "Категорія", width: 200, isSortable: true, type: "string" },
   { accessor: "skuPrefix", label: "SKU префікс", width: 150, isSortable: true, type: "string" },
   {
-    width: 150,
-    type: 'other',
-    label: "Матеріали",
-    accessor: "materials",
-    cellRenderer: ({ row }) => {
-      const materials: Array<any> = Array.isArray(row['materials']) ? row['materials'] : [];
-      if (!materials) return null;
-      return (
-        <MyPopover
-          trigger={<div className="flex items-center p-1 bg-primary/5 rounded cursor-pointer">
-            <Shirt className="cursor-pointer" size={14}/>
-            </div>}
-          content={<MaterialsCellComponent materials={materials} />}
-        />
-      );
-    }
-  },
-  {
     width: 50,
     type: 'other',
     label: "",
@@ -178,7 +159,6 @@ const headers: (props: HeaderProps) => Array<HeaderObject> = ({ handleEditSpec, 
 const Specifications: FunctionComponent<SpecificationsProps> = () => {
   const { data } = useQuery(convexQuery(api.queries.specifications.getSpecificationsWithMaterials));
   const { mutate: createSpec } = useCreateSpecification();
-  const { mutate: updateSpec } = useUpdateSpecification();
   const { openDialog, closeDialog } = useContext(DialogContext);
   const navigate = useNavigate({ from: specificationsRoute.to });
   const drafts = useSpecificationDraftsStore((s) => s.drafts);
@@ -225,28 +205,6 @@ const Specifications: FunctionComponent<SpecificationsProps> = () => {
     closeDialog();
   }
 
-  const handleSubmitEdit = (values: SpecificationFormType | (SpecificationFormType & { _id: Id<'specifications'>, _creationTime: string })) => {
-    if ('_id' in values && '_creationTime' in values) {
-      const newMaterials = values.materials.map((material) => ({
-        lineId: (material as any).lineId,
-        id: material.id?.value as Id<'fabrics'> | Id<'materials'>,
-        type: material.type,
-        name: material.name,
-        quantity: material.quantity,
-      }));
-
-      const { category_crm, ...rest } = values;
-      const newData = {
-        ...omit(['_id', '_creationTime', 'materials'], rest),
-        materials: newMaterials,
-        category_crm_id: category_crm ? Number(category_crm.value) : undefined,
-        category_name: category_crm?.label,
-      };
-      updateSpec({ id: values._id, data: newData as any });
-    }
-    closeDialog();
-  }
-
   const handleAddSpec = (draft?: SpecificationDraft) => {
     const draftId = draft?.id ?? Math.random().toString(36).slice(2, 9);
     const formApiRef: MutableRefObject<(() => SpecificationFormType) | null> = { current: null };
@@ -280,18 +238,7 @@ const Specifications: FunctionComponent<SpecificationsProps> = () => {
     if (draft) handleAddSpec(draft);
   };
 
-  const handleEditSpec = (data: Omit<Specifications, 'productionPrice'> & { productionPrice: number }) => {
-    openDialog({
-      title: 'Редагування специфікації',
-      className: 'sm:w-300 sm:max-w-300',
-      content: <EditSpecifications
-        formId="edit-specification-form"
-        actionSubmit={handleSubmitEdit}
-        specification={data as any}/>,
-      withForm: true,
-      formId: 'edit-specification-form',
-    });
-  };
+  const handleEditSpec = useEditSpecificationDialog();
 
   const handleDuplicateSpec = (data: any) => {
     const draftId = Math.random().toString(36).slice(2, 9);
