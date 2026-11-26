@@ -3,11 +3,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 
-// The image viewer (LIGHTBOX_CLASS in images-section) portals to <body>, outside
-// this dialog: clicks there must not count as "outside", and Esc closes the
-// viewer rather than the dialog while it's open.
+// The image viewer (LIGHTBOX_CLASS in images-section) and select menus portal
+// to <body>, outside this dialog: clicks there must not count as "outside", and
+// Esc closes the viewer rather than the dialog while it's open.
 const isInLightbox = (target: EventTarget | null) =>
-  target instanceof Element && !!target.closest('.app-lightbox')
+  target instanceof Element && !!target.closest('.app-lightbox, .app-select__menu')
 const isLightboxOpen = () => !!document.querySelector('.rc-image-preview-operations-wrapper.app-lightbox')
 
 type FooterProps = {

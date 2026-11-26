@@ -228,8 +228,7 @@ const SpecificationForm: FunctionComponent<SpecificationFormProps> = ({
             {(field) => (
               <div className='flex flex-col gap-2 w-full'>
                   <span className="text-primary/40 text-center">Елементи</span>
-                  {/* Rows scroll inside; the title and add buttons stay put.
-                      react-select scrolls this box to reveal an open menu. */}
+                  {/* Rows scroll inside; the title and add buttons stay put. */}
                   <div className="flex flex-col items-center gap-2 w-full max-h-[60vh] overflow-y-auto pr-1 pb-1">
                     {field.state.value.map((value, i) => (
                       <div key={i} className={clsx('flex gap-2 w-full items-end')}>

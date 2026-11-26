@@ -207,6 +207,14 @@ const FormAsyncSelect: FunctionComponent<FormAsyncSelectProps> = ({
         name={name}
         cacheOptions
         isDisabled={disabled}
+        // The menu goes to <body> so a scrolling box or a dialog can't clip it;
+        // it closes when anything but its own list scrolls, rather than float.
+        menuPortalTarget={typeof document === 'undefined' ? undefined : document.body}
+        menuPosition="fixed"
+        classNamePrefix="app-select"
+        closeMenuOnScroll={(e) => !(e.target instanceof Element && e.target.closest('.app-select__menu-list'))}
+        loadingMessage={() => 'Пошук...'}
+        noOptionsMessage={({ inputValue }) => inputValue ? 'Нічого не знайдено' : 'Почніть вводити назву'}
         placeholder="Пошук..."
         defaultOptions={defaultOptions}
         className='hover:active:border-none'
@@ -225,6 +233,8 @@ const FormAsyncSelect: FunctionComponent<FormAsyncSelectProps> = ({
             borderRadius: '8px',
             borderColor: '#e7e3e4',
           }),
+          // Above the dialog (z-50); a modal dialog turns off pointer events outside it.
+          menuPortal: (baseStyles) => ({ ...baseStyles, zIndex: 60, pointerEvents: 'auto' }),
         }}/>
         {!isValid && <div className="text-sm text-red-500 ml-2">{errors?.[0]?.message}</div>}
     </div>
