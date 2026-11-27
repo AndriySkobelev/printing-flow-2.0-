@@ -6,6 +6,7 @@ import { useNavigate } from '@tanstack/react-router'
 import { ArrowLeft, SquarePen, UploadCloud } from 'lucide-react'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Button } from '@/components/ui/button'
+import { ActionsMenu } from '@/components/actions-menu'
 import { SpecImages } from './components/spec-images'
 import { SpecInfo } from './components/spec-info'
 import { SpecVariantsTable } from './components/spec-variants-table'
@@ -65,25 +66,21 @@ const SpecDetailsContent = ({ specificationId }: { specificationId: string }) =>
               <ArrowLeft className="size-4" />
             </Button>
             <p className="text-sm font-semibold flex-1 min-w-0 py-1 line-clamp-2" title={spec.name}>{spec.name}</p>
-            <Button variant="ghost" size="icon" className="size-7 shrink-0" title="Редагувати" onClick={() => editSpecification(spec)}>
-              <SquarePen className="size-4" />
-            </Button>
+            <ActionsMenu
+              items={[
+                { label: 'Редагувати', icon: <SquarePen className="size-3" />, onClick: () => editSpecification(spec) },
+                {
+                  label:    'Мігрувати в KeyCRM',
+                  icon:     <UploadCloud className="size-3" />,
+                  disabled: isMigrating || notMigrated === 0,
+                  onClick:  () => confirmMigrate(spec, notMigrated),
+                },
+              ]}
+            />
           </div>
-          <div className="flex items-center gap-2 pl-9">
-            <span className="text-xs text-muted-foreground flex-1">
-              KeyCRM: {products.length - notMigrated}/{products.length} варіантів
-            </span>
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-6 text-[11px] px-2 shrink-0"
-              disabled={isMigrating || notMigrated === 0}
-              onClick={() => confirmMigrate(spec, notMigrated)}
-            >
-              <UploadCloud size={10} className="mr-1" />
-              Мігрувати все
-            </Button>
-          </div>
+          <span className="pl-9 text-xs text-muted-foreground">
+            KeyCRM: {products.length - notMigrated}/{products.length} варіантів
+          </span>
         </div>
 
         <SpecImages

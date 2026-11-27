@@ -1,10 +1,10 @@
-import { useMemo, useRef, useState, useCallback, useContext } from 'react'
+import { useMemo, useRef, useState, useCallback, useContext, useTransition } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { convexQuery } from '@convex-dev/react-query'
 import { api } from 'convex/_generated/api'
 import { type Id } from 'convex/_generated/dataModel'
 import { type HeaderObject, type CellClickProps } from 'simple-table-core'
-import { Check, CheckCheck, Info, Plus, SquarePen } from 'lucide-react'
+import { Check, CheckCheck, Info, Loader2, Plus, SquarePen } from 'lucide-react'
 import AppTable from '@/components/ui/app-table'
 import { Button } from '@/components/ui/button'
 import { productSizes } from '@/constants'
@@ -83,15 +83,21 @@ export const SpecVariantsTable = ({ specificationId }: Props) => {
   const [selectedVariants, setSelectedVariants] = useState<Set<string>>(new Set())
   const [colorFilter, setColorFilter] = useState<string[]>([])
   const [mode, setMode] = useState<Mode>('create')
+  // The switch moves at once; the table's new rows render in a transition.
+  const [tab, setTab] = useState<Mode>('create')
+  const [isSwitching, startSwitch] = useTransition()
 
   const isLoading = loadingProducts || loadingColors
 
   // Clearing an already empty selection keeps the same Set, so the rows — and
   // the table — stay as they are.
   const changeMode = (next: Mode) => {
-    setMode(next)
-    setPending(prev => prev.size ? new Set() : prev)
-    setSelectedVariants(prev => prev.size ? new Set() : prev)
+    setTab(next)
+    startSwitch(() => {
+      setMode(next)
+      setPending(prev => prev.size ? new Set() : prev)
+      setSelectedVariants(prev => prev.size ? new Set() : prev)
+    })
   }
 
   const colorNames = useMemo(() => fabricColors.map(f => f.color), [fabricColors])
@@ -280,10 +286,11 @@ export const SpecVariantsTable = ({ specificationId }: Props) => {
           <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground shrink-0">
             Варіанти ({products.length})
           </p>
-          <Tabs value={mode} onValueChange={value => changeMode(value as Mode)}>
+          <Tabs value={tab} onValueChange={value => changeMode(value as Mode)}>
             <TabsList className="h-7!">
-              <TabsTrigger value="create" className="text-[11px] px-2">Створення</TabsTrigger>
-              <TabsTrigger value="edit" className="text-[11px] px-2">Редагування</TabsTrigger>
+              {/* No CSS transition: the table render right after the click would freeze it half-way. */}
+              <TabsTrigger value="create" disabled={isSwitching} className="text-[11px] px-2 transition-none">Створення</TabsTrigger>
+              <TabsTrigger value="edit" disabled={isSwitching} className="text-[11px] px-2 transition-none">Редагування</TabsTrigger>
             </TabsList>
           </Tabs>
           <FilterMenu
@@ -324,7 +331,12 @@ export const SpecVariantsTable = ({ specificationId }: Props) => {
         </div>
       </div>
       {/* The table's own frame would double the section's border. */}
-      <div data-mode={mode} className="group/variants flex-1 min-h-0 [&_.st-wrapper]:border-0 [&_.st-wrapper]:rounded-none">
+      <div data-mode={mode} className="group/variants relative flex-1 min-h-0 [&_.st-wrapper]:border-0 [&_.st-wrapper]:rounded-none">
+        {isSwitching && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/60">
+            <Loader2 className="size-5 animate-spin text-muted-foreground" />
+          </div>
+        )}
         {!isLoading && rows.length === 0
           ? (
             <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
