@@ -1,4 +1,4 @@
-import { type FunctionComponent, type MutableRefObject, memo, useContext, useMemo } from "react";
+import { type FunctionComponent, type MutableRefObject, memo, useContext, useMemo, useState } from "react";
 import { useQuery } from '@tanstack/react-query'
 import { convexQuery } from '@convex-dev/react-query'
 import { api } from "convex/_generated/api";
@@ -114,6 +114,12 @@ export const MaterialsCellComponent = memo(({ materials }: { materials: any }) =
   );
 });
 
+const isEmpty = (value: unknown) => value === undefined || value === null || value === ''
+
+const formatMinutes = (value: unknown) => isEmpty(value) ? '—' : `${value} хв`
+
+const formatPrice = (value: unknown) => isEmpty(value) ? '—' : `${value} грн`
+
 type HeaderProps = {
   handleEditSpec: (data: any) => void
   handleEditDraft: (draft: any) => void
@@ -138,6 +144,9 @@ const headers: (props: HeaderProps) => Array<HeaderObject> = ({ handleEditSpec, 
   },
   { accessor: "category_name", label: "Категорія", width: 200, isSortable: true, type: "string" },
   { accessor: "skuPrefix", label: "SKU префікс", width: 150, isSortable: true, type: "string" },
+  { accessor: "productionTime", label: "Час виробництва", width: 140, type: "string", cellRenderer: ({ row }) => formatMinutes(row['productionTime']) },
+  { accessor: "packingTime", label: "Час пакування", width: 130, type: "string", cellRenderer: ({ row }) => formatMinutes(row['packingTime']) },
+  { accessor: "salePrice", label: "Ціна продажу", width: 130, type: "string", cellRenderer: ({ row }) => formatPrice(row['salePrice']) },
   {
     width: 50,
     type: 'other',
@@ -174,10 +183,15 @@ const Specifications: FunctionComponent<SpecificationsProps> = () => {
   })), [drafts]);
 
   const rows = useMemo(() => [...(data || []), ...draftRows], [data, draftRows]);
+  // The row whose actions menu was opened stays highlighted until another one is.
+  const [activeRowId, setActiveRowId] = useState<string | null>(null);
 
   const handleCellClick = ({ row, accessor }: CellClickProps) => {
-    if (accessor === '_actions') return;
     const r = row as any;
+    if (accessor === '_actions') {
+      if (r._id) setActiveRowId(r._id);
+      return;
+    }
     if (!r._id) return;
     if (r._isDraft) {
       const draft = drafts[r._id];
@@ -275,6 +289,7 @@ const Specifications: FunctionComponent<SpecificationsProps> = () => {
         defaultHeaders={headers({ handleEditSpec, handleEditDraft, handleDeleteDraft, handleDuplicateSpec })}
         getRowId={({ row }: any) => row._id as string}
         onCellClick={handleCellClick}
+        selectedRowId={activeRowId}
       />
     </div>
   );
